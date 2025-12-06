@@ -138,7 +138,7 @@ fun HomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(32.dp),
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Logo and title
@@ -184,12 +184,13 @@ fun HomeScreen(
             }
         }
         
-        Spacer(modifier = Modifier.height(80.dp))
+        Spacer(modifier = Modifier.height(48.dp))
         
         // Plan Your Route section
         Card(
             modifier = Modifier
-                .width(500.dp),
+                .widthIn(max = 600.dp)
+                .fillMaxWidth(0.6f),
             colors = CardDefaults.cardColors(
                 containerColor = Color(0xFF1E293B)
             ),

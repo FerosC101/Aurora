@@ -7,14 +7,12 @@ import androidx.compose.ui.window.rememberWindowState
 import androidx.compose.ui.unit.dp
 import org.aurora.auth.model.User
 import org.aurora.database.Database
-import org.aurora.rider.model.RiderCityMap
-import org.aurora.rider.simulation.RiderSimulationEngine
 import org.aurora.ui.auth.LoginScreen
 import org.aurora.ui.auth.RegisterScreen
-import org.aurora.ui.rider.RiderOSDashboard
+import org.aurora.ui.navigation.AuroraRiderApp
 
 enum class AuthScreen {
-    LOGIN, REGISTER, SIMULATION
+    LOGIN, REGISTER, NAVIGATION
 }
 
 fun main() = application {
@@ -28,24 +26,18 @@ fun main() = application {
     
     var currentScreen by remember { mutableStateOf(AuthScreen.LOGIN) }
     var currentUser by remember { mutableStateOf<User?>(null) }
-    var riderCityMap by remember { mutableStateOf<RiderCityMap?>(null) }
-    var simulationEngine by remember { mutableStateOf<RiderSimulationEngine?>(null) }
     
     Window(
         onCloseRequest = ::exitApplication,
-        title = "Aurora 2.0 - RiderOS | AI-Powered Rider Optimization",
-        state = rememberWindowState(width = 1600.dp, height = 900.dp)
+        title = "Aurora Rider - AI-Powered Navigation for Riders",
+        state = rememberWindowState(width = 1600.dp, height = 1000.dp)
     ) {
         when (currentScreen) {
             AuthScreen.LOGIN -> {
                 LoginScreen(
                     onLoginSuccess = { user ->
                         currentUser = user
-                        // Initialize RiderOS simulation
-                        riderCityMap = RiderCityMap()
-                        simulationEngine = RiderSimulationEngine(riderCityMap!!)
-                        riderCityMap!!.spawnRiders(30)
-                        currentScreen = AuthScreen.SIMULATION
+                        currentScreen = AuthScreen.NAVIGATION
                     },
                     onNavigateToRegister = {
                         currentScreen = AuthScreen.REGISTER
@@ -57,11 +49,7 @@ fun main() = application {
                 RegisterScreen(
                     onRegisterSuccess = { user ->
                         currentUser = user
-                        // Initialize RiderOS simulation
-                        riderCityMap = RiderCityMap()
-                        simulationEngine = RiderSimulationEngine(riderCityMap!!)
-                        riderCityMap!!.spawnRiders(30)
-                        currentScreen = AuthScreen.SIMULATION
+                        currentScreen = AuthScreen.NAVIGATION
                     },
                     onNavigateToLogin = {
                         currentScreen = AuthScreen.LOGIN
@@ -69,21 +57,14 @@ fun main() = application {
                 )
             }
             
-            AuthScreen.SIMULATION -> {
+            AuthScreen.NAVIGATION -> {
                 currentUser?.let { _ ->
-                    riderCityMap?.let { _ ->
-                        simulationEngine?.let { engine ->
-                            RiderOSDashboard(
-                                simulationEngine = engine,
-                                onLogout = {
-                                    currentUser = null
-                                    riderCityMap = null
-                                    simulationEngine = null
-                                    currentScreen = AuthScreen.LOGIN
-                                }
-                            )
+                    AuroraRiderApp(
+                        onLogout = {
+                            currentUser = null
+                            currentScreen = AuthScreen.LOGIN
                         }
-                    }
+                    )
                 }
             }
         }

@@ -4,8 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -34,13 +36,14 @@ fun RouteSelectionScreen(
         // Left sidebar with route cards
         Surface(
             modifier = Modifier
-                .width(400.dp)
+                .fillMaxWidth(0.35f)
                 .fillMaxHeight(),
             color = Color(0xFF1E293B)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
                     .padding(24.dp)
             ) {
                 // Header
@@ -236,7 +239,7 @@ fun RouteCard(
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
-                </Row>
+                }
                 
                 if (route.type == RouteType.SMART) {
                     Surface(
@@ -318,7 +321,7 @@ fun RouteCard(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            Divider(color = Color.White.copy(alpha = 0.2f))
+            HorizontalDivider(color = Color.White.copy(alpha = 0.2f))
             
             Spacer(modifier = Modifier.height(12.dp))
             
