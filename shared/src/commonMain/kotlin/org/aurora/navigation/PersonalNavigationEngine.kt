@@ -18,7 +18,9 @@ data class NavigationState(
     val eta: Int = 0,                      // minutes remaining
     val hazardsAvoided: Int = 0,
     val timeSaved: Int = 0,                // seconds
-    val upcomingStoplights: List<Stoplight> = emptyList()
+    val upcomingStoplights: List<Stoplight> = emptyList(),
+    val activeHazardAlerts: List<HazardAlert> = emptyList(),
+    val tripStartTime: Long = 0            // timestamp when navigation started
 )
 
 /**
@@ -28,6 +30,7 @@ class PersonalNavigationEngine {
     private val _navigationState = MutableStateFlow(NavigationState())
     val navigationState: StateFlow<NavigationState> = _navigationState.asStateFlow()
     
+    private val auroraShield = AuroraShieldSystem()
     private var simulationTime = 0f
     
     /**
@@ -120,6 +123,7 @@ class PersonalNavigationEngine {
      * Start navigation with selected route
      */
     fun startNavigation(route: NavigationRoute) {
+        auroraShield.clearAlerts()
         _navigationState.value = NavigationState(
             isNavigating = true,
             selectedRoute = route,
@@ -127,7 +131,8 @@ class PersonalNavigationEngine {
             progress = 0f,
             currentSpeed = 0f,
             eta = route.estimatedTime,
-            upcomingStoplights = route.stoplights
+            upcomingStoplights = route.stoplights,
+            tripStartTime = System.currentTimeMillis()
         )
         simulationTime = 0f
     }
@@ -177,6 +182,9 @@ class PersonalNavigationEngine {
         // Calculate ETA
         val remainingTime = (state.selectedRoute.estimatedTime * (1f - newProgress)).toInt()
         
+        // Scan for hazards with Aurora SHIELD
+        val hazardAlerts = auroraShield.scanRoute(state.selectedRoute, newPosition)
+        
         // Update hazards avoided (for Smart/Chill routes)
         val hazardsAvoided = when (state.selectedRoute.type) {
             RouteType.SMART, RouteType.CHILL -> {
@@ -194,7 +202,8 @@ class PersonalNavigationEngine {
             eta = remainingTime,
             hazardsAvoided = hazardsAvoided,
             timeSaved = (state.selectedRoute.timeSavedVsBaseline * 60 * newProgress).toInt(),
-            upcomingStoplights = updatedStoplights
+            upcomingStoplights = updatedStoplights,
+            activeHazardAlerts = hazardAlerts
         )
         
         // Check if navigation complete
@@ -207,6 +216,7 @@ class PersonalNavigationEngine {
      * End navigation
      */
     fun endNavigation() {
+        auroraShield.clearAlerts()
         _navigationState.value = NavigationState()
         simulationTime = 0f
     }

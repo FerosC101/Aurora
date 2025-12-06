@@ -219,10 +219,10 @@ fun LiveNavigationScreen(
                 
                 Spacer(modifier = Modifier.weight(1f))
                 
-                // Aurora SHIELD Active
+                // Aurora SHIELD Hazard Alerts
                 Card(
                     colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFF334155)
+                        containerColor = if (navState.activeHazardAlerts.isNotEmpty()) Color(0xFF7F1D1D) else Color(0xFF334155)
                     ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
@@ -231,24 +231,62 @@ fun LiveNavigationScreen(
                             Icon(
                                 Icons.Default.Security,
                                 contentDescription = null,
-                                tint = Color(0xFF10B981),
+                                tint = if (navState.activeHazardAlerts.isNotEmpty()) Color(0xFFFEF3C7) else Color(0xFF10B981),
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                "Aurora SHIELD Active",
+                                "Aurora SHIELD",
                                 color = Color.White,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            "• Clear road ahead - optimal conditions\n• Traffic prediction: Light for next 5 minutes\n• Route efficiency: ${(97 * navState.progress + 3).toInt()}%",
-                            color = Color.White.copy(alpha = 0.8f),
-                            fontSize = 12.sp,
-                            lineHeight = 18.sp
-                        )
+                        
+                        if (navState.activeHazardAlerts.isEmpty()) {
+                            Text(
+                                "• Clear road ahead - optimal conditions\n• No hazards detected\n• Route efficiency: ${(97 - navState.progress * 5).toInt()}%",
+                                color = Color.White.copy(alpha = 0.8f),
+                                fontSize = 12.sp,
+                                lineHeight = 18.sp
+                            )
+                        } else {
+                            navState.activeHazardAlerts.take(3).forEach { alert ->
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(vertical = 4.dp)
+                                ) {
+                                    val hazardIcon = when (alert.type) {
+                                        org.aurora.navigation.model.HazardType.POTHOLE -> Icons.Default.Warning
+                                        org.aurora.navigation.model.HazardType.FLOOD -> Icons.Default.WaterDrop
+                                        org.aurora.navigation.model.HazardType.ACCIDENT -> Icons.Default.ErrorOutline
+                                        org.aurora.navigation.model.HazardType.CONSTRUCTION -> Icons.Default.Construction
+                                    }
+                                    
+                                    Icon(
+                                        hazardIcon,
+                                        contentDescription = null,
+                                        tint = Color(0xFFFEF3C7),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Column {
+                                        Text(
+                                            "${alert.type.name} - ${alert.location}",
+                                            color = Color.White,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            alert.description,
+                                            color = Color.White.copy(alpha = 0.8f),
+                                            fontSize = 11.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
                 
