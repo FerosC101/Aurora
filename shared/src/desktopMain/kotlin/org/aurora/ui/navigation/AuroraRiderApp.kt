@@ -1,6 +1,7 @@
 package org.aurora.ui.navigation
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -194,361 +195,709 @@ fun HomeScreen(
     onVehicleModeChange: (String) -> Unit,
     onLogout: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+    var animatedProgress by remember { mutableStateOf(0f) }
+    
+    LaunchedEffect(Unit) {
+        animate(0f, 1f, animationSpec = tween(800, easing = EaseOutCubic)) { value, _ ->
+            animatedProgress = value
+        }
+    }
+    
+    Box(
+        modifier = Modifier.fillMaxSize()
     ) {
-        // Logo and title
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Default.ElectricBolt,
-                    contentDescription = null,
-                    tint = Color(0xFF3B82F6),
-                    modifier = Modifier.size(48.dp)
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
-                    Text(
-                        "Aurora Rider",
-                        color = Color.White,
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        "Smart & safe routes for riders",
-                        color = Color.White.copy(alpha = 0.6f),
-                        fontSize = 16.sp
-                    )
-                }
-            }
+        // Animated gradient background
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val time = System.currentTimeMillis() / 2000f
             
-            IconButton(
-                onClick = onLogout,
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(Color(0xFFEF4444), CircleShape)
-            ) {
-                Icon(
-                    Icons.Default.ExitToApp,
-                    contentDescription = "Logout",
-                    tint = Color.White
+            // Flowing gradient circles
+            for (i in 0..3) {
+                val offset = i * 90f
+                val radius = 400f + kotlin.math.sin(time + offset) * 60f
+                val alpha = 0.04f + kotlin.math.sin(time + offset) * 0.02f
+                
+                drawCircle(
+                    color = if (i % 2 == 0) Color(0xFF3B82F6) else Color(0xFF8B5CF6),
+                    radius = radius,
+                    center = Offset(
+                        size.width * (0.2f + i * 0.25f),
+                        size.height * (0.3f + kotlin.math.cos(time + offset) * 0.15f)
+                    ),
+                    alpha = alpha
                 )
             }
         }
         
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        // Plan Your Route section
-        Card(
+        Column(
             modifier = Modifier
-                .widthIn(max = 600.dp)
-                .fillMaxWidth(0.6f),
-            colors = CardDefaults.cardColors(
-                containerColor = Color(0xFF1E293B)
-            ),
-            shape = RoundedCornerShape(24.dp)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
         ) {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+            // Modern header with glassmorphism
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(90.dp),
+                shape = RoundedCornerShape(0.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xFF1E293B).copy(alpha = 0.95f)
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
             ) {
-                Icon(
-                    Icons.Default.Navigation,
-                    contentDescription = null,
-                    tint = Color(0xFF3B82F6),
-                    modifier = Modifier.size(48.dp)
-                )
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                Text(
-                    "Plan Your Route",
-                    color = Color.White,
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                
-                Text(
-                    "Enter your destination to see intelligent route options\noptimized for riders",
-                    color = Color.White.copy(alpha = 0.6f),
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(vertical = 12.dp)
-                )
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                // Origin input
-                OutlinedTextField(
-                    value = origin,
-                    onValueChange = onOriginChange,
-                    label = { Text("From", color = Color.White.copy(alpha = 0.6f)) },
-                    leadingIcon = {
-                        Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color(0xFF10B981))
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedBorderColor = Color(0xFF3B82F6),
-                        unfocusedBorderColor = Color(0xFF334155)
-                    )
-                )
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                // Vehicle Mode Selector
-                var expandedVehicle by remember { mutableStateOf(false) }
-                val vehicleOptions = mapOf(
-                    "bicycling" to "🚴 Bicycling",
-                    "walking" to "🚶 Walking",
-                    "driving" to "🚗 Driving",
-                    "transit" to "🚌 Transit"
-                )
-                
-                ExposedDropdownMenuBox(
-                    expanded = expandedVehicle,
-                    onExpandedChange = { expandedVehicle = !expandedVehicle }
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 32.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .background(
+                                    brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                                        colors = listOf(Color(0xFF3B82F6), Color(0xFF8B5CF6))
+                                    ),
+                                    shape = CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.ElectricBolt,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                        Column {
+                            Text(
+                                "Aurora Rider",
+                                color = Color.White,
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                "AI-Powered Smart Navigation",
+                                color = Color(0xFF3B82F6),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                    
+                    IconButton(
+                        onClick = onLogout,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(Color(0xFFEF4444), CircleShape)
+                    ) {
+                        Icon(
+                            Icons.Default.ExitToApp,
+                            contentDescription = "Logout",
+                            tint = Color.White
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(32.dp))
+            
+            // Dashboard statistics
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 32.dp),
+                horizontalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                DashboardStatCard(
+                    title = "Total Trips",
+                    value = "248",
+                    subtitle = "+12 this week",
+                    icon = Icons.Default.Route,
+                    iconColor = Color(0xFF3B82F6),
+                    progress = animatedProgress,
+                    modifier = Modifier.weight(1f)
+                )
+                DashboardStatCard(
+                    title = "Hazards Avoided",
+                    value = "1,432",
+                    subtitle = "97% safety rate",
+                    icon = Icons.Default.Shield,
+                    iconColor = Color(0xFF10B981),
+                    progress = animatedProgress,
+                    modifier = Modifier.weight(1f)
+                )
+                DashboardStatCard(
+                    title = "Time Saved",
+                    value = "18.5h",
+                    subtitle = "This month",
+                    icon = Icons.Default.Speed,
+                    iconColor = Color(0xFF8B5CF6),
+                    progress = animatedProgress,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(32.dp))
+        
+            // Modern route planning card
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 32.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xFF1E293B).copy(alpha = 0.95f)
+                ),
+                shape = RoundedCornerShape(24.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(32.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Navigation,
+                            contentDescription = null,
+                            tint = Color(0xFF3B82F6),
+                            modifier = Modifier.size(40.dp)
+                        )
+                        Column {
+                            Text(
+                                "Plan Your Journey",
+                                color = Color.White,
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                "Find the smartest route for your ride",
+                                color = Color.White.copy(alpha = 0.6f),
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(28.dp))
+                    
+                    // Origin input with modern styling
                     OutlinedTextField(
-                        value = vehicleOptions[vehicleMode] ?: "🚴 Bicycling",
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Vehicle Mode", color = Color.White.copy(alpha = 0.6f)) },
-                        trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedVehicle)
+                        value = origin,
+                        onValueChange = onOriginChange,
+                        label = { Text("Starting Point", color = Color.White.copy(alpha = 0.6f)) },
+                        leadingIcon = {
+                            Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color(0xFF10B981))
                         },
-                        modifier = Modifier.fillMaxWidth().menuAnchor(),
+                        modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
                             focusedBorderColor = Color(0xFF3B82F6),
-                            unfocusedBorderColor = Color(0xFF334155)
-                        )
+                            unfocusedBorderColor = Color(0xFF334155),
+                            cursorColor = Color(0xFF3B82F6)
+                        ),
+                        shape = RoundedCornerShape(12.dp)
                     )
                     
-                    ExposedDropdownMenu(
-                        expanded = expandedVehicle,
-                        onDismissRequest = { expandedVehicle = false }
-                    ) {
-                        vehicleOptions.forEach { (mode, label) ->
-                            DropdownMenuItem(
-                                text = { Text(label, color = Color.White) },
-                                onClick = {
-                                    onVehicleModeChange(mode)
-                                    expandedVehicle = false
-                                },
-                                modifier = Modifier.background(Color(0xFF1E293B))
-                            )
-                        }
-                    }
-                }
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                // Destination input
-                OutlinedTextField(
-                    value = destination,
-                    onValueChange = onDestinationChange,
-                    label = { Text("To", color = Color.White.copy(alpha = 0.6f)) },
-                    leadingIcon = {
-                        Icon(Icons.Default.Flag, contentDescription = null, tint = Color(0xFFEF4444))
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedBorderColor = Color(0xFF3B82F6),
-                        unfocusedBorderColor = Color(0xFF334155)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Destination input
+                    OutlinedTextField(
+                        value = destination,
+                        onValueChange = onDestinationChange,
+                        label = { Text("Destination", color = Color.White.copy(alpha = 0.6f)) },
+                        leadingIcon = {
+                            Icon(Icons.Default.Place, contentDescription = null, tint = Color(0xFFEF4444))
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedBorderColor = Color(0xFF3B82F6),
+                            unfocusedBorderColor = Color(0xFF334155),
+                            cursorColor = Color(0xFF3B82F6)
+                        ),
+                        shape = RoundedCornerShape(12.dp)
                     )
-                )
-                
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                // Demo Mode Toggle
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFF0F172A)
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
+                    
+                    Spacer(modifier = Modifier.height(20.dp))
+                    
+                    // Vehicle mode selector with modern cards
+                    Text(
+                        "Transportation Mode",
+                        color = Color.White.copy(alpha = 0.8f),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        VehicleModeCard(
+                            icon = "🚴",
+                            label = "Bike",
+                            isSelected = vehicleMode == "bicycling",
+                            onClick = { onVehicleModeChange("bicycling") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        VehicleModeCard(
+                            icon = "🚶",
+                            label = "Walk",
+                            isSelected = vehicleMode == "walking",
+                            onClick = { onVehicleModeChange("walking") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        VehicleModeCard(
+                            icon = "🚗",
+                            label = "Drive",
+                            isSelected = vehicleMode == "driving",
+                            onClick = { onVehicleModeChange("driving") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        VehicleModeCard(
+                            icon = "🚌",
+                            label = "Transit",
+                            isSelected = vehicleMode == "transit",
+                            onClick = { onVehicleModeChange("transit") },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    // Demo mode toggle
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .background(Color(0xFF334155).copy(alpha = 0.3f), RoundedCornerShape(12.dp))
                             .padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                if (useDemoMode) "🎮 Demo Mode" else "🗺️ Real Maps",
-                                color = Color.White,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Science,
+                                contentDescription = null,
+                                tint = Color(0xFFF59E0B),
+                                modifier = Modifier.size(24.dp)
                             )
-                            Text(
-                                if (useDemoMode) "Using simulated routes" else "Using Google Maps API",
-                                color = Color.White.copy(alpha = 0.6f),
-                                fontSize = 12.sp
-                            )
+                            Column {
+                                Text(
+                                    if (useDemoMode) "🎮 Demo Mode" else "🗺️ Real Maps",
+                                    color = Color.White,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    if (useDemoMode) "Simulated routes" else "Google Maps API",
+                                    color = Color.White.copy(alpha = 0.5f),
+                                    fontSize = 12.sp
+                                )
+                            }
                         }
-                        
                         Switch(
                             checked = useDemoMode,
                             onCheckedChange = onDemoModeChange,
                             colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color(0xFFEAB308),
-                                checkedTrackColor = Color(0xFFEAB308).copy(alpha = 0.5f),
-                                uncheckedThumbColor = Color(0xFF3B82F6),
-                                uncheckedTrackColor = Color(0xFF3B82F6).copy(alpha = 0.5f)
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = Color(0xFF3B82F6),
+                                uncheckedThumbColor = Color(0xFF64748B),
+                                uncheckedTrackColor = Color(0xFF334155)
                             )
                         )
                     }
-                }
-                
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                // Find Routes button
-                Button(
-                    onClick = onFindRoutes,
-                    enabled = !isLoadingRoutes,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF3B82F6)
-                    ),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    if (isLoadingRoutes) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = Color.White
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            "Loading routes...",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    } else {
-                        Text(
-                            "Find Routes",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    // Find routes button
+                    Button(
+                        onClick = onFindRoutes,
+                        enabled = !isLoadingRoutes && origin.isNotBlank() && destination.isNotBlank(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF3B82F6),
+                            disabledContainerColor = Color(0xFF334155)
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        if (isLoadingRoutes) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text("Finding Best Routes...", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                        } else {
+                            Icon(
+                                Icons.Default.Search,
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text("Find Smart Routes", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                        }
                     }
                 }
-                
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                // Features list
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    FeatureItem("AI-powered route optimization", Color(0xFF3B82F6))
-                    FeatureItem("Real-time hazard detection", Color(0xFF10B981))
-                    FeatureItem("Stoplight timing predictions", Color(0xFFF59E0B))
-                }
             }
+            
+            Spacer(modifier = Modifier.height(48.dp))
         }
-    }
-}
-
-@Composable
-fun FeatureItem(text: String, color: Color) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Icon(
-            Icons.Default.CheckCircle,
-            contentDescription = null,
-            tint = color,
-            modifier = Modifier.size(20.dp)
-        )
-        Text(
-            text,
-            color = Color.White.copy(alpha = 0.8f),
-            fontSize = 14.sp
-        )
     }
 }
 
 @Composable
 fun OnboardingScreen(onComplete: () -> Unit) {
+    var currentSlide by remember { mutableStateOf(0) }
+    val slideProgress by animateFloatAsState(
+        targetValue = currentSlide.toFloat(),
+        animationSpec = spring(dampingRatio = 0.8f, stiffness = 300f)
+    )
+    
+    val slides = remember {
+        listOf(
+            OnboardingSlide(
+                title = "Welcome to Aurora Rider",
+                subtitle = "AI-Powered Smart Navigation",
+                description = "Navigate smarter with real-time hazard detection, intelligent route optimization, and adaptive traffic predictions.",
+                icon = Icons.Default.ElectricBolt,
+                color = Color(0xFF3B82F6)
+            ),
+            OnboardingSlide(
+                title = "Aurora SHIELD",
+                subtitle = "Advanced Hazard Detection",
+                description = "Our AI identifies construction zones, potholes, floods, and accidents in real-time to keep you safe on every ride.",
+                icon = Icons.Default.Shield,
+                color = Color(0xFF10B981)
+            ),
+            OnboardingSlide(
+                title = "Smart Route Selection",
+                subtitle = "3 Intelligent Options",
+                description = "Choose between Smart (fastest), Chill (scenic), or Regular routes. Each optimized for your riding style and safety.",
+                icon = Icons.Default.Route,
+                color = Color(0xFF8B5CF6)
+            ),
+            OnboardingSlide(
+                title = "Real-Time Insights",
+                subtitle = "Live Traffic & Stoplights",
+                description = "Get stoplight countdown timers, live traffic updates, and time-saving suggestions throughout your journey.",
+                icon = Icons.Default.Speed,
+                color = Color(0xFFF59E0B)
+            )
+        )
+    }
+    
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0F172A)),
-        contentAlignment = Alignment.Center
+            .background(Color(0xFF0F172A))
     ) {
+        // Animated background particles
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val time = System.currentTimeMillis() / 3000f
+            for (i in 0..15) {
+                val offset = i * 40f
+                val x = size.width * (0.1f + (i % 5) * 0.2f)
+                val y = size.height * ((kotlin.math.sin(time + offset) + 1f) / 2f)
+                val alpha = (kotlin.math.sin(time + offset) + 1f) / 4f
+                
+                drawCircle(
+                    color = slides[currentSlide].color.copy(alpha = alpha * 0.15f),
+                    radius = 60f + kotlin.math.sin(time + offset) * 20f,
+                    center = Offset(x, y)
+                )
+            }
+        }
+        
         Card(
             modifier = Modifier
-                .width(600.dp)
-                .height(400.dp),
+                .align(Alignment.Center)
+                .width(700.dp)
+                .height(500.dp),
             colors = CardDefaults.cardColors(
-                containerColor = Color(0xFF1E293B)
+                containerColor = Color(0xFF1E293B).copy(alpha = 0.95f)
             ),
-            shape = RoundedCornerShape(24.dp)
+            shape = RoundedCornerShape(32.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 16.dp)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(48.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(
-                    Icons.Default.ElectricBolt,
-                    contentDescription = null,
-                    tint = Color(0xFF3B82F6),
-                    modifier = Modifier.size(80.dp)
-                )
+                // Animated slide content
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        // Animated icon with pulse
+                        Box(
+                            modifier = Modifier
+                                .size(120.dp)
+                                .background(
+                                    brush = androidx.compose.ui.graphics.Brush.radialGradient(
+                                        colors = listOf(
+                                            slides[currentSlide].color.copy(alpha = 0.3f),
+                                            Color.Transparent
+                                        )
+                                    ),
+                                    shape = CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                slides[currentSlide].icon,
+                                contentDescription = null,
+                                tint = slides[currentSlide].color,
+                                modifier = Modifier.size(64.dp)
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.height(32.dp))
+                        
+                        Text(
+                            slides[currentSlide].title,
+                            color = Color.White,
+                            fontSize = 36.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        Text(
+                            slides[currentSlide].subtitle,
+                            color = slides[currentSlide].color,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        
+                        Spacer(modifier = Modifier.height(24.dp))
+                        
+                        Text(
+                            slides[currentSlide].description,
+                            color = Color.White.copy(alpha = 0.8f),
+                            fontSize = 16.sp,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 32.dp),
+                            lineHeight = 24.sp
+                        )
+                    }
+                }
                 
                 Spacer(modifier = Modifier.height(24.dp))
                 
-                Text(
-                    "Welcome to Aurora Rider",
-                    color = Color.White,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Bold
+                // Progress indicators
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.padding(bottom = 24.dp)
+                ) {
+                    slides.forEachIndexed { index, _ ->
+                        val indicatorColor by animateColorAsState(
+                            targetValue = if (index == currentSlide) 
+                                slides[currentSlide].color 
+                            else 
+                                Color.White.copy(alpha = 0.3f),
+                            animationSpec = tween(300)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .height(4.dp)
+                                .width(if (index == currentSlide) 40.dp else 24.dp)
+                                .background(indicatorColor, RoundedCornerShape(2.dp))
+                        )
+                    }
+                }
+                
+                // Navigation buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    if (currentSlide > 0) {
+                        TextButton(
+                            onClick = { currentSlide-- },
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = Color.White.copy(alpha = 0.7f)
+                            )
+                        ) {
+                            Icon(
+                                Icons.Default.ArrowBack,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Back", fontSize = 16.sp)
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.width(1.dp))
+                    }
+                    
+                    Button(
+                        onClick = {
+                            if (currentSlide < slides.size - 1) {
+                                currentSlide++
+                            } else {
+                                onComplete()
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = slides[currentSlide].color
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.height(48.dp)
+                    ) {
+                        Text(
+                            if (currentSlide < slides.size - 1) "Next" else "Get Started",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(
+                            if (currentSlide < slides.size - 1) Icons.Default.ArrowForward else Icons.Default.Check,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+data class OnboardingSlide(
+    val title: String,
+    val subtitle: String,
+    val description: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val color: Color
+)
+
+@Composable
+fun DashboardStatCard(
+    title: String,
+    value: String,
+    subtitle: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconColor: Color,
+    progress: Float,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.height(140.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF1E293B).copy(alpha = 0.95f)
+        ),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Animated background gradient
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                drawCircle(
+                    color = iconColor.copy(alpha = 0.1f * progress),
+                    radius = 120f,
+                    center = Offset(size.width - 40f, 40f)
                 )
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                Text(
-                    "AI-powered navigation designed exclusively for riders.\nExperience Smart routes, hazard avoidance, and real-time traffic predictions.",
-                    color = Color.White.copy(alpha = 0.7f),
-                    fontSize = 16.sp,
-                    modifier = Modifier.padding(horizontal = 32.dp)
-                )
-                
-                Spacer(modifier = Modifier.height(32.dp))
-                
-                Button(
-                    onClick = onComplete,
-                    modifier = Modifier
-                        .width(200.dp)
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF3B82F6)
-                    ),
-                    shape = RoundedCornerShape(16.dp)
+            }
+            
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
                 ) {
                     Text(
-                        "Get Started",
-                        fontSize = 18.sp,
+                        title,
+                        color = Color.White.copy(alpha = 0.7f),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Icon(
+                        icon,
+                        contentDescription = null,
+                        tint = iconColor,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                
+                Column {
+                    Text(
+                        value,
+                        color = Color.White,
+                        fontSize = 32.sp,
                         fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        subtitle,
+                        color = Color.White.copy(alpha = 0.5f),
+                        fontSize = 12.sp
                     )
                 }
             }
         }
     }
 }
+
+@Composable
+fun VehicleModeCard(
+    icon: String,
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .height(80.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) 
+                Color(0xFF3B82F6) 
+            else 
+                Color(0xFF334155).copy(alpha = 0.5f)
+        ),
+        shape = RoundedCornerShape(12.dp),
+        onClick = onClick
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                icon,
+                fontSize = 28.sp
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                label,
+                color = Color.White,
+                fontSize = 13.sp,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+            )
+        }
+    }
+}
+

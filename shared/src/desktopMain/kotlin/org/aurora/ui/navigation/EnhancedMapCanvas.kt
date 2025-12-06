@@ -1,8 +1,9 @@
 package org.aurora.ui.navigation
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
@@ -15,6 +16,22 @@ import kotlin.math.*
 
 @Composable
 fun EnhancedNavigationMapCanvas(navState: NavigationState) {
+    // Animated pulse effect for current position
+    val infiniteTransition = rememberInfiniteTransition()
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.4f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = EaseInOutCubic),
+            repeatMode = RepeatMode.Reverse
+        )
+    )
+    
+    // Animated progress for smooth route drawing
+    val animatedProgress by animateFloatAsState(
+        targetValue = navState.progress,
+        animationSpec = tween(300, easing = EaseOutCubic)
+    )
     Canvas(modifier = Modifier.fillMaxSize()) {
         val route = navState.selectedRoute ?: return@Canvas
         val waypoints = route.waypoints
@@ -92,9 +109,9 @@ fun EnhancedNavigationMapCanvas(navState: NavigationState) {
             )
         )
         
-        // Draw traveled portion in different color
+        // Draw traveled portion in different color with smooth animation
         val traveledPath = Path()
-        val progressWaypoints = waypoints.take(max(2, (waypoints.size * navState.progress).toInt()))
+        val progressWaypoints = waypoints.take(max(2, (waypoints.size * animatedProgress).toInt()))
         
         progressWaypoints.forEachIndexed { index, waypoint ->
             val wx = waypoint.x * scaleX

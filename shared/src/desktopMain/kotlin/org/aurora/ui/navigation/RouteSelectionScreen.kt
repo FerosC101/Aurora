@@ -1,5 +1,7 @@
 package org.aurora.ui.navigation
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -280,17 +282,27 @@ fun RouteCard(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    val backgroundColor = when (route.type) {
-        RouteType.SMART -> if (isSelected) Color(0xFF3B82F6) else Color(0xFF1E3A5F)
-        RouteType.CHILL -> if (isSelected) Color(0xFFA855F7) else Color(0xFF4C1D95)
-        RouteType.REGULAR -> if (isSelected) Color(0xFF64748B) else Color(0xFF334155)
-    }
+    // Animated colors for smooth transitions
+    val backgroundColor by animateColorAsState(
+        targetValue = when (route.type) {
+            RouteType.SMART -> if (isSelected) Color(0xFF3B82F6) else Color(0xFF1E3A5F)
+            RouteType.CHILL -> if (isSelected) Color(0xFFA855F7) else Color(0xFF4C1D95)
+            RouteType.REGULAR -> if (isSelected) Color(0xFF64748B) else Color(0xFF334155)
+        },
+        animationSpec = tween(300, easing = EaseInOutCubic)
+    )
     
     val borderColor = when (route.type) {
         RouteType.SMART -> Color(0xFF3B82F6)
         RouteType.CHILL -> Color(0xFFA855F7)
         RouteType.REGULAR -> Color(0xFF64748B)
     }
+    
+    // Animated elevation for selection feedback
+    val elevation by animateDpAsState(
+        targetValue = if (isSelected) 8.dp else 2.dp,
+        animationSpec = tween(300, easing = EaseInOutCubic)
+    )
     
     Card(
         modifier = Modifier
@@ -303,7 +315,8 @@ fun RouteCard(
         colors = CardDefaults.cardColors(
             containerColor = backgroundColor
         ),
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = elevation)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             // Header with icon and badge
