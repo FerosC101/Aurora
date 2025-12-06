@@ -27,6 +27,7 @@ import org.aurora.maps.GoogleMapsProvider
 import org.aurora.maps.MapsProvider
 import org.aurora.navigation.PersonalNavigationEngine
 import org.aurora.navigation.model.*
+import org.aurora.ui.components.*
 
 /**
  * Aurora Rider - Personal Navigation App
@@ -341,6 +342,33 @@ fun HomeScreen(
                     modifier = Modifier.weight(1f)
                 )
             }
+            
+            Spacer(modifier = Modifier.height(32.dp))
+            
+            // Weather Widget
+            WeatherWidget(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 32.dp)
+            )
+            
+            Spacer(modifier = Modifier.height(20.dp))
+            
+            // Live Stats Panel
+            LiveStatsPanel(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 32.dp)
+            )
+            
+            Spacer(modifier = Modifier.height(20.dp))
+            
+            // Achievement System
+            AchievementPanel(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 32.dp)
+            )
             
             Spacer(modifier = Modifier.height(32.dp))
         
