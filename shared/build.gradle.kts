@@ -1,5 +1,6 @@
 plugins {
     kotlin("multiplatform")
+    kotlin("plugin.serialization") version "1.9.25"
     // id("com.android.library") // Disabled for desktop-only builds
     id("org.jetbrains.compose")
 }
@@ -54,6 +55,11 @@ kotlin {
                 // Serialization
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
                 
+                // Ktor Client for HTTP requests
+                implementation("io.ktor:ktor-client-core:2.3.7")
+                implementation("io.ktor:ktor-client-content-negotiation:2.3.7")
+                implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.7")
+                
                 // Security - BCrypt for password hashing
                 implementation("org.mindrot:jbcrypt:0.4")
             }
@@ -78,6 +84,9 @@ kotlin {
                 
                 // SQLite database
                 implementation("org.xerial:sqlite-jdbc:3.45.0.0")
+                
+                // Ktor Client engine for JVM
+                implementation("io.ktor:ktor-client-cio:2.3.7")
             }
         }
     }

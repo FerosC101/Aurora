@@ -19,6 +19,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import org.aurora.maps.MapsProvider
 import org.aurora.navigation.PersonalNavigationEngine
 import org.aurora.navigation.model.*
 
@@ -27,16 +29,22 @@ import org.aurora.navigation.model.*
  * Matching Figma design specifications
  */
 @Composable
-fun AuroraRiderApp(onLogout: () -> Unit) {
+fun AuroraRiderApp(
+    userId: Int,
+    mapsProvider: MapsProvider,
+    onLogout: () -> Unit
+) {
     val navigationEngine = remember { PersonalNavigationEngine() }
     val navState by navigationEngine.navigationState.collectAsState()
+    val scope = rememberCoroutineScope()
     
     var showOnboarding by remember { mutableStateOf(true) }
     var origin by remember { mutableStateOf("Manila") }
-    var destination by remember { mutableStateOf("Sunset Hills") }
+    var destination by remember { mutableStateOf("Makati") }
     var availableRoutes by remember { mutableStateOf<List<NavigationRoute>>(emptyList()) }
     var selectedRouteType by remember { mutableStateOf<RouteType?>(null) }
     var showTripComplete by remember { mutableStateOf(false) }
+    var isLoadingRoutes by remember { mutableStateOf(false) }
     
     // Update loop
     LaunchedEffect(Unit) {
@@ -101,8 +109,30 @@ fun AuroraRiderApp(onLogout: () -> Unit) {
                     onOriginChange = { origin = it },
                     onDestinationChange = { destination = it },
                     onFindRoutes = {
-                        availableRoutes = navigationEngine.generateRoutes(origin, destination)
-                        selectedRouteType = RouteType.SMART // Auto-select Smart route
+                        isLoadingRoutes = true
+                        scope.launch {
+                            try {
+                                // Try Google Maps API first
+                                val realRoutes = mapsProvider.generateRoutes(origin, destination)
+                                
+                                availableRoutes = if (realRoutes.isNotEmpty()) {
+                                    println("✅ Using real routes from Google Maps")
+                                    realRoutes
+                                } else {
+                                    // Fallback to simulation
+                                    println("⚠️ Falling back to simulated routes")
+                                    navigationEngine.generateRoutes(origin, destination)
+                                }
+                                
+                                selectedRouteType = RouteType.SMART
+                            } catch (e: Exception) {
+                                println("❌ Error loading routes: ${e.message}")
+                                availableRoutes = navigationEngine.generateRoutes(origin, destination)
+                                selectedRouteType = RouteType.SMART
+                            } finally {
+                                isLoadingRoutes = false
+                            }
+                        }
                     },
                     onLogout = onLogout
                 )
