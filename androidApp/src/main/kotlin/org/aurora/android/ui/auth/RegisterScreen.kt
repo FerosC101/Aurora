@@ -1,9 +1,11 @@
-package org.aurora.ui.auth
+package org.aurora.android.ui.auth
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -18,14 +20,17 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import org.aurora.auth.model.User
-import org.aurora.auth.service.AuthService
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.aurora.android.auth.model.User
+import org.aurora.android.auth.service.AuthService
 
 @Composable
 fun RegisterScreen(
     onRegisterSuccess: (User) -> Unit,
     onNavigateToLogin: () -> Unit,
-    authService: AuthService = remember { AuthService() }
+    authService: AuthService
 ) {
     var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -36,7 +41,8 @@ fun RegisterScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(1) }
-    
+    val scope = rememberCoroutineScope()
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -52,8 +58,9 @@ fun RegisterScreen(
     ) {
         Card(
             modifier = Modifier
-                .width(500.dp)
-                .padding(24.dp),
+                .fillMaxWidth(0.9f)
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
                 containerColor = Color(0xFF1E293B).copy(alpha = 0.95f)
@@ -67,7 +74,7 @@ fun RegisterScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 32.dp, start = 32.dp, end = 32.dp, bottom = 16.dp),
+                        .padding(top = 32.dp, start = 24.dp, end = 24.dp, bottom = 16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
@@ -77,26 +84,26 @@ fun RegisterScreen(
                         modifier = Modifier.size(56.dp),
                         tint = Color(0xFF06B6D4)
                     )
-                    
+
                     Text(
                         text = "Aurora",
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
-                    
+
                     Text(
                         text = "AI-Powered Traffic Orchestration Platform",
                         fontSize = 13.sp,
                         color = Color.White.copy(alpha = 0.6f)
                     )
                 }
-                
+
                 // Tab Row
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 32.dp),
+                        .padding(horizontal = 24.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     // Sign In Tab
@@ -117,7 +124,7 @@ fun RegisterScreen(
                             fontWeight = FontWeight.Normal
                         )
                     }
-                    
+
                     // Register Tab
                     Button(
                         onClick = { selectedTab = 1 },
@@ -140,11 +147,11 @@ fun RegisterScreen(
                         )
                     }
                 }
-                
+
                 // Form Content
                 Column(
                     modifier = Modifier
-                        .padding(32.dp)
+                        .padding(24.dp)
                         .fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
@@ -154,19 +161,19 @@ fun RegisterScreen(
                         fontWeight = FontWeight.SemiBold,
                         color = Color.White
                     )
-                    
+
                     Text(
                         text = "Register to get started with Aurora",
                         fontSize = 14.sp,
                         color = Color.White.copy(alpha = 0.6f)
                     )
-                    
+
                     Spacer(modifier = Modifier.height(8.dp))
-                
+
                     // Full Name field
                     OutlinedTextField(
                         value = fullName,
-                        onValueChange = { 
+                        onValueChange = {
                             fullName = it
                             errorMessage = null
                         },
@@ -191,11 +198,11 @@ fun RegisterScreen(
                             unfocusedContainerColor = Color(0xFF0F172A).copy(alpha = 0.3f)
                         )
                     )
-                    
+
                     // Email field
                     OutlinedTextField(
                         value = email,
-                        onValueChange = { 
+                        onValueChange = {
                             email = it
                             errorMessage = null
                         },
@@ -221,11 +228,11 @@ fun RegisterScreen(
                             unfocusedContainerColor = Color(0xFF0F172A).copy(alpha = 0.3f)
                         )
                     )
-                    
+
                     // Password field
                     OutlinedTextField(
                         value = password,
-                        onValueChange = { 
+                        onValueChange = {
                             password = it
                             errorMessage = null
                         },
@@ -261,11 +268,11 @@ fun RegisterScreen(
                             unfocusedContainerColor = Color(0xFF0F172A).copy(alpha = 0.3f)
                         )
                     )
-                    
+
                     // Confirm Password field
                     OutlinedTextField(
                         value = confirmPassword,
-                        onValueChange = { 
+                        onValueChange = {
                             confirmPassword = it
                             errorMessage = null
                         },
@@ -301,7 +308,7 @@ fun RegisterScreen(
                             unfocusedContainerColor = Color(0xFF0F172A).copy(alpha = 0.3f)
                         )
                     )
-                    
+
                     // Error message
                     if (errorMessage != null) {
                         Card(
@@ -332,7 +339,7 @@ fun RegisterScreen(
                             }
                         }
                     }
-                    
+
                     // Terms agreement
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -348,63 +355,67 @@ fun RegisterScreen(
                             modifier = Modifier.padding(12.dp)
                         )
                     }
-                    
+
                     // Create Account button
                     Button(
-                    onClick = {
-                        when {
-                            password != confirmPassword -> {
-                                errorMessage = "Passwords do not match"
-                            }
-                            else -> {
-                                isLoading = true
-                                errorMessage = null
-                                
-                                val result = authService.register(fullName, email, password)
-                                result.onSuccess { user ->
-                                    isLoading = false
-                                    onRegisterSuccess(user)
-                                }.onFailure { error ->
-                                    isLoading = false
-                                    errorMessage = error.message ?: "Registration failed"
+                        onClick = {
+                            when {
+                                password != confirmPassword -> {
+                                    errorMessage = "Passwords do not match"
+                                }
+                                else -> {
+                                    scope.launch {
+                                        isLoading = true
+                                        errorMessage = null
+
+                                        val result = withContext(Dispatchers.IO) {
+                                            authService.register(fullName, email, password)
+                                        }
+
+                                        isLoading = false
+                                        result.onSuccess { user ->
+                                            onRegisterSuccess(user)
+                                        }.onFailure { error ->
+                                            errorMessage = error.message ?: "Registration failed"
+                                        }
+                                    }
                                 }
                             }
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    enabled = !isLoading && fullName.isNotBlank() && email.isNotBlank() && 
-                             password.isNotBlank() && confirmPassword.isNotBlank(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF06B6D4),
-                        contentColor = Color.White,
-                        disabledContainerColor = Color(0xFF06B6D4).copy(alpha = 0.5f),
-                        disabledContentColor = Color.White.copy(alpha = 0.7f)
-                    ),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = Color.White,
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Row(
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text("Create Account", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Icon(
-                                Icons.Default.ArrowForward,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        enabled = !isLoading && fullName.isNotBlank() && email.isNotBlank() &&
+                                password.isNotBlank() && confirmPassword.isNotBlank(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF06B6D4),
+                            contentColor = Color.White,
+                            disabledContainerColor = Color(0xFF06B6D4).copy(alpha = 0.5f),
+                            disabledContentColor = Color.White.copy(alpha = 0.7f)
+                        ),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
                             )
+                        } else {
+                            Row(
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Create Account", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Icon(
+                                    Icons.Default.ArrowForward,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
                         }
                     }
-                }
                 }
             }
         }

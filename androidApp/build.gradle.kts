@@ -52,7 +52,8 @@ android {
 }
 
 dependencies {
-    implementation(project(":shared"))
+    // Removed shared module dependency due to multiplatform compatibility issues
+    // implementation(project(":shared"))
 
     // Android Core
     implementation("androidx.core:core-ktx:1.12.0")
@@ -72,6 +73,16 @@ dependencies {
 
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.7.7")
+    
+    // SQLite for Android
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    
+    // BCrypt for password hashing
+    implementation("org.mindrot:jbcrypt:0.4")
+    
+    // Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")

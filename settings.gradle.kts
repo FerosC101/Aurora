@@ -16,8 +16,8 @@ pluginManagement {
         kotlin("multiplatform") version "1.9.25"
 
         // Android Gradle Plugin
-        id("com.android.application") version "8.2.2"
-        id("com.android.library") version "8.2.2"
+        id("com.android.application") version "8.5.2"
+        id("com.android.library") version "8.5.2"
 
         // Compose Multiplatform Gradle plugin
         id("org.jetbrains.compose") version "1.7.1"
@@ -50,5 +50,5 @@ include(":utils")
 // Add new Aurora modules
 include(":shared")
 include(":desktopApp")
-// Temporarily excluding androidApp due to AGP 8.7.x BaseVariant API incompatibility
+// Temporarily excluding androidApp due to Kotlin/AGP compatibility issues
 // include(":androidApp")

@@ -1,7 +1,6 @@
 plugins {
     kotlin("multiplatform")
-    // Temporarily disabled due to BaseVariant API removal in AGP 8.x
-    // id("com.android.library")
+    // id("com.android.library") // Disabled for desktop-only builds
     id("org.jetbrains.compose")
 }
 
@@ -25,7 +24,6 @@ repositories {
 // }
 
 kotlin {
-    // Android target temporarily disabled
     // androidTarget {
     //     compilations.all {
     //         kotlinOptions {
@@ -67,7 +65,7 @@ kotlin {
             }
         }
         
-        // Android source set temporarily disabled
+        // Android source set
         // val androidMain by getting {
         //     dependencies {
         //         implementation("androidx.core:core-ktx:1.12.0")
@@ -85,7 +83,6 @@ kotlin {
     }
 }
 
-// Android configuration temporarily disabled
 // android {
 //     namespace = "org.aurora.shared"
 //     compileSdk = 34
