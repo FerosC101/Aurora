@@ -1,7 +1,6 @@
 plugins {
     id("com.android.application")
     kotlin("android")
-    id("org.jetbrains.compose")
 }
 
 android {
@@ -43,9 +42,7 @@ android {
         compose = true
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.10"
-    }
+    // Compose compiler version is managed by the Compose Multiplatform plugin declared in settings.gradle.kts
 
     packaging {
         resources {

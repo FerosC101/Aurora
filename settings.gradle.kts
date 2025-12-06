@@ -3,11 +3,34 @@
 // It is also used for some aspects of project-wide configuration, like managing plugins, dependencies, etc.
 // https://docs.gradle.org/current/userguide/settings_file_basics.html
 
+pluginManagement {
+    repositories {
+        google()
+        gradlePluginPortal()
+        mavenCentral()
+    }
+    plugins {
+        // Kotlin plugins
+        kotlin("jvm") version "1.9.25"
+        kotlin("android") version "1.9.25"
+        kotlin("multiplatform") version "1.9.25"
+
+        // Android Gradle Plugin
+        id("com.android.application") version "8.2.2"
+        id("com.android.library") version "8.2.2"
+
+        // Compose Multiplatform Gradle plugin
+        id("org.jetbrains.compose") version "1.7.1"
+    }
+}
+
 dependencyResolutionManagement {
     // Use Maven Central as the default repository (where Gradle will download dependencies) in all subprojects.
     @Suppress("UnstableApiUsage")
     repositories {
+        google()
         mavenCentral()
+        maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
     }
 }
 
@@ -27,7 +50,5 @@ include(":utils")
 // Add new Aurora modules
 include(":shared")
 include(":desktopApp")
-include(":androidApp")
-include("shared")
-include("desktopApp")
-include("androidApp")
+// Temporarily excluding androidApp due to AGP 8.7.x BaseVariant API incompatibility
+// include(":androidApp")

@@ -1,6 +1,7 @@
 plugins {
     kotlin("multiplatform")
-    id("com.android.library")
+    // Temporarily disabled due to BaseVariant API removal in AGP 8.x
+    // id("com.android.library")
     id("org.jetbrains.compose")
 }
 
@@ -8,24 +9,30 @@ group = "org.example"
 version = "unspecified"
 
 repositories {
+    google()
     mavenCentral()
+    maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
 }
 
-dependencies {
-    testImplementation(kotlin("test"))
-}
+// Dependencies moved to sourceSets
+// dependencies {
+//     testImplementation(kotlin("test"))
+// }
 
-tasks.test {
-    useJUnitPlatform()
-}
+// Test configuration moved to appropriate targets
+// tasks.test {
+//     useJUnitPlatform()
+// }
+
 kotlin {
-    androidTarget {
-        compilations.all {
-            kotlinOptions {
-                jvmTarget = "17"
-            }
-        }
-    }
+    // Android target temporarily disabled
+    // androidTarget {
+    //     compilations.all {
+    //         kotlinOptions {
+    //             jvmTarget = "17"
+    //         }
+    //     }
+    // }
     
     jvm("desktop") {
         jvmToolchain(17)
@@ -38,6 +45,7 @@ kotlin {
                 implementation(compose.foundation)
                 implementation(compose.material3)
                 implementation(compose.ui)
+                implementation(compose.materialIconsExtended)
                 
                 // Coroutines
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
@@ -47,6 +55,9 @@ kotlin {
                 
                 // Serialization
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+                
+                // Security - BCrypt for password hashing
+                implementation("org.mindrot:jbcrypt:0.4")
             }
         }
         
@@ -56,30 +67,35 @@ kotlin {
             }
         }
         
-        val androidMain by getting {
-            dependencies {
-                implementation("androidx.core:core-ktx:1.12.0")
-            }
-        }
+        // Android source set temporarily disabled
+        // val androidMain by getting {
+        //     dependencies {
+        //         implementation("androidx.core:core-ktx:1.12.0")
+        //     }
+        // }
         
         val desktopMain by getting {
             dependencies {
                 implementation(compose.desktop.common)
+                
+                // SQLite database
+                implementation("org.xerial:sqlite-jdbc:3.45.0.0")
             }
         }
     }
 }
 
-android {
-    namespace = "org.aurora.shared"
-    compileSdk = 34
-    
-    defaultConfig {
-        minSdk = 24
-    }
-    
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-}
+// Android configuration temporarily disabled
+// android {
+//     namespace = "org.aurora.shared"
+//     compileSdk = 34
+//     
+//     defaultConfig {
+//         minSdk = 24
+//     }
+//     
+//     compileOptions {
+//         sourceCompatibility = JavaVersion.VERSION_17
+//         targetCompatibility = JavaVersion.VERSION_17
+//     }
+// }

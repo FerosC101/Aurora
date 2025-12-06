@@ -6,15 +6,15 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent
 
 plugins {
     // Apply the Kotlin JVM plugin to add support for Kotlin in JVM projects.
-    kotlin("jvm")
+    id("org.jetbrains.kotlin.jvm")
 }
 
+// Configure JVM toolchain to use Java 17
 kotlin {
-    // Use a specific Java version to make it easier to work in different environments.
-    jvmToolchain(23)
+    jvmToolchain(17)
 }
 
-tasks.withType<Test>().configureEach {
+tasks.withType(org.gradle.api.tasks.testing.Test::class.java).configureEach {
     // Configure all test Gradle tasks to use JUnitPlatform.
     useJUnitPlatform()
 

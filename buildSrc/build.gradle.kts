@@ -1,15 +1,26 @@
 plugins {
-    // The Kotlin DSL plugin provides a convenient way to develop convention plugins.
-    // Convention plugins are located in `src/main/kotlin`, with the file extension `.gradle.kts`,
-    // and are applied in the project's `build.gradle.kts` files as required.
     `kotlin-dsl`
 }
 
-kotlin {
-    jvmToolchain(23)
+repositories {
+    // Required for resolving Gradle plugins used by buildSrc convention plugins
+    gradlePluginPortal()
+    mavenCentral()
+    google()
 }
 
 dependencies {
-    // Add a dependency on the Kotlin Gradle plugin, so that convention plugins can apply it.
+    // Make external Gradle plugins available to precompiled script plugins
     implementation(libs.kotlinGradlePlugin)
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    kotlinOptions {
+        jvmTarget = "17"
+    }
 }

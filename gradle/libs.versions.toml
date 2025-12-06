@@ -3,10 +3,10 @@
 # https://docs.gradle.org/current/userguide/platforms.html#sub::toml-dependencies-format
 
 [versions]
-kotlin = "2.2.20"
-kotlinxDatetime = "0.6.2"
-kotlinxSerializationJSON = "1.8.1"
-kotlinxCoroutines = "1.10.2"
+kotlin = "1.9.25"
+kotlinxDatetime = "0.5.0"
+kotlinxSerializationJSON = "1.6.3"
+kotlinxCoroutines = "1.8.0"
 
 [libraries]
 kotlinGradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }

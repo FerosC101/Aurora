@@ -5,6 +5,11 @@ plugins {
     id("org.jetbrains.compose")
 }
 
+// Configure JVM toolchain to use Java 17
+kotlin {
+    jvmToolchain(17)
+}
+
 dependencies {
     implementation(project(":shared"))
     implementation(compose.desktop.currentOs)
