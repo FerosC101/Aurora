@@ -1,5 +1,7 @@
 package org.aurora.ui.navigation
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -11,16 +13,28 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.graphics.toComposeImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.aurora.navigation.model.NavigationRoute
 import org.aurora.navigation.model.RouteType
 import org.aurora.navigation.model.TrafficLevel
+import org.jetbrains.skia.Image as SkiaImage
+import java.net.URL
 
 @Composable
 fun RouteSelectionScreen(
@@ -170,15 +184,92 @@ fun RouteSelectionScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFF0F172A)),
-            contentAlignment = Alignment.Center
+                .background(Color(0xFF0F172A))
         ) {
-            Text(
-                "Map Preview\n\n${origin} → ${destination}",
-                color = Color.White.copy(alpha = 0.4f),
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Light
-            )
+            // Show Google Maps satellite view if available
+            val selectedRoute = routes.find { it.type == selectedType }
+            
+            if (selectedRoute?.staticMapUrl != null) {
+                // Display actual Google Maps satellite image
+                NetworkImage(
+                    url = selectedRoute.staticMapUrl,
+                    contentDescription = "Satellite Map View",
+                    modifier = Modifier.fillMaxSize()
+                )
+                
+                // Overlay with route info
+                Card(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFF1E293B).copy(alpha = 0.9f)
+                    )
+                ) {
+                    Text(
+                        "${selectedRoute.name} - Satellite View",
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
+            } else {
+                // Fallback to text if no map available
+                Column(
+                    modifier = Modifier.align(Alignment.Center),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        Icons.Default.Map,
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.3f),
+                        modifier = Modifier.size(64.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        "Map Preview",
+                        color = Color.White.copy(alpha = 0.4f),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Light
+                    )
+                    Text(
+                        "$origin → $destination",
+                        color = Color.White.copy(alpha = 0.3f),
+                        fontSize = 14.sp
+                    )
+                }
+            }
+            
+            // Route selector pills
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                routes.forEach { route ->
+                    val isSelected = route.type == selectedType
+                    val bgColor = when (route.type) {
+                        RouteType.SMART -> if (isSelected) Color(0xFF3B82F6) else Color(0xFF3B82F6).copy(alpha = 0.3f)
+                        RouteType.REGULAR -> if (isSelected) Color(0xFF64748B) else Color(0xFF64748B).copy(alpha = 0.3f)
+                        RouteType.CHILL -> if (isSelected) Color(0xFFA855F7) else Color(0xFFA855F7).copy(alpha = 0.3f)
+                    }
+                    
+                    Card(
+                        modifier = Modifier.clickable { onRouteSelected(route.type) },
+                        colors = CardDefaults.cardColors(containerColor = bgColor)
+                    ) {
+                        Text(
+                            route.name,
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -364,4 +455,82 @@ fun RouteDetail(label: String, value: String) {
             fontWeight = FontWeight.Medium
         )
     }
+}
+
+/**
+ * Custom composable for loading and displaying images from URLs
+ * Uses SkiaImage for Compose Desktop compatibility
+ */
+@Composable
+fun NetworkImage(
+    url: String,
+    contentDescription: String,
+    modifier: Modifier = Modifier
+) {
+    var bitmap by remember { mutableStateOf<ImageBitmap?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+    var hasError by remember { mutableStateOf(false) }
+    
+    LaunchedEffect(url) {
+        isLoading = true
+        hasError = false
+        try {
+            bitmap = loadImageFromUrl(url)
+            isLoading = false
+        } catch (e: Exception) {
+            println("Failed to load image from $url: ${e.message}")
+            hasError = true
+            isLoading = false
+        }
+    }
+    
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        when {
+            isLoading -> {
+                CircularProgressIndicator(
+                    color = Color(0xFF3B82F6),
+                    modifier = Modifier.size(48.dp)
+                )
+            }
+            hasError -> {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        Icons.Default.ErrorOutline,
+                        contentDescription = "Error loading map",
+                        tint = Color.Red,
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Map unavailable",
+                        color = Color.White.copy(alpha = 0.6f),
+                        fontSize = 14.sp
+                    )
+                }
+            }
+            bitmap != null -> {
+                Image(
+                    bitmap = bitmap!!,
+                    contentDescription = contentDescription,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Loads an image from a URL and converts it to ImageBitmap
+ * Uses SkiaImage for Compose Desktop compatibility
+ */
+suspend fun loadImageFromUrl(url: String): ImageBitmap = withContext(Dispatchers.IO) {
+    val connection = URL(url).openConnection()
+    connection.connectTimeout = 10000
+    connection.readTimeout = 10000
+    val bytes = connection.getInputStream().readBytes()
+    SkiaImage.makeFromEncoded(bytes).toComposeImageBitmap()
 }

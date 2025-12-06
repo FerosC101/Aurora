@@ -87,6 +87,20 @@ kotlin {
                 
                 // Ktor Client engine for JVM
                 implementation("io.ktor:ktor-client-cio:2.3.7")
+                
+                // JavaFX for WebView (interactive maps)
+                val javaFxVersion = "17.0.2"
+                val osName = System.getProperty("os.name").lowercase()
+                val platform = when {
+                    osName.contains("win") -> "win"
+                    osName.contains("mac") -> "mac"
+                    else -> "linux"
+                }
+                implementation("org.openjfx:javafx-base:$javaFxVersion:$platform")
+                implementation("org.openjfx:javafx-controls:$javaFxVersion:$platform")
+                implementation("org.openjfx:javafx-graphics:$javaFxVersion:$platform")
+                implementation("org.openjfx:javafx-web:$javaFxVersion:$platform")
+                implementation("org.openjfx:javafx-swing:$javaFxVersion:$platform")
             }
         }
     }

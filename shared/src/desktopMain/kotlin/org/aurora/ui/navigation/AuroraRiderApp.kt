@@ -4,8 +4,10 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -20,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.aurora.maps.GoogleMapsProvider
 import org.aurora.maps.MapsProvider
 import org.aurora.navigation.PersonalNavigationEngine
 import org.aurora.navigation.model.*
@@ -28,6 +31,7 @@ import org.aurora.navigation.model.*
  * Aurora Rider - Personal Navigation App
  * Matching Figma design specifications
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuroraRiderApp(
     userId: Int,
@@ -45,6 +49,8 @@ fun AuroraRiderApp(
     var selectedRouteType by remember { mutableStateOf<RouteType?>(null) }
     var showTripComplete by remember { mutableStateOf(false) }
     var isLoadingRoutes by remember { mutableStateOf(false) }
+    var useDemoMode by remember { mutableStateOf(false) }
+    var vehicleMode by remember { mutableStateOf("bicycling") } // bicycling, walking, driving, transit
     
     // Update loop
     LaunchedEffect(Unit) {
@@ -112,21 +118,33 @@ fun AuroraRiderApp(
                         isLoadingRoutes = true
                         scope.launch {
                             try {
-                                // Try Google Maps API first
-                                val realRoutes = mapsProvider.generateRoutes(origin, destination)
-                                
-                                availableRoutes = if (realRoutes.isNotEmpty()) {
-                                    println("✅ Using real routes from Google Maps")
-                                    realRoutes
-                                } else {
-                                    // Fallback to simulation
-                                    println("⚠️ Falling back to simulated routes")
+                                availableRoutes = if (useDemoMode) {
+                                    // Demo mode: use simulation
+                                    println("🎮 Demo Mode: Using simulated routes")
                                     navigationEngine.generateRoutes(origin, destination)
+                                } else {
+                                    // Real mode: try Google Maps API first
+                                    println("🗺️ Real Mode: Fetching routes from Google Maps (mode=$vehicleMode)...")
+                                    val realRoutes = if (mapsProvider is GoogleMapsProvider) {
+                                        (mapsProvider as GoogleMapsProvider).generateRoutesWithMode(origin, destination, vehicleMode)
+                                    } else {
+                                        mapsProvider.generateRoutes(origin, destination)
+                                    }
+                                    
+                                    if (realRoutes.isNotEmpty()) {
+                                        println("✅ Using real routes from Google Maps (${realRoutes.size} routes)")
+                                        realRoutes
+                                    } else {
+                                        // Fallback to simulation
+                                        println("⚠️ Google Maps returned no routes, falling back to simulation")
+                                        navigationEngine.generateRoutes(origin, destination)
+                                    }
                                 }
                                 
                                 selectedRouteType = RouteType.SMART
                             } catch (e: Exception) {
                                 println("❌ Error loading routes: ${e.message}")
+                                e.printStackTrace()
                                 availableRoutes = navigationEngine.generateRoutes(origin, destination)
                                 selectedRouteType = RouteType.SMART
                             } finally {
@@ -134,6 +152,11 @@ fun AuroraRiderApp(
                             }
                         }
                     },
+                    useDemoMode = useDemoMode,
+                    onDemoModeChange = { useDemoMode = it },
+                    isLoadingRoutes = isLoadingRoutes,
+                    vehicleMode = vehicleMode,
+                    onVehicleModeChange = { vehicleMode = it },
                     onLogout = onLogout
                 )
             }
@@ -156,6 +179,7 @@ fun AuroraRiderApp(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     origin: String,
@@ -163,11 +187,17 @@ fun HomeScreen(
     onOriginChange: (String) -> Unit,
     onDestinationChange: (String) -> Unit,
     onFindRoutes: () -> Unit,
+    useDemoMode: Boolean,
+    onDemoModeChange: (Boolean) -> Unit,
+    isLoadingRoutes: Boolean,
+    vehicleMode: String,
+    onVehicleModeChange: (String) -> Unit,
     onLogout: () -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -214,7 +244,7 @@ fun HomeScreen(
             }
         }
         
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(24.dp))
         
         // Plan Your Route section
         Card(
@@ -227,17 +257,17 @@ fun HomeScreen(
             shape = RoundedCornerShape(24.dp)
         ) {
             Column(
-                modifier = Modifier.padding(32.dp),
+                modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Icon(
                     Icons.Default.Navigation,
                     contentDescription = null,
                     tint = Color(0xFF3B82F6),
-                    modifier = Modifier.size(64.dp)
+                    modifier = Modifier.size(48.dp)
                 )
                 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 
                 Text(
                     "Plan Your Route",
@@ -250,10 +280,10 @@ fun HomeScreen(
                     "Enter your destination to see intelligent route options\noptimized for riders",
                     color = Color.White.copy(alpha = 0.6f),
                     fontSize = 14.sp,
-                    modifier = Modifier.padding(vertical = 16.dp)
+                    modifier = Modifier.padding(vertical = 12.dp)
                 )
                 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 
                 // Origin input
                 OutlinedTextField(
@@ -274,6 +304,55 @@ fun HomeScreen(
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
+                // Vehicle Mode Selector
+                var expandedVehicle by remember { mutableStateOf(false) }
+                val vehicleOptions = mapOf(
+                    "bicycling" to "🚴 Bicycling",
+                    "walking" to "🚶 Walking",
+                    "driving" to "🚗 Driving",
+                    "transit" to "🚌 Transit"
+                )
+                
+                ExposedDropdownMenuBox(
+                    expanded = expandedVehicle,
+                    onExpandedChange = { expandedVehicle = !expandedVehicle }
+                ) {
+                    OutlinedTextField(
+                        value = vehicleOptions[vehicleMode] ?: "🚴 Bicycling",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Vehicle Mode", color = Color.White.copy(alpha = 0.6f)) },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedVehicle)
+                        },
+                        modifier = Modifier.fillMaxWidth().menuAnchor(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedBorderColor = Color(0xFF3B82F6),
+                            unfocusedBorderColor = Color(0xFF334155)
+                        )
+                    )
+                    
+                    ExposedDropdownMenu(
+                        expanded = expandedVehicle,
+                        onDismissRequest = { expandedVehicle = false }
+                    ) {
+                        vehicleOptions.forEach { (mode, label) ->
+                            DropdownMenuItem(
+                                text = { Text(label, color = Color.White) },
+                                onClick = {
+                                    onVehicleModeChange(mode)
+                                    expandedVehicle = false
+                                },
+                                modifier = Modifier.background(Color(0xFF1E293B))
+                            )
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
                 // Destination input
                 OutlinedTextField(
                     value = destination,
@@ -291,11 +370,56 @@ fun HomeScreen(
                     )
                 )
                 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                // Demo Mode Toggle
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFF0F172A)
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                if (useDemoMode) "🎮 Demo Mode" else "🗺️ Real Maps",
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                if (useDemoMode) "Using simulated routes" else "Using Google Maps API",
+                                color = Color.White.copy(alpha = 0.6f),
+                                fontSize = 12.sp
+                            )
+                        }
+                        
+                        Switch(
+                            checked = useDemoMode,
+                            onCheckedChange = onDemoModeChange,
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color(0xFFEAB308),
+                                checkedTrackColor = Color(0xFFEAB308).copy(alpha = 0.5f),
+                                uncheckedThumbColor = Color(0xFF3B82F6),
+                                uncheckedTrackColor = Color(0xFF3B82F6).copy(alpha = 0.5f)
+                            )
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(24.dp))
                 
                 // Find Routes button
                 Button(
                     onClick = onFindRoutes,
+                    enabled = !isLoadingRoutes,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
@@ -304,11 +428,24 @@ fun HomeScreen(
                     ),
                     shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text(
-                        "Find Routes",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    if (isLoadingRoutes) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            "Loading routes...",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    } else {
+                        Text(
+                            "Find Routes",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
                 
                 Spacer(modifier = Modifier.height(24.dp))

@@ -26,7 +26,14 @@ data class NavigationRoute(
     val scenicPoints: Int = 0,
     val timeSavedVsBaseline: Int = 0,  // minutes (positive = saves time)
     val waypoints: List<Position>,
-    val stoplights: List<Stoplight>
+    val stoplights: List<Stoplight>,
+    val staticMapUrl: String? = null,  // Google Maps Static API URL with satellite view
+    val encodedPolyline: String? = null, // Encoded polyline for route path
+    val realLatLngWaypoints: List<Pair<Double, Double>> = emptyList(), // Real lat/lng coordinates
+    val detectedHazards: List<RouteHazard> = emptyList(), // AI-detected hazards along route
+    val centerLat: Double = 0.0,
+    val centerLng: Double = 0.0,
+    val zoomLevel: Int = 16 // Street-level zoom (16-18 for close-up)
 )
 
 enum class TrafficLevel {
@@ -77,14 +84,21 @@ enum class StoplightState {
 }
 
 /**
- * Hazard on the route
+ * Hazard on the route detected by AI
  */
 data class RouteHazard(
     val type: HazardType,
     val location: String,
     val position: Position,
-    val severity: HazardSeverity
+    val severity: HazardSeverity,
+    val description: String = "",
+    val lat: Double = 0.0,
+    val lng: Double = 0.0,
+    val distance: Float = 0f  // distance from start in meters
 )
+
+// Alias for better naming in UI code
+typealias DetectedHazard = RouteHazard
 
 enum class HazardType {
     POTHOLE,

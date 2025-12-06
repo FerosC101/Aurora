@@ -14,6 +14,7 @@ data class NavigationState(
     val selectedRoute: NavigationRoute? = null,
     val currentPosition: Position = Position(0f, 0f),
     val progress: Float = 0f,              // 0.0 to 1.0
+    val distanceTraveled: Float = 0f,      // meters traveled from start
     val currentSpeed: Float = 0f,          // km/h
     val eta: Int = 0,                      // minutes remaining
     val hazardsAvoided: Int = 0,
