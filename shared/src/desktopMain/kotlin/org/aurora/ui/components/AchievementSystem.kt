@@ -59,12 +59,12 @@ fun AchievementBadge(
         modifier = modifier.width(140.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (achievement.isUnlocked) 
-                achievement.color.copy(alpha = 0.2f) 
+                achievement.color.copy(alpha = 0.08f) 
             else 
-                Color(0xFF334155).copy(alpha = 0.3f)
+                Color(0xFFF5F5F5)
         ),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (achievement.isUnlocked) 8.dp else 2.dp)
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -84,8 +84,8 @@ fun AchievementBadge(
                         } else {
                             Brush.linearGradient(
                                 colors = listOf(
-                                    Color(0xFF475569),
-                                    Color(0xFF334155)
+                                    Color(0xFFE0E0E0),
+                                    Color(0xFFBDBDBD)
                                 )
                             )
                         },

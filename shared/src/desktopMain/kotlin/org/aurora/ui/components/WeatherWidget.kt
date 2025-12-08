@@ -50,17 +50,10 @@ fun WeatherWidget(modifier: Modifier = Modifier) {
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(
-            containerColor = when (weather.condition) {
-                WeatherCondition.SUNNY -> Color(0xFFFFA726)
-                WeatherCondition.CLOUDY -> Color(0xFF78909C)
-                WeatherCondition.RAINY -> Color(0xFF42A5F5)
-                WeatherCondition.STORMY -> Color(0xFF5C6BC0)
-                WeatherCondition.FOGGY -> Color(0xFF90A4AE)
-                WeatherCondition.SNOWY -> Color(0xFF81D4FA)
-            }.copy(alpha = 0.2f)
+            containerColor = Color.White
         ),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),

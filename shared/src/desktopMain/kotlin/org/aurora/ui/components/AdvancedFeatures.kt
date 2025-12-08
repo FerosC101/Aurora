@@ -28,15 +28,15 @@ fun TrafficHeatmapLegend(modifier: Modifier = Modifier) {
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF1E293B).copy(alpha = 0.95f)
+            containerColor = Color.White
         ),
         shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 "Traffic Intensity",
-                color = Color.White,
+                color = Color(0xFF212121),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -67,7 +67,7 @@ private fun TrafficLevel(label: String, color: Color, intensity: Int) {
         )
         Text(
             label,
-            color = Color.White.copy(alpha = 0.7f),
+            color = Color(0xFF757575),
             fontSize = 12.sp
         )
     }
@@ -100,10 +100,10 @@ fun LiveStatsPanel(modifier: Modifier = Modifier) {
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF1E293B).copy(alpha = 0.95f)
+            containerColor = Color.White
         ),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(
@@ -112,11 +112,9 @@ fun LiveStatsPanel(modifier: Modifier = Modifier) {
             ) {
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(40.dp)
                         .background(
-                            brush = Brush.linearGradient(
-                                colors = listOf(Color(0xFF3B82F6), Color(0xFF8B5CF6))
-                            ),
+                            Color(0xFF1E88E5).copy(alpha = 0.1f),
                             shape = CircleShape
                         ),
                     contentAlignment = Alignment.Center
@@ -124,14 +122,14 @@ fun LiveStatsPanel(modifier: Modifier = Modifier) {
                     Icon(
                         Icons.Default.Speed,
                         contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
+                        tint = Color(0xFF1E88E5),
+                        modifier = Modifier.size(20.dp)
                     )
                 }
                 Text(
                     "Live Stats",
-                    color = Color.White,
-                    fontSize = 20.sp,
+                    color = Color(0xFF212121),
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -171,7 +169,7 @@ private fun SpeedGauge(
                 
                 // Background arc
                 drawArc(
-                    color = Color(0xFF334155),
+                    color = Color(0xFFE0E0E0),
                     startAngle = 135f,
                     sweepAngle = 270f,
                     useCenter = false,
@@ -198,13 +196,13 @@ private fun SpeedGauge(
             ) {
                 Text(
                     "$speed",
-                    color = Color.White,
+                    color = Color(0xFF212121),
                     fontSize = (24 * scale).sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
                     "km/h",
-                    color = Color.White.copy(alpha = 0.6f),
+                    color = Color(0xFF757575),
                     fontSize = (10 * scale).sp
                 )
             }
@@ -212,7 +210,7 @@ private fun SpeedGauge(
         
         Text(
             label,
-            color = Color.White.copy(alpha = 0.7f),
+            color = Color(0xFF757575),
             fontSize = 12.sp,
             modifier = Modifier.padding(top = 8.dp)
         )

@@ -24,13 +24,13 @@ fun LiveNavigationScreen(
     navState: NavigationState,
     onEndTrip: () -> Unit
 ) {
-    Row(modifier = Modifier.fillMaxSize().background(Color(0xFF0A0E1A))) {
+    Row(modifier = Modifier.fillMaxSize().background(Color(0xFFF8F9FA))) {
         // Left sidebar
         Column(
             modifier = Modifier
                 .fillMaxHeight()
                 .width(400.dp)
-                .background(Color(0xFF1E293B))
+                .background(Color.White)
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
@@ -38,9 +38,10 @@ fun LiveNavigationScreen(
             // Header card
             Card(
                 colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFF3B82F6)
+                    containerColor = Color(0xFF1E88E5)
                 ),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(12.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {

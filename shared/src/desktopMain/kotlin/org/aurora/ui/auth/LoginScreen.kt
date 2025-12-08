@@ -37,55 +37,48 @@ fun LoginScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF0F172A),
-                        Color(0xFF1E293B)
-                    )
-                )
-            ),
+            .background(Color(0xFFF8F9FA)),
         contentAlignment = Alignment.Center
     ) {
         Card(
             modifier = Modifier
-                .width(500.dp)
+                .width(440.dp)
                 .padding(24.dp),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
-                containerColor = Color(0xFF1E293B).copy(alpha = 0.95f)
+                containerColor = Color.White
             ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // Logo and Title Section
+                // Clean logo and title
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 32.dp, start = 32.dp, end = 32.dp, bottom = 16.dp),
+                        .padding(top = 40.dp, start = 32.dp, end = 32.dp, bottom = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.DirectionsCar,
+                        imageVector = Icons.Default.Navigation,
                         contentDescription = "Aurora Logo",
-                        modifier = Modifier.size(56.dp),
-                        tint = Color(0xFF06B6D4)
+                        modifier = Modifier.size(48.dp),
+                        tint = Color(0xFF1E88E5)
                     )
                     
                     Text(
                         text = "Aurora",
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = Color(0xFF212121)
                     )
                     
                     Text(
-                        text = "AI-Powered Traffic Orchestration Platform",
-                        fontSize = 13.sp,
-                        color = Color.White.copy(alpha = 0.6f)
+                        text = "Smart Navigation Platform",
+                        fontSize = 14.sp,
+                        color = Color(0xFF757575)
                     )
                 }
                 
@@ -158,7 +151,7 @@ fun LoginScreen(
                         color = Color.White.copy(alpha = 0.6f)
                     )
                     
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     
                     // Email field
                     OutlinedTextField(
@@ -167,26 +160,28 @@ fun LoginScreen(
                             email = it
                             errorMessage = null
                         },
-                        label = { Text("Email Address", color = Color.White.copy(alpha = 0.7f)) },
-                        placeholder = { Text("you@example.com", color = Color.White.copy(alpha = 0.4f)) },
+                        label = { Text("Email", color = Color(0xFF757575)) },
+                        placeholder = { Text("you@example.com", color = Color(0xFFBDBDBD)) },
                         leadingIcon = {
                             Icon(
                                 Icons.Default.Email,
                                 contentDescription = "Email",
-                                tint = Color(0xFF06B6D4)
+                                tint = Color(0xFF757575)
                             )
                         },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF06B6D4),
-                            unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            cursorColor = Color(0xFF06B6D4)
+                            focusedBorderColor = Color(0xFF1E88E5),
+                            unfocusedBorderColor = Color(0xFFE0E0E0),
+                            focusedTextColor = Color(0xFF212121),
+                            unfocusedTextColor = Color(0xFF212121),
+                            cursorColor = Color(0xFF1E88E5),
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color(0xFFFAFAFA)
                         ),
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(12.dp)
                     )
                     
                     // Password field
@@ -196,13 +191,13 @@ fun LoginScreen(
                             password = it
                             errorMessage = null
                         },
-                        label = { Text("Password", color = Color.White.copy(alpha = 0.7f)) },
-                        placeholder = { Text("••••••••", color = Color.White.copy(alpha = 0.4f)) },
+                        label = { Text("Password", color = Color(0xFF757575)) },
+                        placeholder = { Text("\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022", color = Color(0xFFBDBDBD)) },
                         leadingIcon = {
                             Icon(
                                 Icons.Default.Lock,
                                 contentDescription = "Password",
-                                tint = Color(0xFF06B6D4)
+                                tint = Color(0xFF757575)
                             )
                         },
                         trailingIcon = {
@@ -210,7 +205,7 @@ fun LoginScreen(
                                 Icon(
                                     imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                                     contentDescription = if (passwordVisible) "Hide password" else "Show password",
-                                    tint = Color.White.copy(alpha = 0.6f)
+                                    tint = Color(0xFF757575)
                                 )
                             }
                         },
@@ -219,30 +214,16 @@ fun LoginScreen(
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF06B6D4),
-                            unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            cursorColor = Color(0xFF06B6D4)
+                            focusedBorderColor = Color(0xFF1E88E5),
+                            unfocusedBorderColor = Color(0xFFE0E0E0),
+                            focusedTextColor = Color(0xFF212121),
+                            unfocusedTextColor = Color(0xFF212121),
+                            cursorColor = Color(0xFF1E88E5),
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color(0xFFFAFAFA)
                         ),
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(12.dp)
                     )
-                    
-                    // Forgot password link
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        TextButton(
-                            onClick = { /* TODO: Implement forgot password */ }
-                        ) {
-                            Text(
-                                "Forgot password?",
-                                color = Color(0xFF06B6D4),
-                                fontSize = 13.sp
-                            )
-                        }
-                    }
                     
                     // Error message
                     if (errorMessage != null) {
@@ -292,39 +273,51 @@ fun LoginScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp),
+                            .height(52.dp),
                         enabled = !isLoading && email.isNotBlank() && password.isNotBlank(),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF06B6D4),
+                            containerColor = Color(0xFF1E88E5),
                             contentColor = Color.White,
-                            disabledContainerColor = Color(0xFF06B6D4).copy(alpha = 0.5f)
+                            disabledContainerColor = Color(0xFFE0E0E0)
                         ),
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
                     ) {
                         if (isLoading) {
                             CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
+                                modifier = Modifier.size(20.dp),
                                 color = Color.White,
                                 strokeWidth = 2.dp
                             )
                         } else {
-                            Row(
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(
-                                    "Sign In",
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Icon(
-                                    Icons.Default.ArrowForward,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
+                            Text(
+                                "Sign In",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                    
+                    // Register link
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            "Don't have an account? ",
+                            color = Color(0xFF757575),
+                            fontSize = 14.sp
+                        )
+                        TextButton(
+                            onClick = onNavigateToRegister,
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Text(
+                                "Sign Up",
+                                color = Color(0xFF1E88E5),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
                         }
                     }
                 }

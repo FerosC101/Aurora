@@ -40,25 +40,18 @@ fun RegisterScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF0F172A),
-                        Color(0xFF1E293B)
-                    )
-                )
-            ),
+            .background(Color(0xFFF8F9FA)),
         contentAlignment = Alignment.Center
     ) {
         Card(
             modifier = Modifier
-                .width(500.dp)
+                .width(440.dp)
                 .padding(24.dp),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
-                containerColor = Color(0xFF1E293B).copy(alpha = 0.95f)
+                containerColor = Color.White
             ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth()
@@ -72,23 +65,23 @@ fun RegisterScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.DirectionsCar,
+                        imageVector = Icons.Default.Navigation,
                         contentDescription = "Aurora Logo",
-                        modifier = Modifier.size(56.dp),
-                        tint = Color(0xFF06B6D4)
+                        modifier = Modifier.size(48.dp),
+                        tint = Color(0xFF1E88E5)
                     )
                     
                     Text(
                         text = "Aurora",
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = Color(0xFF212121)
                     )
                     
                     Text(
-                        text = "AI-Powered Traffic Orchestration Platform",
-                        fontSize = 13.sp,
-                        color = Color.White.copy(alpha = 0.6f)
+                        text = "Smart Navigation Platform",
+                        fontSize = 14.sp,
+                        color = Color(0xFF757575)
                     )
                 }
                 
@@ -150,16 +143,12 @@ fun RegisterScreen(
                 ) {
                     Text(
                         text = "Create Account",
-                        fontSize = 22.sp,
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color.White
+                        color = Color(0xFF212121)
                     )
                     
-                    Text(
-                        text = "Register to get started with Aurora",
-                        fontSize = 14.sp,
-                        color = Color.White.copy(alpha = 0.6f)
-                    )
+                    Spacer(modifier = Modifier.height(4.dp))
                     
                     Spacer(modifier = Modifier.height(8.dp))
                 
@@ -170,25 +159,26 @@ fun RegisterScreen(
                             fullName = it
                             errorMessage = null
                         },
-                        placeholder = { Text("Enter your full name", color = Color.White.copy(alpha = 0.4f)) },
+                        label = { Text("Full Name", color = Color(0xFF757575)) },
+                        placeholder = { Text("John Doe", color = Color(0xFFBDBDBD)) },
                         leadingIcon = {
                             Icon(
                                 Icons.Default.Person,
                                 contentDescription = "Name",
-                                tint = Color(0xFF06B6D4)
+                                tint = Color(0xFF757575)
                             )
                         },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF06B6D4),
-                            unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            cursorColor = Color(0xFF06B6D4),
-                            focusedContainerColor = Color(0xFF0F172A).copy(alpha = 0.5f),
-                            unfocusedContainerColor = Color(0xFF0F172A).copy(alpha = 0.3f)
+                            focusedBorderColor = Color(0xFF1E88E5),
+                            unfocusedBorderColor = Color(0xFFE0E0E0),
+                            focusedTextColor = Color(0xFF212121),
+                            unfocusedTextColor = Color(0xFF212121),
+                            cursorColor = Color(0xFF1E88E5),
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color(0xFFFAFAFA)
                         )
                     )
                     
@@ -199,26 +189,27 @@ fun RegisterScreen(
                             email = it
                             errorMessage = null
                         },
-                        placeholder = { Text("Enter your email", color = Color.White.copy(alpha = 0.4f)) },
+                        label = { Text("Email", color = Color(0xFF757575)) },
+                        placeholder = { Text("you@example.com", color = Color(0xFFBDBDBD)) },
                         leadingIcon = {
                             Icon(
                                 Icons.Default.Email,
                                 contentDescription = "Email",
-                                tint = Color(0xFF06B6D4)
+                                tint = Color(0xFF757575)
                             )
                         },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(12.dp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF06B6D4),
-                            unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            cursorColor = Color(0xFF06B6D4),
-                            focusedContainerColor = Color(0xFF0F172A).copy(alpha = 0.5f),
-                            unfocusedContainerColor = Color(0xFF0F172A).copy(alpha = 0.3f)
+                            focusedBorderColor = Color(0xFF1E88E5),
+                            unfocusedBorderColor = Color(0xFFE0E0E0),
+                            focusedTextColor = Color(0xFF212121),
+                            unfocusedTextColor = Color(0xFF212121),
+                            cursorColor = Color(0xFF1E88E5),
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color(0xFFFAFAFA)
                         )
                     )
                     
@@ -229,12 +220,13 @@ fun RegisterScreen(
                             password = it
                             errorMessage = null
                         },
-                        placeholder = { Text("Enter your password", color = Color.White.copy(alpha = 0.4f)) },
+                        label = { Text("Password", color = Color(0xFF757575)) },
+                        placeholder = { Text("\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022", color = Color(0xFFBDBDBD)) },
                         leadingIcon = {
                             Icon(
                                 Icons.Default.Lock,
                                 contentDescription = "Password",
-                                tint = Color(0xFF06B6D4)
+                                tint = Color(0xFF757575)
                             )
                         },
                         trailingIcon = {
@@ -242,39 +234,40 @@ fun RegisterScreen(
                                 Icon(
                                     imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                                     contentDescription = if (passwordVisible) "Hide password" else "Show password",
-                                    tint = Color.White.copy(alpha = 0.7f)
+                                    tint = Color(0xFF757575)
                                 )
                             }
                         },
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(12.dp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF06B6D4),
-                            unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            cursorColor = Color(0xFF06B6D4),
-                            focusedContainerColor = Color(0xFF0F172A).copy(alpha = 0.5f),
-                            unfocusedContainerColor = Color(0xFF0F172A).copy(alpha = 0.3f)
+                            focusedBorderColor = Color(0xFF1E88E5),
+                            unfocusedBorderColor = Color(0xFFE0E0E0),
+                            focusedTextColor = Color(0xFF212121),
+                            unfocusedTextColor = Color(0xFF212121),
+                            cursorColor = Color(0xFF1E88E5),
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color(0xFFFAFAFA)
                         )
                     )
                     
                     // Confirm Password field
                     OutlinedTextField(
                         value = confirmPassword,
-                        onValueChange = { 
+                        onValueChange = {
                             confirmPassword = it
                             errorMessage = null
                         },
-                        placeholder = { Text("Confirm your password", color = Color.White.copy(alpha = 0.4f)) },
+                        label = { Text("Confirm Password", color = Color(0xFF757575)) },
+                        placeholder = { Text("\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022", color = Color(0xFFBDBDBD)) },
                         leadingIcon = {
                             Icon(
                                 Icons.Default.Lock,
                                 contentDescription = "Confirm Password",
-                                tint = Color(0xFF06B6D4)
+                                tint = Color(0xFF757575)
                             )
                         },
                         trailingIcon = {
@@ -282,23 +275,23 @@ fun RegisterScreen(
                                 Icon(
                                     imageVector = if (confirmPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                                     contentDescription = if (confirmPasswordVisible) "Hide password" else "Show password",
-                                    tint = Color.White.copy(alpha = 0.7f)
+                                    tint = Color(0xFF757575)
                                 )
                             }
                         },
                         visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(12.dp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF06B6D4),
-                            unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            cursorColor = Color(0xFF06B6D4),
-                            focusedContainerColor = Color(0xFF0F172A).copy(alpha = 0.5f),
-                            unfocusedContainerColor = Color(0xFF0F172A).copy(alpha = 0.3f)
+                            focusedBorderColor = Color(0xFF1E88E5),
+                            unfocusedBorderColor = Color(0xFFE0E0E0),
+                            focusedTextColor = Color(0xFF212121),
+                            unfocusedTextColor = Color(0xFF212121),
+                            cursorColor = Color(0xFF1E88E5),
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color(0xFFFAFAFA)
                         )
                     )
                     
@@ -373,36 +366,49 @@ fun RegisterScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp),
+                        .height(52.dp),
                     enabled = !isLoading && fullName.isNotBlank() && email.isNotBlank() && 
                              password.isNotBlank() && confirmPassword.isNotBlank(),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF06B6D4),
+                        containerColor = Color(0xFF1E88E5),
                         contentColor = Color.White,
-                        disabledContainerColor = Color(0xFF06B6D4).copy(alpha = 0.5f),
-                        disabledContentColor = Color.White.copy(alpha = 0.7f)
+                        disabledContainerColor = Color(0xFFE0E0E0),
+                        disabledContentColor = Color(0xFF9E9E9E)
                     ),
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
                 ) {
                     if (isLoading) {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
+                            modifier = Modifier.size(20.dp),
                             color = Color.White,
                             strokeWidth = 2.dp
                         )
                     } else {
-                        Row(
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text("Create Account", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Icon(
-                                Icons.Default.ArrowForward,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
+                        Text("Create Account", fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                    }
+                }
+                
+                // Login link
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        "Already have an account? ",
+                        color = Color(0xFF757575),
+                        fontSize = 14.sp
+                    )
+                    TextButton(
+                        onClick = onNavigateToLogin,
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Text(
+                            "Sign In",
+                            color = Color(0xFF1E88E5),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 }
                 }

@@ -2,6 +2,7 @@ package org.aurora.ui.navigation
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -48,230 +49,122 @@ fun RouteSelectionScreen(
     onStartNavigation: () -> Unit,
     onBack: () -> Unit
 ) {
-    Row(modifier = Modifier.fillMaxSize()) {
-        // Left sidebar with route cards
-        Surface(
+    Row(modifier = Modifier
+        .fillMaxSize()
+        .background(Color(0xFFF5F7FA))
+    ) {
+        // Left sidebar
+        Column(
             modifier = Modifier
-                .fillMaxWidth(0.35f)
-                .fillMaxHeight(),
-            color = Color(0xFF1E293B)
+                .fillMaxWidth(0.38f)
+                .fillMaxHeight()
+                .background(Color.White)
+                .verticalScroll(rememberScrollState())
         ) {
-            Column(
+            // Modern header with blue theme
+            Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
+                    .fillMaxWidth()
+                    .background(Color(0xFF1E88E5))
                     .padding(24.dp)
             ) {
-                // Header
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    IconButton(onClick = onBack) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(Color.White.copy(alpha = 0.2f), CircleShape)
+                            .clickable(onClick = onBack),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Icon(
                             Icons.Default.ArrowBack,
                             contentDescription = "Back",
-                            tint = Color.White
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                     
-                    Column(horizontalAlignment = Alignment.End) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.ElectricBolt,
-                                contentDescription = null,
-                                tint = Color(0xFF3B82F6),
-                                modifier = Modifier.size(28.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                "Aurora Rider",
-                                color = Color.White,
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                    Column {
                         Text(
-                            "Smart & safe routes for riders",
-                            color = Color.White.copy(alpha = 0.6f),
-                            fontSize = 12.sp
+                            "Best Routes",
+                            color = Color.White,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "$origin → $destination",
+                            color = Color.White.copy(alpha = 0.8f),
+                            fontSize = 13.sp
                         )
                     }
                 }
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                // Change destination link
-                TextButton(onClick = onBack) {
-                    Icon(
-                        Icons.Default.Edit,
-                        contentDescription = null,
-                        tint = Color(0xFF3B82F6),
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        "Change destination",
-                        color = Color(0xFF3B82F6),
-                        fontSize = 14.sp
-                    )
-                }
-                
-                Spacer(modifier = Modifier.height(24.dp))
-                
+            }
+            
+            Column(modifier = Modifier.padding(20.dp)) {
                 // Route cards
                 routes.forEach { route ->
-                    RouteCard(
+                    ModernRouteCard(
                         route = route,
                         isSelected = route.type == selectedType,
                         onClick = { onRouteSelected(route.type) }
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
                 }
                 
                 Spacer(modifier = Modifier.weight(1f))
                 
-                // Start Navigation button
+                // Modern gradient button
                 Button(
                     onClick = onStartNavigation,
                     enabled = selectedType != null,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF3B82F6),
-                        disabledContainerColor = Color(0xFF334155)
+                        containerColor = Color(0xFF6366F1),
+                        disabledContainerColor = Color(0xFFE5E7EB)
                     ),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Text(
-                        "Start Navigation",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = ButtonDefaults.buttonElevation(
+                        defaultElevation = 4.dp,
+                        pressedElevation = 8.dp
                     )
-                }
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                // Smart Route Benefits (if selected)
-                if (selectedType == RouteType.SMART) {
-                    Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = Color(0xFF334155)
-                        ),
-                        shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(
-                                "Smart Route Benefits:",
-                                color = Color.White,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                "• Clear road ahead - optimal conditions\n• Traffic prediction: Light for next 5 minutes\n• Route efficiency: 97%",
-                                color = Color.White.copy(alpha = 0.8f),
-                                fontSize = 12.sp,
-                                lineHeight = 18.sp
-                            )
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Right side - Map preview
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFF0F172A))
-        ) {
-            // Show Google Maps satellite view if available
-            val selectedRoute = routes.find { it.type == selectedType }
-            
-            if (selectedRoute?.staticMapUrl != null) {
-                // Display actual Google Maps satellite image
-                NetworkImage(
-                    url = selectedRoute.staticMapUrl,
-                    contentDescription = "Satellite Map View",
-                    modifier = Modifier.fillMaxSize()
-                )
-                
-                // Overlay with route info
-                Card(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFF1E293B).copy(alpha = 0.9f)
-                    )
-                ) {
-                    Text(
-                        "${selectedRoute.name} - Satellite View",
-                        color = Color.White,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(12.dp)
-                    )
-                }
-            } else {
-                // Fallback to text if no map available
-                Column(
-                    modifier = Modifier.align(Alignment.Center),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(
-                        Icons.Default.Map,
-                        contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.3f),
-                        modifier = Modifier.size(64.dp)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        "Map Preview",
-                        color = Color.White.copy(alpha = 0.4f),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Light
-                    )
-                    Text(
-                        "$origin → $destination",
-                        color = Color.White.copy(alpha = 0.3f),
-                        fontSize = 14.sp
-                    )
-                }
-            }
-            
-            // Route selector pills
-            Row(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                routes.forEach { route ->
-                    val isSelected = route.type == selectedType
-                    val bgColor = when (route.type) {
-                        RouteType.SMART -> if (isSelected) Color(0xFF3B82F6) else Color(0xFF3B82F6).copy(alpha = 0.3f)
-                        RouteType.REGULAR -> if (isSelected) Color(0xFF64748B) else Color(0xFF64748B).copy(alpha = 0.3f)
-                        RouteType.CHILL -> if (isSelected) Color(0xFFA855F7) else Color(0xFFA855F7).copy(alpha = 0.3f)
-                    }
-                    
-                    Card(
-                        modifier = Modifier.clickable { onRouteSelected(route.type) },
-                        colors = CardDefaults.cardColors(containerColor = bgColor)
-                    ) {
+                        Icon(
+                            Icons.Default.Navigation,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
                         Text(
-                            route.name,
-                            color = Color.White,
-                            fontSize = 12.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            "Start Navigation",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
+                
+                Spacer(modifier = Modifier.height(20.dp))
             }
+        }
+        
+        // Right side - Minimal map
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFF5F5F5)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                "Map Preview",
+                color = Color(0xFF9E9E9E),
+                fontSize = 14.sp
+            )
         }
     }
 }
@@ -282,142 +175,116 @@ fun RouteCard(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    // Animated colors for smooth transitions
-    val backgroundColor by animateColorAsState(
-        targetValue = when (route.type) {
-            RouteType.SMART -> if (isSelected) Color(0xFF3B82F6) else Color(0xFF1E3A5F)
-            RouteType.CHILL -> if (isSelected) Color(0xFFA855F7) else Color(0xFF4C1D95)
-            RouteType.REGULAR -> if (isSelected) Color(0xFF64748B) else Color(0xFF334155)
-        },
-        animationSpec = tween(300, easing = EaseInOutCubic)
-    )
-    
-    val borderColor = when (route.type) {
-        RouteType.SMART -> Color(0xFF3B82F6)
-        RouteType.CHILL -> Color(0xFFA855F7)
-        RouteType.REGULAR -> Color(0xFF64748B)
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = if (isSelected) Color(0xFFF5F5F5) else Color.White,
+        border = BorderStroke(1.dp, if (isSelected) Color(0xFF212121) else Color(0xFFE0E0E0))
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                route.name,
+                color = Color(0xFF212121),
+                fontSize = 15.sp,
+                fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    "${route.estimatedTime} min",
+                    color = Color(0xFF757575),
+                    fontSize = 13.sp
+                )
+                Text(
+                    "${String.format("%.1f", route.distance)} km",
+                    color = Color(0xFF757575),
+                    fontSize = 13.sp
+                )
+                Text(
+                    "${route.safetyScore}%",
+                    color = Color(0xFF757575),
+                    fontSize = 13.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ModernRouteCard(
+    route: NavigationRoute,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val (badgeColor, badgeText) = when (route.type) {
+        RouteType.SMART -> Color(0xFF6366F1) to "Recommended"
+        RouteType.CHILL -> Color(0xFF10B981) to "Scenic"
+        RouteType.REGULAR -> Color(0xFF6B7280) to "Standard"
     }
     
-    // Animated elevation for selection feedback
-    val elevation by animateDpAsState(
-        targetValue = if (isSelected) 8.dp else 2.dp,
-        animationSpec = tween(300, easing = EaseInOutCubic)
-    )
-    
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .then(
-                if (isSelected) Modifier.border(2.dp, borderColor, RoundedCornerShape(16.dp))
-                else Modifier
-            ),
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onClick,
         colors = CardDefaults.cardColors(
-            containerColor = backgroundColor
+            containerColor = if (isSelected) Color(0xFFF0F4FF) else Color.White
         ),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = elevation)
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isSelected) 6.dp else 2.dp
+        ),
+        border = if (isSelected) BorderStroke(2.dp, Color(0xFF6366F1)) else null
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            // Header with icon and badge
+        Column(
+            modifier = Modifier.padding(20.dp)
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        when (route.type) {
-                            RouteType.SMART -> Icons.Default.AutoAwesome
-                            RouteType.CHILL -> Icons.Default.Park
-                            RouteType.REGULAR -> Icons.Default.Route
-                        },
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        route.name,
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                
-                if (route.type == RouteType.SMART) {
-                    Surface(
-                        color = Color(0xFF10B981),
-                        shape = RoundedCornerShape(8.dp)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .background(badgeColor.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
                         Text(
-                            "Recommended",
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            color = Color.White,
+                            badgeText,
                             fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            color = badgeColor
                         )
                     }
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            Text(
-                route.description,
-                color = Color.White.copy(alpha = 0.8f),
-                fontSize = 13.sp
-            )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // Stats row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        Text(
-                            "${route.estimatedTime}",
-                            color = Color.White,
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            "min",
-                            color = Color.White.copy(alpha = 0.6f),
-                            fontSize = 14.sp
-                        )
-                    }
+                    
                     Text(
-                        "ETA",
-                        color = Color.White.copy(alpha = 0.6f),
-                        fontSize = 12.sp
+                        route.name,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1F2937)
                     )
                 }
                 
-                if (route.timeSavedVsBaseline != 0) {
-                    Column(horizontalAlignment = Alignment.End) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                if (route.timeSavedVsBaseline > 0) Icons.Default.TrendingUp else Icons.Default.TrendingDown,
-                                contentDescription = null,
-                                tint = if (route.timeSavedVsBaseline > 0) Color(0xFF10B981) else Color(0xFFEF4444),
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Text(
-                                "${if (route.timeSavedVsBaseline > 0) "+" else ""}${route.timeSavedVsBaseline}",
-                                color = if (route.timeSavedVsBaseline > 0) Color(0xFF10B981) else Color(0xFFEF4444),
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        Text(
-                            "Min saved",
-                            color = Color.White.copy(alpha = 0.6f),
-                            fontSize = 12.sp
+                if (isSelected) {
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .background(Color(0xFF6366F1), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = "Selected",
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
                         )
                     }
                 }
@@ -425,31 +292,72 @@ fun RouteCard(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            HorizontalDivider(color = Color.White.copy(alpha = 0.2f))
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            // Details grid
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                RouteDetail("Safety", "${route.safetyScore}%")
-                RouteDetail("Traffic", route.trafficLevel.name.replace("_", " "))
+                RouteInfoPill(
+                    icon = Icons.Default.Timer,
+                    value = "${route.estimatedTime} min",
+                    color = Color(0xFF6366F1)
+                )
+                RouteInfoPill(
+                    icon = Icons.Default.Route,
+                    value = "${String.format("%.1f", route.distance)} km",
+                    color = Color(0xFF8B5CF6)
+                )
+                RouteInfoPill(
+                    icon = Icons.Default.Shield,
+                    value = "${route.safetyScore}%",
+                    color = Color(0xFF10B981)
+                )
             }
             
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                RouteDetail("Hazards", "${route.hazardCount}")
-                if (route.scenicPoints > 0) {
-                    RouteDetail("View points", "${route.scenicPoints}")
+            if (route.hazardCount > 0) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = Color(0xFFF59E0B),
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        "${route.hazardCount} hazards detected",
+                        fontSize = 12.sp,
+                        color = Color(0xFF6B7280)
+                    )
                 }
             }
         }
+    }
+}
+
+@Composable
+fun RouteInfoPill(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    value: String,
+    color: Color
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(16.dp)
+        )
+        Text(
+            value,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color(0xFF1F2937)
+        )
     }
 }
 
@@ -470,80 +378,4 @@ fun RouteDetail(label: String, value: String) {
     }
 }
 
-/**
- * Custom composable for loading and displaying images from URLs
- * Uses SkiaImage for Compose Desktop compatibility
- */
-@Composable
-fun NetworkImage(
-    url: String,
-    contentDescription: String,
-    modifier: Modifier = Modifier
-) {
-    var bitmap by remember { mutableStateOf<ImageBitmap?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
-    var hasError by remember { mutableStateOf(false) }
-    
-    LaunchedEffect(url) {
-        isLoading = true
-        hasError = false
-        try {
-            bitmap = loadImageFromUrl(url)
-            isLoading = false
-        } catch (e: Exception) {
-            println("Failed to load image from $url: ${e.message}")
-            hasError = true
-            isLoading = false
-        }
-    }
-    
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        when {
-            isLoading -> {
-                CircularProgressIndicator(
-                    color = Color(0xFF3B82F6),
-                    modifier = Modifier.size(48.dp)
-                )
-            }
-            hasError -> {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        Icons.Default.ErrorOutline,
-                        contentDescription = "Error loading map",
-                        tint = Color.Red,
-                        modifier = Modifier.size(48.dp)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        "Map unavailable",
-                        color = Color.White.copy(alpha = 0.6f),
-                        fontSize = 14.sp
-                    )
-                }
-            }
-            bitmap != null -> {
-                Image(
-                    bitmap = bitmap!!,
-                    contentDescription = contentDescription,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            }
-        }
-    }
-}
-
-/**
- * Loads an image from a URL and converts it to ImageBitmap
- * Uses SkiaImage for Compose Desktop compatibility
- */
-suspend fun loadImageFromUrl(url: String): ImageBitmap = withContext(Dispatchers.IO) {
-    val connection = URL(url).openConnection()
-    connection.connectTimeout = 10000
-    connection.readTimeout = 10000
-    val bytes = connection.getInputStream().readBytes()
-    SkiaImage.makeFromEncoded(bytes).toComposeImageBitmap()
-}
+// Removed NetworkImage and loadImageFromUrl functions for minimal design
