@@ -24,44 +24,73 @@ fun LiveNavigationScreen(
     navState: NavigationState,
     onEndTrip: () -> Unit
 ) {
-    Row(modifier = Modifier.fillMaxSize().background(Color(0xFFF8F9FA))) {
-        // Left sidebar
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF5F7FA))) {
+        // Top section - Map Container
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .background(Color(0xFFE5E7EB))
+                .padding(12.dp)
+        ) {
+            Card(
+                modifier = Modifier.fillMaxSize(),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xFF0F172A)
+                ),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            ) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    EnhancedNavigationMapCanvas(navState)
+                }
+            }
+        }
+        
+        // Bottom section - Navigation info
         Column(
             modifier = Modifier
-                .fillMaxHeight()
-                .width(400.dp)
+                .fillMaxWidth()
                 .background(Color.White)
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Header card
             Card(
                 colors = CardDefaults.cardColors(
                     containerColor = Color(0xFF1E88E5)
                 ),
-                shape = RoundedCornerShape(12.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
-                Column(modifier = Modifier.padding(20.dp)) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.Navigation,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(24.dp)
-                        )
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(Color.White.copy(alpha = 0.2f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Navigation,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
                                 "Navigating to",
-                                color = Color.White.copy(alpha = 0.9f),
-                                fontSize = 13.sp
+                                color = Color.White.copy(alpha = 0.85f),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Normal
                             )
                             Text(
-                                navState.selectedRoute?.name ?: "Destination",
+                                navState.selectedRoute?.name ?: "Smart Route",
                                 color = Color.White,
-                                fontSize = 18.sp,
+                                fontSize = 19.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -76,8 +105,9 @@ fun LiveNavigationScreen(
                         Column {
                             Text(
                                 "ETA",
-                                color = Color.White.copy(alpha = 0.7f),
-                                fontSize = 12.sp
+                                color = Color.White.copy(alpha = 0.75f),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium
                             )
                             Text(
                                 "${navState.eta} min",
@@ -90,8 +120,9 @@ fun LiveNavigationScreen(
                         Column(horizontalAlignment = Alignment.End) {
                             Text(
                                 "Speed",
-                                color = Color.White.copy(alpha = 0.7f),
-                                fontSize = 12.sp
+                                color = Color.White.copy(alpha = 0.75f),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium
                             )
                             Text(
                                 "${navState.currentSpeed.toInt()} km/h",
@@ -102,7 +133,7 @@ fun LiveNavigationScreen(
                         }
                     }
                     
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
                     
                     Column {
                         Row(
@@ -111,8 +142,9 @@ fun LiveNavigationScreen(
                         ) {
                             Text(
                                 "Progress",
-                                color = Color.White.copy(alpha = 0.7f),
-                                fontSize = 12.sp
+                                color = Color.White.copy(alpha = 0.75f),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium
                             )
                             Text(
                                 "${(navState.progress * 100).toInt()}%",
@@ -121,16 +153,16 @@ fun LiveNavigationScreen(
                                 fontWeight = FontWeight.Bold
                             )
                         }
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
                         LinearProgressIndicator(
                             progress = navState.progress,
-                            modifier = Modifier.fillMaxWidth().height(6.dp),
-                            color = Color(0xFF8B5CF6),
-                            trackColor = Color(0xFF1E293B)
+                            modifier = Modifier.fillMaxWidth().height(8.dp),
+                            color = Color.White,
+                            trackColor = Color(0xFF1976D2)
                         )
                     }
                     
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
                     
                     // Stats row
                     Row(
@@ -145,41 +177,90 @@ fun LiveNavigationScreen(
                         StatBox(
                             label = "Safety",
                             value = "95%",
-                            color = Color(0xFF8B5CF6)
+                            color = Color(0xFFFBBF24)
                         )
                         StatBox(
                             label = "Saved",
                             value = "4m",
-                            color = Color(0xFF3B82F6)
+                            color = Color(0xFF42A5F5)
                         )
                     }
                 }
             }
             
+            // Additional Metrics Cards
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                MetricCard(
+                    icon = Icons.Default.DirectionsBike,
+                    label = "Distance",
+                    value = "${((navState.selectedRoute?.distance?.toDouble() ?: 0.0) / 1000.0).toInt()} km",
+                    color = Color(0xFF1E88E5),
+                    modifier = Modifier.weight(1f)
+                )
+                MetricCard(
+                    icon = Icons.Default.LocalGasStation,
+                    label = "CO₂ Saved",
+                    value = "2.3 kg",
+                    color = Color(0xFF10B981),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                MetricCard(
+                    icon = Icons.Default.WbSunny,
+                    label = "Weather",
+                    value = "Clear",
+                    color = Color(0xFFFBBF24),
+                    modifier = Modifier.weight(1f)
+                )
+                MetricCard(
+                    icon = Icons.Default.TrendingUp,
+                    label = "Traffic",
+                    value = "Light",
+                    color = Color(0xFF42A5F5),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            
             // Upcoming Stoplights
             if (navState.upcomingStoplights.isNotEmpty()) {
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.Traffic,
-                            contentDescription = null,
-                            tint = Color(0xFF3B82F6),
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            "Upcoming Stoplights",
-                            color = Color.White,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                    
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    navState.upcomingStoplights.take(3).forEach { stoplight ->
-                        StoplightCard(stoplight)
-                        Spacer(modifier = Modifier.height(8.dp))
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFFF8F9FA)
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.Traffic,
+                                contentDescription = null,
+                                tint = Color(0xFF1E88E5),
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "Upcoming Stoplights",
+                                color = Color(0xFF1F2937),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        navState.upcomingStoplights.take(2).forEach { stoplight ->
+                            StoplightCard(stoplight)
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
                     }
                 }
             }
@@ -187,9 +268,10 @@ fun LiveNavigationScreen(
             // Aurora SHIELD
             Card(
                 colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFF334155)
+                    containerColor = Color(0xFF10B981).copy(alpha = 0.1f)
                 ),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -197,72 +279,79 @@ fun LiveNavigationScreen(
                             Icons.Default.Shield,
                             contentDescription = null,
                             tint = Color(0xFF10B981),
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             "Aurora SHIELD Active",
-                            color = Color.White,
-                            fontSize = 14.sp,
+                            color = Color(0xFF1F2937),
+                            fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
                     Text(
                         "• Clear road ahead - optimal conditions",
-                        color = Color.White.copy(alpha = 0.8f),
-                        fontSize = 12.sp
+                        color = Color(0xFF4B5563),
+                        fontSize = 11.sp
                     )
                     Text(
                         "• Traffic prediction: Light for next 5 minutes",
-                        color = Color.White.copy(alpha = 0.8f),
-                        fontSize = 12.sp
+                        color = Color(0xFF4B5563),
+                        fontSize = 11.sp
                     )
                     Text(
                         "• Route efficiency: 97%",
-                        color = Color.White.copy(alpha = 0.8f),
-                        fontSize = 12.sp
+                        color = Color(0xFF4B5563),
+                        fontSize = 11.sp
                     )
                 }
             }
             
-            Spacer(modifier = Modifier.weight(1f))
-            
-            // End Trip button
-            Button(
-                onClick = onEndTrip,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF3B82F6)
-                ),
-                shape = RoundedCornerShape(12.dp)
+            // Action buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text("End Trip", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                OutlinedButton(
+                    onClick = { },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color(0xFF1E88E5)
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Refresh,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Reroute", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                }
+                
+                Button(
+                    onClick = onEndTrip,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF1E88E5)
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Stop,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("End Trip", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                }
             }
-            
-            OutlinedButton(
-                onClick = { },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = Color(0xFF3B82F6)
-                ),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text("Reroute", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-            }
-        }
-        
-        // Right side - Map
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFF0F172A))
-        ) {
-            EnhancedNavigationMapCanvas(navState)
         }
     }
 }
@@ -276,20 +365,76 @@ fun StatBox(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .background(Color(0xFF1E293B), RoundedCornerShape(8.dp))
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .background(Color.White.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
+            .padding(horizontal = 14.dp, vertical = 10.dp)
     ) {
         Text(
             label,
-            color = Color.White.copy(alpha = 0.6f),
-            fontSize = 11.sp
+            color = Color.White.copy(alpha = 0.8f),
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Medium
         )
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
             value,
             color = color,
-            fontSize = 20.sp,
+            fontSize = 18.sp,
             fontWeight = FontWeight.Bold
         )
+    }
+}
+
+@Composable
+fun MetricCard(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    value: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = color.copy(alpha = 0.1f)
+        ),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .background(color.copy(alpha = 0.15f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+            Column {
+                Text(
+                    label,
+                    color = Color(0xFF6B7280),
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    value,
+                    color = Color(0xFF1F2937),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
     }
 }
 
@@ -303,9 +448,10 @@ fun StoplightCard(stoplight: org.aurora.navigation.model.Stoplight) {
     
     Card(
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF334155)
+            containerColor = Color.White
         ),
-        shape = RoundedCornerShape(8.dp)
+        shape = RoundedCornerShape(10.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             modifier = Modifier
@@ -314,44 +460,45 @@ fun StoplightCard(stoplight: org.aurora.navigation.model.Stoplight) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    stoplight.location,
-                    color = Color.White,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .background(stateColor, CircleShape)
                 )
-                Text(
-                    "${stoplight.distanceFromStart.toInt()}m",
-                    color = Color.White.copy(alpha = 0.6f),
-                    fontSize = 11.sp
-                )
+                Column {
+                    Text(
+                        stoplight.location,
+                        color = Color(0xFF1F2937),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        "${stoplight.distanceFromStart.toInt()}m away",
+                        color = Color(0xFF6B7280),
+                        fontSize = 10.sp
+                    )
+                }
             }
             
             Column(
-                horizontalAlignment = Alignment.End,
-                modifier = Modifier.padding(start = 8.dp)
+                horizontalAlignment = Alignment.End
             ) {
                 Text(
-                    "Turns ${stoplight.state.name.lowercase()} in",
-                    color = Color.White.copy(alpha = 0.6f),
+                    "${stoplight.state.name.lowercase()}",
+                    color = stateColor,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "${stoplight.remainingTime}s",
+                    color = Color(0xFF6B7280),
                     fontSize = 10.sp
                 )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    LinearProgressIndicator(
-                        progress = stoplight.remainingTime / 60f,
-                        modifier = Modifier.width(60.dp).height(4.dp),
-                        color = stateColor,
-                        trackColor = Color(0xFF1E293B)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        "${stoplight.remainingTime}s",
-                        color = stateColor,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
             }
         }
     }
