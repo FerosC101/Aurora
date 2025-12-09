@@ -10,17 +10,17 @@ pluginManagement {
         mavenCentral()
     }
     plugins {
-        // Kotlin plugins - Use 1.9.20 for better compatibility
-        kotlin("jvm") version "1.9.20"
-        kotlin("android") version "1.9.20"
-        kotlin("multiplatform") version "1.9.20"
+        // Kotlin plugins - Use 1.9.10 for compatibility with Compose 1.5.3
+        kotlin("jvm") version "1.9.10"
+        kotlin("android") version "1.9.10"
+        kotlin("multiplatform") version "1.9.10"
 
         // Android Gradle Plugin - Use 8.1.4 for stability with Gradle 8.2
         id("com.android.application") version "8.1.4"
         id("com.android.library") version "8.1.4"
 
-        // Compose Multiplatform Gradle plugin - 1.5.10 is stable with Kotlin 1.9.20 and Gradle 8.2
-        id("org.jetbrains.compose") version "1.5.10"
+        // Compose Multiplatform Gradle plugin - 1.5.3 is stable with Kotlin 1.9.10 and Gradle 8.2
+        id("org.jetbrains.compose") version "1.5.3"
     }
 }
 
@@ -50,7 +50,7 @@ rootProject.name = "Aurora"
 
 // Add new Aurora modules
 // Temporarily excluding shared and desktopApp modules due to Compose Multiplatform/Gradle compatibility issues
-// The androidApp is self-contained and doesn't depend on these modules
+// The androidApp will have the desktop features copied directly
 // include(":shared")
 // include(":desktopApp")
 include(":androidApp")

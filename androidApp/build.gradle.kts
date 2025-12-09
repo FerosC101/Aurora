@@ -43,7 +43,7 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.4"
+        kotlinCompilerExtensionVersion = "1.5.3"
     }
 
     packaging {
@@ -54,7 +54,7 @@ android {
 }
 
 dependencies {
-    // Temporarily disabled shared module - using standalone Android app
+    // Disable shared module dependency - using copied code instead
     // implementation(project(":shared"))
 
     // Android Core
