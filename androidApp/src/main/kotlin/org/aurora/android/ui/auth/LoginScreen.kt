@@ -10,7 +10,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -41,25 +40,18 @@ fun LoginScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF0F172A),
-                        Color(0xFF1E293B)
-                    )
-                )
-            ),
+            .background(Color(0xFFF8F9FA)),
         contentAlignment = Alignment.Center
     ) {
         Card(
             modifier = Modifier
-                .fillMaxWidth(0.9f)
-                .padding(16.dp),
-            shape = RoundedCornerShape(16.dp),
+                .fillMaxWidth(0.92f)
+                .padding(horizontal = 16.dp, vertical = 24.dp),
+            shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(
-                containerColor = Color(0xFF1E293B).copy(alpha = 0.95f)
+                containerColor = Color.White
             ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth()
@@ -68,36 +60,36 @@ fun LoginScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 32.dp, start = 24.dp, end = 24.dp, bottom = 16.dp),
+                        .padding(top = 40.dp, start = 24.dp, end = 24.dp, bottom = 20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Star,
+                        imageVector = Icons.Default.Place,
                         contentDescription = "Aurora Logo",
-                        modifier = Modifier.size(56.dp),
-                        tint = Color(0xFF06B6D4)
+                        modifier = Modifier.size(48.dp),
+                        tint = Color(0xFF1E88E5)
                     )
-
+                    
                     Text(
                         text = "Aurora",
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = Color(0xFF212121)
                     )
-
+                    
                     Text(
-                        text = "AI-Powered Traffic Orchestration Platform",
-                        fontSize = 13.sp,
-                        color = Color.White.copy(alpha = 0.6f)
+                        text = "Smart Navigation Platform",
+                        fontSize = 14.sp,
+                        color = Color(0xFF757575)
                     )
                 }
-
+                
                 // Tab Row
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp),
+                        .padding(horizontal = 24.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     // Sign In Tab
@@ -108,7 +100,7 @@ fun LoginScreen(
                             .height(44.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = if (selectedTab == 0) Color(0xFF06B6D4) else Color.Transparent,
-                            contentColor = if (selectedTab == 0) Color.White else Color.White.copy(alpha = 0.6f)
+                            contentColor = if (selectedTab == 0) Color.White else Color(0xFF757575)
                         ),
                         shape = RoundedCornerShape(8.dp),
                         elevation = ButtonDefaults.buttonElevation(
@@ -121,7 +113,7 @@ fun LoginScreen(
                             fontWeight = if (selectedTab == 0) FontWeight.SemiBold else FontWeight.Normal
                         )
                     }
-
+                    
                     // Register Tab
                     Button(
                         onClick = { onNavigateToRegister() },
@@ -130,7 +122,7 @@ fun LoginScreen(
                             .height(44.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color.Transparent,
-                            contentColor = Color.White.copy(alpha = 0.6f)
+                            contentColor = Color(0xFF757575)
                         ),
                         shape = RoundedCornerShape(8.dp)
                     ) {
@@ -141,7 +133,7 @@ fun LoginScreen(
                         )
                     }
                 }
-
+                
                 // Form Content
                 Column(
                     modifier = Modifier
@@ -153,148 +145,150 @@ fun LoginScreen(
                         text = "Welcome Back",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color.White
+                        color = Color(0xFF212121)
                     )
-
+                    
                     Text(
-                        text = "Sign in to continue to Aurora",
+                        text = "Sign in to access your dashboard",
                         fontSize = 14.sp,
-                        color = Color.White.copy(alpha = 0.6f)
+                        color = Color(0xFF757575)
                     )
-
+                    
                     Spacer(modifier = Modifier.height(8.dp))
-
-                    // Email field
+                    
+                    // Email Field
                     OutlinedTextField(
                         value = email,
-                        onValueChange = {
+                        onValueChange = { 
                             email = it
                             errorMessage = null
                         },
-                        placeholder = { Text("Enter your email", color = Color.White.copy(alpha = 0.4f)) },
+                        label = { Text("Email or Username", color = Color(0xFF757575)) },
                         leadingIcon = {
                             Icon(
-                                Icons.Default.Email,
-                                contentDescription = "Email",
-                                tint = Color(0xFF06B6D4)
+                                Icons.Default.Person,
+                                contentDescription = null,
+                                tint = Color(0xFF1E88E5)
                             )
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        shape = RoundedCornerShape(10.dp),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        shape = RoundedCornerShape(8.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF06B6D4),
-                            unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            cursorColor = Color(0xFF06B6D4),
-                            focusedContainerColor = Color(0xFF0F172A).copy(alpha = 0.5f),
-                            unfocusedContainerColor = Color(0xFF0F172A).copy(alpha = 0.3f)
-                        )
+                            focusedBorderColor = Color(0xFF1E88E5),
+                            unfocusedBorderColor = Color(0xFFE0E0E0),
+                            cursorColor = Color(0xFF1E88E5),
+                            focusedTextColor = Color(0xFF212121),
+                            unfocusedTextColor = Color(0xFF212121)
+                        ),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
                     )
-
-                    // Password field
+                    
+                    // Password Field
                     OutlinedTextField(
                         value = password,
-                        onValueChange = {
+                        onValueChange = { 
                             password = it
                             errorMessage = null
                         },
-                        placeholder = { Text("Enter your password", color = Color.White.copy(alpha = 0.4f)) },
+                        label = { Text("Password", color = Color(0xFF757575)) },
                         leadingIcon = {
                             Icon(
                                 Icons.Default.Lock,
-                                contentDescription = "Password",
-                                tint = Color(0xFF06B6D4)
+                                contentDescription = null,
+                                tint = Color(0xFF1E88E5)
                             )
                         },
                         trailingIcon = {
                             IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                 Icon(
-                                    imageVector = if (passwordVisible) Icons.Default.Close else Icons.Default.Check,
+                                    imageVector = if (passwordVisible) Icons.Default.Check else Icons.Default.Close,
                                     contentDescription = if (passwordVisible) "Hide password" else "Show password",
-                                    tint = Color.White.copy(alpha = 0.7f)
+                                    tint = Color(0xFF757575)
                                 )
                             }
                         },
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        shape = RoundedCornerShape(10.dp),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        shape = RoundedCornerShape(8.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF06B6D4),
-                            unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            cursorColor = Color(0xFF06B6D4),
-                            focusedContainerColor = Color(0xFF0F172A).copy(alpha = 0.5f),
-                            unfocusedContainerColor = Color(0xFF0F172A).copy(alpha = 0.3f)
-                        )
+                            focusedBorderColor = Color(0xFF1E88E5),
+                            unfocusedBorderColor = Color(0xFFE0E0E0),
+                            cursorColor = Color(0xFF1E88E5),
+                            focusedTextColor = Color(0xFF212121),
+                            unfocusedTextColor = Color(0xFF212121)
+                        ),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
                     )
-
-                    // Error message
+                    
+                    // Error Message
                     if (errorMessage != null) {
                         Card(
-                            modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(
-                                containerColor = Color(0xFFEF4444).copy(alpha = 0.15f)
+                                containerColor = Color(0xFFFFEBEE)
                             ),
-                            shape = RoundedCornerShape(10.dp)
+                            shape = RoundedCornerShape(8.dp)
                         ) {
                             Row(
                                 modifier = Modifier
-                                    .padding(12.dp)
-                                    .fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Warning,
-                                    contentDescription = "Error",
-                                    tint = Color(0xFFEF4444),
-                                    modifier = Modifier.size(18.dp)
+                                    Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = Color(0xFFD32F2F),
+                                    modifier = Modifier.size(20.dp)
                                 )
                                 Text(
                                     text = errorMessage!!,
-                                    color = Color(0xFFEF4444),
-                                    fontSize = 13.sp
+                                    color = Color(0xFFD32F2F),
+                                    fontSize = 14.sp
                                 )
                             }
                         }
                     }
-
-                    // Sign In button
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // Login Button
                     Button(
                         onClick = {
-                            scope.launch {
+                            if (email.isNotBlank() && password.isNotBlank()) {
                                 isLoading = true
                                 errorMessage = null
-
-                                val result = withContext(Dispatchers.IO) {
-                                    authService.login(email, password)
+                                scope.launch {
+                                    try {
+                                        val result = withContext(Dispatchers.IO) {
+                                            authService.login(email, password)
+                                        }
+                                        result.onSuccess { user ->
+                                            onLoginSuccess(user)
+                                        }.onFailure { error ->
+                                            errorMessage = error.message ?: "Invalid credentials"
+                                        }
+                                    } catch (e: Exception) {
+                                        errorMessage = "Login failed: ${e.message}"
+                                    } finally {
+                                        isLoading = false
+                                    }
                                 }
-
-                                isLoading = false
-                                result.onSuccess { user ->
-                                    onLoginSuccess(user)
-                                }.onFailure { error ->
-                                    errorMessage = error.message ?: "Login failed"
-                                }
+                            } else {
+                                errorMessage = "Please fill in all fields"
                             }
                         },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
-                        enabled = !isLoading && email.isNotBlank() && password.isNotBlank(),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF06B6D4),
-                            contentColor = Color.White,
-                            disabledContainerColor = Color(0xFF06B6D4).copy(alpha = 0.5f),
-                            disabledContentColor = Color.White.copy(alpha = 0.7f)
+                            containerColor = Color(0xFF1E88E5),
+                            contentColor = Color.White
                         ),
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(8.dp),
+                        enabled = !isLoading
                     ) {
                         if (isLoading) {
                             CircularProgressIndicator(
@@ -303,18 +297,11 @@ fun LoginScreen(
                                 strokeWidth = 2.dp
                             )
                         } else {
-                            Row(
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("Sign In", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Icon(
-                                    Icons.Default.ArrowForward,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
+                            Text(
+                                "Sign In",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
                     }
                 }
