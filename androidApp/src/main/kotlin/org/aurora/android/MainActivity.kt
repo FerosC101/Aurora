@@ -87,10 +87,10 @@ fun AuroraApp(authService: AuthService, mapsProvider: org.aurora.android.maps.Ma
         
         AuthScreen.HOME -> {
             currentUser?.let { user ->
-                // Use the exact desktop AuroraRiderApp
-                AuroraRiderApp(
-                    userId = user.id.hashCode(),
-                    mapsProvider = mapsProvider,
+                // Use the new MainNavigationApp with bottom navigation
+                org.aurora.android.ui.MainNavigationApp(
+                    userName = user.fullName,
+                    userEmail = user.email,
                     onLogout = {
                         currentUser = null
                         currentScreen = AuthScreen.LOGIN
