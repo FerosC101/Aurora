@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun HomeScreen(
     onStartNavigation: (String, String) -> Unit,
+    onMultiStopNavigation: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var origin by remember { mutableStateOf("") }
@@ -126,6 +127,28 @@ fun HomeScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Start Navigation", fontSize = 16.sp, fontWeight = FontWeight.Medium)
                     }
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Multi-stop button
+                OutlinedButton(
+                    onClick = onMultiStopNavigation,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color(0xFF1E88E5)
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Plan Multi-Stop Route", fontSize = 16.sp, fontWeight = FontWeight.Medium)
                 }
             }
         }

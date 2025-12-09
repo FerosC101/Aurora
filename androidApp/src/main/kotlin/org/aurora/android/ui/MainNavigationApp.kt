@@ -124,6 +124,9 @@ fun NavigationGraph(
             HomeScreen(
                 onStartNavigation = { origin, destination ->
                     navController.navigate("navigation/$origin/$destination")
+                },
+                onMultiStopNavigation = {
+                    navController.navigate("multistop")
                 }
             )
         }
@@ -155,6 +158,20 @@ fun NavigationGraph(
             SimpleNavigationScreen(
                 origin = origin,
                 destination = destination,
+                onBack = { navController.navigateUp() }
+            )
+        }
+        
+        composable("multistop") {
+            MultiStopPlanningScreen(
+                onStartNavigation = { waypoints ->
+                    // For now, navigate to simple navigation with first and last
+                    val origin = waypoints.firstOrNull()?.name ?: ""
+                    val destination = waypoints.lastOrNull()?.name ?: ""
+                    navController.navigate("navigation/$origin/$destination") {
+                        popUpTo("multistop") { inclusive = true }
+                    }
+                },
                 onBack = { navController.navigateUp() }
             )
         }
