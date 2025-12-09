@@ -73,7 +73,7 @@ fun LoginScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.DirectionsCar,
+                        imageVector = Icons.Default.Star,
                         contentDescription = "Aurora Logo",
                         modifier = Modifier.size(56.dp),
                         tint = Color(0xFF06B6D4)
@@ -212,7 +212,7 @@ fun LoginScreen(
                         trailingIcon = {
                             IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                 Icon(
-                                    imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    imageVector = if (passwordVisible) Icons.Default.Close else Icons.Default.Check,
                                     contentDescription = if (passwordVisible) "Hide password" else "Show password",
                                     tint = Color.White.copy(alpha = 0.7f)
                                 )
@@ -251,7 +251,7 @@ fun LoginScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Error,
+                                    imageVector = Icons.Default.Warning,
                                     contentDescription = "Error",
                                     tint = Color(0xFFEF4444),
                                     modifier = Modifier.size(18.dp)

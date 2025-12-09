@@ -79,7 +79,7 @@ fun HomeScreen(
                     verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.DirectionsCar,
+                        imageVector = Icons.Default.Star,
                         contentDescription = "Aurora Logo",
                         modifier = Modifier.size(80.dp),
                         tint = Color(0xFF06B6D4)

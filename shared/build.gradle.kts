@@ -1,7 +1,6 @@
 plugins {
     kotlin("multiplatform")
-    kotlin("plugin.serialization") version "1.9.25"
-    // id("com.android.library") // Disabled for desktop-only builds
+    kotlin("plugin.serialization") version "1.9.21"
     id("org.jetbrains.compose")
 }
 
@@ -25,14 +24,6 @@ repositories {
 // }
 
 kotlin {
-    // androidTarget {
-    //     compilations.all {
-    //         kotlinOptions {
-    //             jvmTarget = "17"
-    //         }
-    //     }
-    // }
-    
     jvm("desktop") {
         jvmToolchain(17)
     }
@@ -71,13 +62,6 @@ kotlin {
             }
         }
         
-        // Android source set
-        // val androidMain by getting {
-        //     dependencies {
-        //         implementation("androidx.core:core-ktx:1.12.0")
-        //     }
-        // }
-        
         val desktopMain by getting {
             dependencies {
                 implementation(compose.desktop.common)
@@ -105,17 +89,3 @@ kotlin {
         }
     }
 }
-
-// android {
-//     namespace = "org.aurora.shared"
-//     compileSdk = 34
-//     
-//     defaultConfig {
-//         minSdk = 24
-//     }
-//     
-//     compileOptions {
-//         sourceCompatibility = JavaVersion.VERSION_17
-//         targetCompatibility = JavaVersion.VERSION_17
-//     }
-// }

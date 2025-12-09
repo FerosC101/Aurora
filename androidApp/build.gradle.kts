@@ -42,7 +42,9 @@ android {
         compose = true
     }
 
-    // Compose compiler version is managed by the Compose Multiplatform plugin declared in settings.gradle.kts
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.4"
+    }
 
     packaging {
         resources {
@@ -52,7 +54,7 @@ android {
 }
 
 dependencies {
-    // Removed shared module dependency due to multiplatform compatibility issues
+    // Temporarily disabled shared module - using standalone Android app
     // implementation(project(":shared"))
 
     // Android Core
@@ -66,13 +68,19 @@ dependencies {
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.material:material-icons-extended")
+    // Removed material-icons-extended to reduce build size and fix disk space issues
+    // implementation("androidx.compose.material:material-icons-extended")
 
     // ViewModel
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
 
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.7.7")
+    
+    // Ktor for network calls
+    implementation("io.ktor:ktor-client-android:2.3.7")
+    implementation("io.ktor:ktor-client-content-negotiation:2.3.7")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.7")
     
     // SQLite for Android
     implementation("androidx.room:room-runtime:2.6.1")

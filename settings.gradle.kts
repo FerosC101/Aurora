@@ -10,17 +10,17 @@ pluginManagement {
         mavenCentral()
     }
     plugins {
-        // Kotlin plugins
-        kotlin("jvm") version "1.9.25"
-        kotlin("android") version "1.9.25"
-        kotlin("multiplatform") version "1.9.25"
+        // Kotlin plugins - Use 1.9.20 for better compatibility
+        kotlin("jvm") version "1.9.20"
+        kotlin("android") version "1.9.20"
+        kotlin("multiplatform") version "1.9.20"
 
-        // Android Gradle Plugin
-        id("com.android.application") version "8.5.2"
-        id("com.android.library") version "8.5.2"
+        // Android Gradle Plugin - Use 8.1.4 for stability with Gradle 8.2
+        id("com.android.application") version "8.1.4"
+        id("com.android.library") version "8.1.4"
 
-        // Compose Multiplatform Gradle plugin
-        id("org.jetbrains.compose") version "1.7.1"
+        // Compose Multiplatform Gradle plugin - 1.5.10 is stable with Kotlin 1.9.20 and Gradle 8.2
+        id("org.jetbrains.compose") version "1.5.10"
     }
 }
 
@@ -44,11 +44,13 @@ plugins {
 // Learn more about structuring projects with Gradle - https://docs.gradle.org/8.7/userguide/multi_project_builds.html
 rootProject.name = "Aurora"
 
-include(":app")
-include(":utils")
+// Temporarily excluding these modules
+// include(":app")
+// include(":utils")
 
 // Add new Aurora modules
-include(":shared")
-include(":desktopApp")
-// Temporarily excluding androidApp due to Kotlin/AGP compatibility issues
-// include(":androidApp")
+// Temporarily excluding shared and desktopApp modules due to Compose Multiplatform/Gradle compatibility issues
+// The androidApp is self-contained and doesn't depend on these modules
+// include(":shared")
+// include(":desktopApp")
+include(":androidApp")
