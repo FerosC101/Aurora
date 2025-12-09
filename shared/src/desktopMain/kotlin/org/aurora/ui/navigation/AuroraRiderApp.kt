@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.foundation.border
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.text.font.FontWeight
@@ -571,11 +572,11 @@ fun HomeScreen(
             
             Spacer(modifier = Modifier.height(40.dp))
             
-            // Large Pulsating Travel Optimization Button (Center)
+            // Large Pulsating Travel Button (GCash style)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 60.dp),
+                    .padding(horizontal = 24.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Box(
@@ -583,12 +584,15 @@ fun HomeScreen(
                         .size(200.dp)
                         .scale(pulseScale)
                         .background(
-                            brush = androidx.compose.ui.graphics.Brush.radialGradient(
-                                colors = listOf(Color(0xFF2196F3), Color(0xFF1976D2))
+                            Brush.radialGradient(
+                                colors = listOf(
+                                    Color(0xFF2196F3),
+                                    Color(0xFF1976D2)
+                                )
                             ),
                             shape = CircleShape
                         )
-                        .clickable(onClick = onFindRoutes),
+                        .clickable { /* Optional: scroll to route planning form */ },
                     contentAlignment = Alignment.Center
                 ) {
                     Column(
@@ -599,26 +603,187 @@ fun HomeScreen(
                             Icons.Default.Navigation,
                             contentDescription = "Optimize Travel",
                             tint = Color.White,
-                            modifier = Modifier.size(48.dp)
+                            modifier = Modifier.size(64.dp)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             "Optimize",
                             color = Color.White,
-                            fontSize = 20.sp,
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
                             "Travel",
-                            color = Color.White,
+                            color = Color.White.copy(alpha = 0.9f),
                             fontSize = 16.sp,
-                            fontWeight = FontWeight.Normal
+                            fontWeight = FontWeight.Medium
                         )
                     }
                 }
             }
             
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(32.dp))
+            
+            // Route Planning Card
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(Color(0xFF1E88E5).copy(alpha = 0.1f), RoundedCornerShape(10.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Navigation,
+                                contentDescription = null,
+                                tint = Color(0xFF1E88E5),
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                        Text(
+                            "Plan Your Route",
+                            color = Color(0xFF1F2937),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(20.dp))
+                    
+                    OutlinedTextField(
+                        value = origin,
+                        onValueChange = onOriginChange,
+                        label = { Text("From", fontSize = 14.sp) },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.LocationOn,
+                                contentDescription = null,
+                                tint = Color(0xFF1E88E5)
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color(0xFF1F2937),
+                            unfocusedTextColor = Color(0xFF1F2937),
+                            focusedBorderColor = Color(0xFF1E88E5),
+                            unfocusedBorderColor = Color(0xFFE5E7EB),
+                            focusedLabelColor = Color(0xFF1E88E5),
+                            unfocusedLabelColor = Color(0xFF6B7280),
+                            cursorColor = Color(0xFF1E88E5),
+                            focusedContainerColor = Color(0xFFF9FAFB),
+                            unfocusedContainerColor = Color(0xFFF9FAFB)
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    
+                    Spacer(modifier = Modifier.height(14.dp))
+                    
+                    OutlinedTextField(
+                        value = destination,
+                        onValueChange = onDestinationChange,
+                        label = { Text("To", fontSize = 14.sp) },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Place,
+                                contentDescription = null,
+                                tint = Color(0xFFEF4444)
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color(0xFF1F2937),
+                            unfocusedTextColor = Color(0xFF1F2937),
+                            focusedBorderColor = Color(0xFF1E88E5),
+                            unfocusedBorderColor = Color(0xFFE5E7EB),
+                            focusedLabelColor = Color(0xFF1E88E5),
+                            unfocusedLabelColor = Color(0xFF6B7280),
+                            cursorColor = Color(0xFF1E88E5),
+                            focusedContainerColor = Color(0xFFF9FAFB),
+                            unfocusedContainerColor = Color(0xFFF9FAFB)
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    
+                    Spacer(modifier = Modifier.height(18.dp))
+                    
+                    Text(
+                        "Travel Mode",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF1F2937)
+                    )
+                    
+                    Spacer(modifier = Modifier.height(10.dp))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf(
+                            Triple("bicycling", "Bike", Icons.Default.DirectionsBike),
+                            Triple("walking", "Walk", Icons.Default.DirectionsWalk),
+                            Triple("driving", "Car", Icons.Default.DirectionsCar),
+                            Triple("transit", "Bus", Icons.Default.DirectionsBus)
+                        ).forEach { (mode, label, icon) ->
+                            ModernModeChip(
+                                label = label,
+                                icon = icon,
+                                isSelected = vehicleMode == mode,
+                                onClick = { onVehicleModeChange(mode) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(18.dp))
+                    
+                    Button(
+                        onClick = onFindRoutes,
+                        enabled = !isLoadingRoutes && origin.isNotBlank() && destination.isNotBlank(),
+                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF1E88E5),
+                            disabledContainerColor = Color(0xFFE5E7EB),
+                            disabledContentColor = Color(0xFF9CA3AF)
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                    ) {
+                        if (isLoadingRoutes) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(
+                                Icons.Default.Search,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "Find Routes",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
             
             // Feature Cards at Bottom
             Column(

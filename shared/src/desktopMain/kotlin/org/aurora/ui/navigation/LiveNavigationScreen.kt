@@ -29,7 +29,7 @@ fun LiveNavigationScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f)
+                .height(380.dp)
                 .background(Color(0xFFE5E7EB))
                 .padding(12.dp)
         ) {
