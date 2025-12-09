@@ -21,10 +21,25 @@ fun MainNavigationApp(
     onLogout: () -> Unit
 ) {
     val navController = rememberNavController()
+    var showBottomBar by remember { mutableStateOf(true) }
+    
+    // Hide bottom bar when navigating
+    LaunchedEffect(navController) {
+        navController.currentBackStackEntryFlow.collect { backStackEntry ->
+            showBottomBar = backStackEntry.destination.route in listOf(
+                BottomNavItem.Home.route,
+                BottomNavItem.Explore.route,
+                BottomNavItem.Activity.route,
+                BottomNavItem.Profile.route
+            )
+        }
+    }
     
     Scaffold(
         bottomBar = {
-            BottomNavigationBar(navController = navController)
+            if (showBottomBar) {
+                BottomNavigationBar(navController = navController)
+            }
         },
         containerColor = Color(0xFFF8F9FA)
     ) { paddingValues ->
@@ -108,7 +123,7 @@ fun NavigationGraph(
         composable(BottomNavItem.Home.route) {
             HomeScreen(
                 onStartNavigation = { origin, destination ->
-                    // TODO: Navigate to full navigation screen
+                    navController.navigate("navigation/$origin/$destination")
                 }
             )
         }
@@ -116,7 +131,7 @@ fun NavigationGraph(
         composable(BottomNavItem.Explore.route) {
             ExploreScreen(
                 onRouteClick = { route ->
-                    // TODO: Start navigation with saved route
+                    navController.navigate("navigation/${route.origin}/${route.destination}")
                 }
             )
         }
@@ -130,6 +145,17 @@ fun NavigationGraph(
                 userName = userName,
                 userEmail = userEmail,
                 onLogout = onLogout
+            )
+        }
+        
+        composable("navigation/{origin}/{destination}") { backStackEntry ->
+            val origin = backStackEntry.arguments?.getString("origin") ?: ""
+            val destination = backStackEntry.arguments?.getString("destination") ?: ""
+            
+            SimpleNavigationScreen(
+                origin = origin,
+                destination = destination,
+                onBack = { navController.navigateUp() }
             )
         }
     }
