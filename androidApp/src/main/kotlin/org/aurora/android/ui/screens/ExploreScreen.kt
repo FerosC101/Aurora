@@ -39,25 +39,15 @@ fun ExploreScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val repository = remember {
-        SavedRoutesRepository(AppDatabase.getInstance(context).savedRouteDao())
-    }
+    // TODO: Re-enable when KSP is working
+    // Repository disabled due to missing Room implementation
     val scope = rememberCoroutineScope()
     
     var selectedTab by remember { mutableStateOf(0) }
     
-    // Observe routes from database
-    val allRoutesFromDb by repository.allRoutes.collectAsState(initial = emptyList())
-    val favoriteRoutesFromDb by repository.favoriteRoutes.collectAsState(initial = emptyList())
-    
-    // Convert database entities to UI models
-    val savedRoutes = remember(allRoutesFromDb) {
-        allRoutesFromDb.map { it.toSavedRoute() }
-    }
-    
-    val favoriteRoutes = remember(favoriteRoutesFromDb) {
-        favoriteRoutesFromDb.map { it.toSavedRoute() }
-    }
+    // Dummy data since database is not available
+    val savedRoutes = remember { emptyList<SavedRoute>() }
+    val favoriteRoutes = remember { emptyList<SavedRoute>() }
 
     Column(
         modifier = modifier
@@ -125,28 +115,32 @@ fun ExploreScreen(
             0 -> SavedRoutesContent(
                 routes = savedRoutes,
                 onRouteClick = { route ->
-                    scope.launch {
-                        repository.markRouteAsUsed(route.id)
-                    }
+                    // TODO: Re-enable when KSP is working
+                    // scope.launch {
+                    //     repository.markRouteAsUsed(route.id)
+                    // }
                     onRouteClick(route)
                 },
                 onToggleFavorite = { route ->
-                    scope.launch {
-                        repository.toggleFavorite(route.id, !route.isFavorite)
-                    }
+                    // TODO: Re-enable when KSP is working
+                    // scope.launch {
+                    //     repository.toggleFavorite(route.id, !route.isFavorite)
+                    // }
                 },
                 onDeleteRoute = { route ->
-                    scope.launch {
-                        repository.deleteRouteById(route.id)
-                    }
+                    // TODO: Re-enable when KSP is working
+                    // scope.launch {
+                    //     repository.deleteRouteById(route.id)
+                    // }
                 }
             )
             1 -> FavoritesContent(
                 routes = favoriteRoutes,
                 onRouteClick = { route ->
-                    scope.launch {
-                        repository.markRouteAsUsed(route.id)
-                    }
+                    // TODO: Re-enable when KSP is working
+                    // scope.launch {
+                    //     repository.markRouteAsUsed(route.id)
+                    // }
                     onRouteClick(route)
                 }
             )

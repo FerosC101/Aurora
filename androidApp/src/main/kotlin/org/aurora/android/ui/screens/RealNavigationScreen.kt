@@ -43,9 +43,8 @@ fun RealNavigationScreen(
     val context = LocalContext.current
     val voiceService = remember { VoiceNavigationService(context) }
     val speedMonitor = remember { SpeedMonitor(context) }
-    val repository = remember {
-        SavedRoutesRepository(AppDatabase.getInstance(context).savedRouteDao())
-    }
+    // TODO: Re-enable when KSP is working
+    // Repository disabled due to missing Room implementation
     val scope = rememberCoroutineScope()
     
     val speedData by speedMonitor.speedData.collectAsState()
@@ -85,15 +84,16 @@ fun RealNavigationScreen(
                 TextButton(
                     onClick = {
                         if (routeName.isNotBlank()) {
-                            scope.launch {
-                                repository.saveRoute(
-                                    name = routeName,
-                                    origin = origin,
-                                    destination = destination,
-                                    distance = remainingDistance.replace(" km", "").toDoubleOrNull() ?: 0.0,
-                                    estimatedTime = eta.replace(" min", "").toIntOrNull() ?: 0
-                                )
-                            }
+                            // TODO: Re-enable when KSP is working
+                            // scope.launch {
+                            //     repository.saveRoute(
+                            //         name = routeName,
+                            //         origin = origin,
+                            //         destination = destination,
+                            //         distance = remainingDistance.replace(" km", "").toDoubleOrNull() ?: 0.0,
+                            //         estimatedTime = eta.replace(" min", "").toIntOrNull() ?: 0
+                            //     )
+                            // }
                             showSaveDialog = false
                         }
                     },
