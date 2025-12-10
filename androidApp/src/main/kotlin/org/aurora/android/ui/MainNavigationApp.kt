@@ -13,6 +13,9 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import org.aurora.android.ui.navigation.BottomNavItem
 import org.aurora.android.ui.screens.*
+import java.net.URLDecoder
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 @Composable
 fun MainNavigationApp(
@@ -123,7 +126,9 @@ fun NavigationGraph(
         composable(BottomNavItem.Home.route) {
             HomeScreen(
                 onStartNavigation = { origin, destination ->
-                    navController.navigate("navigation/$origin/$destination")
+                    val encodedOrigin = URLEncoder.encode(origin, StandardCharsets.UTF_8.toString())
+                    val encodedDestination = URLEncoder.encode(destination, StandardCharsets.UTF_8.toString())
+                    navController.navigate("navigation/$encodedOrigin/$encodedDestination")
                 },
                 onMultiStopNavigation = {
                     navController.navigate("multistop")
@@ -134,7 +139,9 @@ fun NavigationGraph(
         composable(BottomNavItem.Explore.route) {
             ExploreScreen(
                 onRouteClick = { route ->
-                    navController.navigate("navigation/${route.origin}/${route.destination}")
+                    val encodedOrigin = URLEncoder.encode(route.origin, StandardCharsets.UTF_8.toString())
+                    val encodedDestination = URLEncoder.encode(route.destination, StandardCharsets.UTF_8.toString())
+                    navController.navigate("navigation/$encodedOrigin/$encodedDestination")
                 }
             )
         }
@@ -152,12 +159,34 @@ fun NavigationGraph(
         }
         
         composable("navigation/{origin}/{destination}") { backStackEntry ->
-            val origin = backStackEntry.arguments?.getString("origin") ?: ""
-            val destination = backStackEntry.arguments?.getString("destination") ?: ""
+            val encodedOrigin = backStackEntry.arguments?.getString("origin") ?: ""
+            val encodedDestination = backStackEntry.arguments?.getString("destination") ?: ""
+            val origin = URLDecoder.decode(encodedOrigin, StandardCharsets.UTF_8.toString())
+            val destination = URLDecoder.decode(encodedDestination, StandardCharsets.UTF_8.toString())
             
-            SimpleNavigationScreen(
+            RealNavigationScreen(
                 origin = origin,
                 destination = destination,
+                onBack = { navController.navigateUp() },
+                onViewAlternativeRoutes = {
+                    navController.navigate("alternatives/$encodedOrigin/$encodedDestination")
+                }
+            )
+        }
+        
+        composable("alternatives/{origin}/{destination}") { backStackEntry ->
+            val encodedOrigin = backStackEntry.arguments?.getString("origin") ?: ""
+            val encodedDestination = backStackEntry.arguments?.getString("destination") ?: ""
+            val origin = URLDecoder.decode(encodedOrigin, StandardCharsets.UTF_8.toString())
+            val destination = URLDecoder.decode(encodedDestination, StandardCharsets.UTF_8.toString())
+            
+            AlternativeRoutesScreen(
+                origin = origin,
+                destination = destination,
+                onRouteSelected = { route ->
+                    // Navigate back and potentially update the main navigation with selected route
+                    navController.navigateUp()
+                },
                 onBack = { navController.navigateUp() }
             )
         }
@@ -168,7 +197,9 @@ fun NavigationGraph(
                     // For now, navigate to simple navigation with first and last
                     val origin = waypoints.firstOrNull()?.name ?: ""
                     val destination = waypoints.lastOrNull()?.name ?: ""
-                    navController.navigate("navigation/$origin/$destination") {
+                    val encodedOrigin = URLEncoder.encode(origin, StandardCharsets.UTF_8.toString())
+                    val encodedDestination = URLEncoder.encode(destination, StandardCharsets.UTF_8.toString())
+                    navController.navigate("navigation/$encodedOrigin/$encodedDestination") {
                         popUpTo("multistop") { inclusive = true }
                     }
                 },

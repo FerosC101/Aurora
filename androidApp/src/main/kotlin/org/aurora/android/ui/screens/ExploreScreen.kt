@@ -13,12 +13,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
+import org.aurora.android.database.AppDatabase
+import org.aurora.android.database.SavedRouteEntity
+import org.aurora.android.repository.SavedRoutesRepository
 
 data class SavedRoute(
-    val id: String,
+    val id: Long,
     val name: String,
     val origin: String,
     val destination: String,
@@ -33,15 +38,25 @@ fun ExploreScreen(
     onRouteClick: (SavedRoute) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val repository = remember {
+        SavedRoutesRepository(AppDatabase.getInstance(context).savedRouteDao())
+    }
+    val scope = rememberCoroutineScope()
+    
     var selectedTab by remember { mutableStateOf(0) }
-    var savedRoutes by remember {
-        mutableStateOf(
-            listOf(
-                SavedRoute("1", "Morning Commute", "Home", "Office", "12.5 km", "25 min", "Today", true),
-                SavedRoute("2", "Weekend Trip", "Home", "Mall of Asia", "18.2 km", "35 min", "Yesterday", true),
-                SavedRoute("3", "Gym Routine", "Office", "Fitness First", "3.8 km", "12 min", "2 days ago", false)
-            )
-        )
+    
+    // Observe routes from database
+    val allRoutesFromDb by repository.allRoutes.collectAsState(initial = emptyList())
+    val favoriteRoutesFromDb by repository.favoriteRoutes.collectAsState(initial = emptyList())
+    
+    // Convert database entities to UI models
+    val savedRoutes = remember(allRoutesFromDb) {
+        allRoutesFromDb.map { it.toSavedRoute() }
+    }
+    
+    val favoriteRoutes = remember(favoriteRoutesFromDb) {
+        favoriteRoutesFromDb.map { it.toSavedRoute() }
     }
 
     Column(
@@ -109,26 +124,65 @@ fun ExploreScreen(
         when (selectedTab) {
             0 -> SavedRoutesContent(
                 routes = savedRoutes,
-                onRouteClick = onRouteClick,
+                onRouteClick = { route ->
+                    scope.launch {
+                        repository.markRouteAsUsed(route.id)
+                    }
+                    onRouteClick(route)
+                },
                 onToggleFavorite = { route ->
-                    savedRoutes = savedRoutes.map {
-                        if (it.id == route.id) it.copy(isFavorite = !it.isFavorite) else it
+                    scope.launch {
+                        repository.toggleFavorite(route.id, !route.isFavorite)
+                    }
+                },
+                onDeleteRoute = { route ->
+                    scope.launch {
+                        repository.deleteRouteById(route.id)
                     }
                 }
             )
             1 -> FavoritesContent(
-                routes = savedRoutes.filter { it.isFavorite },
-                onRouteClick = onRouteClick
+                routes = favoriteRoutes,
+                onRouteClick = { route ->
+                    scope.launch {
+                        repository.markRouteAsUsed(route.id)
+                    }
+                    onRouteClick(route)
+                }
             )
         }
     }
+}
+
+// Extension function to convert entity to UI model
+private fun SavedRouteEntity.toSavedRoute(): SavedRoute {
+    val daysSince = (System.currentTimeMillis() - lastUsed) / (1000 * 60 * 60 * 24)
+    val lastUsedText = when {
+        lastUsed == 0L -> "Never"
+        daysSince == 0L -> "Today"
+        daysSince == 1L -> "Yesterday"
+        daysSince < 7 -> "$daysSince days ago"
+        else -> "${daysSince / 7} weeks ago"
+    }
+    
+    return SavedRoute(
+        id = id,
+        name = name,
+        origin = origin,
+        destination = destination,
+        distance = "${String.format("%.1f", distance)} km",
+        estimatedTime = "$estimatedTime min",
+        lastUsed = lastUsedText,
+        isFavorite = isFavorite
+    )
 }
 
 @Composable
 fun SavedRoutesContent(
     routes: List<SavedRoute>,
     onRouteClick: (SavedRoute) -> Unit,
-    onToggleFavorite: (SavedRoute) -> Unit
+    onToggleFavorite: (SavedRoute) -> Unit,
+    onDeleteRoute: (SavedRoute) -> Unit
 ) {
     if (routes.isEmpty()) {
         Box(
@@ -156,11 +210,12 @@ fun SavedRoutesContent(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            items(routes) { route ->
+            items(routes, key = { it.id }) { route ->
                 SavedRouteCard(
                     route = route,
                     onClick = { onRouteClick(route) },
-                    onToggleFavorite = { onToggleFavorite(route) }
+                    onToggleFavorite = { onToggleFavorite(route) },
+                    onDeleteRoute = { onDeleteRoute(route) }
                 )
             }
         }
@@ -203,11 +258,12 @@ fun FavoritesContent(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            items(routes) { route ->
+            items(routes, key = { it.id }) { route ->
                 SavedRouteCard(
                     route = route,
                     onClick = { onRouteClick(route) },
-                    onToggleFavorite = null
+                    onToggleFavorite = null,
+                    onDeleteRoute = null
                 )
             }
         }
@@ -218,8 +274,34 @@ fun FavoritesContent(
 fun SavedRouteCard(
     route: SavedRoute,
     onClick: () -> Unit,
-    onToggleFavorite: (() -> Unit)?
+    onToggleFavorite: (() -> Unit)?,
+    onDeleteRoute: (() -> Unit)?
 ) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    
+    if (showDeleteDialog && onDeleteRoute != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete Route") },
+            text = { Text("Are you sure you want to delete '${route.name}'?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteRoute()
+                        showDeleteDialog = false
+                    }
+                ) {
+                    Text("Delete", color = Color(0xFFE91E63))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+    
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -241,16 +323,29 @@ fun SavedRouteCard(
                     text = route.name,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF212121)
+                    color = Color(0xFF212121),
+                    modifier = Modifier.weight(1f)
                 )
                 
-                if (onToggleFavorite != null) {
-                    IconButton(onClick = onToggleFavorite) {
-                        Icon(
-                            if (route.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = "Toggle favorite",
-                            tint = if (route.isFavorite) Color(0xFFE91E63) else Color(0xFF9E9E9E)
-                        )
+                Row {
+                    if (onToggleFavorite != null) {
+                        IconButton(onClick = onToggleFavorite) {
+                            Icon(
+                                if (route.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                contentDescription = "Toggle favorite",
+                                tint = if (route.isFavorite) Color(0xFFE91E63) else Color(0xFF9E9E9E)
+                            )
+                        }
+                    }
+                    
+                    if (onDeleteRoute != null) {
+                        IconButton(onClick = { showDeleteDialog = true }) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Delete route",
+                                tint = Color(0xFF9E9E9E)
+                            )
+                        }
                     }
                 }
             }

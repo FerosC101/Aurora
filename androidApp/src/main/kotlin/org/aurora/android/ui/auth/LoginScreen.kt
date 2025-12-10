@@ -1,5 +1,6 @@
 package org.aurora.android.ui.auth
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -29,8 +31,12 @@ fun LoginScreen(
     onNavigateToRegister: () -> Unit,
     authService: AuthService
 ) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences("aurora_prefs", Context.MODE_PRIVATE) }
+    
+    var email by remember { mutableStateOf(prefs.getString("saved_email", "") ?: "") }
+    var password by remember { mutableStateOf(prefs.getString("saved_password", "") ?: "") }
+    var rememberMe by remember { mutableStateOf(prefs.getBoolean("remember_me", false)) }
     var passwordVisible by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
@@ -64,11 +70,10 @@ fun LoginScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Place,
+                    androidx.compose.foundation.Image(
+                        painter = androidx.compose.ui.res.painterResource(id = org.aurora.android.R.mipmap.ic_launcher),
                         contentDescription = "Aurora Logo",
-                        modifier = Modifier.size(48.dp),
-                        tint = Color(0xFF1E88E5)
+                        modifier = Modifier.size(64.dp)
                     )
                     
                     Text(
@@ -222,6 +227,27 @@ fun LoginScreen(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
                     )
                     
+                    // Remember Me Checkbox
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = rememberMe,
+                            onCheckedChange = { rememberMe = it },
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = Color(0xFF1E88E5),
+                                uncheckedColor = Color(0xFF9E9E9E)
+                            )
+                        )
+                        Text(
+                            text = "Remember me",
+                            fontSize = 14.sp,
+                            color = Color(0xFF757575),
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+                    }
+                    
                     // Error Message
                     if (errorMessage != null) {
                         Card(
@@ -266,6 +292,17 @@ fun LoginScreen(
                                             authService.login(email, password)
                                         }
                                         result.onSuccess { user ->
+                                            // Save credentials if Remember Me is checked
+                                            if (rememberMe) {
+                                                prefs.edit().apply {
+                                                    putString("saved_email", email)
+                                                    putString("saved_password", password)
+                                                    putBoolean("remember_me", true)
+                                                    apply()
+                                                }
+                                            } else {
+                                                prefs.edit().clear().apply()
+                                            }
                                             onLoginSuccess(user)
                                         }.onFailure { error ->
                                             errorMessage = error.message ?: "Invalid credentials"

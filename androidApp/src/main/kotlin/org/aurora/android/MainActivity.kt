@@ -1,5 +1,6 @@
 package org.aurora.android
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -10,6 +11,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import io.ktor.client.*
 import io.ktor.client.engine.android.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.aurora.android.auth.model.User
 import org.aurora.android.auth.service.AuthService
 import org.aurora.android.theme.AuroraTheme
@@ -55,8 +59,56 @@ enum class AuthScreen {
 
 @Composable
 fun AuroraApp(authService: AuthService, mapsProvider: org.aurora.android.maps.MapsProvider) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val prefs = remember { context.getSharedPreferences("aurora_prefs", Context.MODE_PRIVATE) }
+    val scope = rememberCoroutineScope()
+    
     var currentScreen by remember { mutableStateOf(AuthScreen.LOGIN) }
     var currentUser by remember { mutableStateOf<User?>(null) }
+    var isCheckingAuth by remember { mutableStateOf(true) }
+
+    // Auto-login check
+    LaunchedEffect(Unit) {
+        val rememberMe = prefs.getBoolean("remember_me", false)
+        if (rememberMe) {
+            val savedEmail = prefs.getString("saved_email", null)
+            val savedPassword = prefs.getString("saved_password", null)
+            
+            if (savedEmail != null && savedPassword != null) {
+                scope.launch {
+                    try {
+                        val result = withContext(Dispatchers.IO) {
+                            authService.login(savedEmail, savedPassword)
+                        }
+                        result.onSuccess { user ->
+                            currentUser = user
+                            currentScreen = AuthScreen.HOME
+                        }
+                    } catch (e: Exception) {
+                        // Failed auto-login, clear saved credentials
+                        prefs.edit().clear().apply()
+                    } finally {
+                        isCheckingAuth = false
+                    }
+                }
+            } else {
+                isCheckingAuth = false
+            }
+        } else {
+            isCheckingAuth = false
+        }
+    }
+
+    if (isCheckingAuth) {
+        // Show loading while checking auto-login
+        androidx.compose.foundation.layout.Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = androidx.compose.ui.Alignment.Center
+        ) {
+            androidx.compose.material3.CircularProgressIndicator()
+        }
+        return
+    }
 
     when (currentScreen) {
         AuthScreen.LOGIN -> {
@@ -92,6 +144,8 @@ fun AuroraApp(authService: AuthService, mapsProvider: org.aurora.android.maps.Ma
                     userName = user.fullName,
                     userEmail = user.email,
                     onLogout = {
+                        // Clear saved credentials on logout
+                        prefs.edit().clear().apply()
                         currentUser = null
                         currentScreen = AuthScreen.LOGIN
                     }

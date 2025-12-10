@@ -1,6 +1,8 @@
 plugins {
     id("com.android.application")
     kotlin("android")
+    // Temporarily disable KSP to bypass jlink issue
+    // id("com.google.devtools.ksp") version "1.9.10-1.0.13"
 }
 
 android {
@@ -30,12 +32,12 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
 
     kotlinOptions {
-        jvmTarget = "17"
+        jvmTarget = "11"
     }
 
     buildFeatures {
@@ -77,6 +79,11 @@ dependencies {
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.7.7")
     
+    // Google Maps
+    implementation("com.google.maps.android:maps-compose:4.3.3")
+    implementation("com.google.android.gms:play-services-maps:18.2.0")
+    implementation("com.google.android.gms:play-services-location:21.1.0")
+    
     // Ktor for network calls
     implementation("io.ktor:ktor-client-android:2.3.7")
     implementation("io.ktor:ktor-client-content-negotiation:2.3.7")
@@ -85,6 +92,11 @@ dependencies {
     // SQLite for Android
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
+    // Temporarily disabled KSP to bypass jlink issue
+    // ksp("androidx.room:room-compiler:2.6.1")
+    
+    // Gson for JSON serialization
+    implementation("com.google.code.gson:gson:2.10.1")
     
     // BCrypt for password hashing
     implementation("org.mindrot:jbcrypt:0.4")

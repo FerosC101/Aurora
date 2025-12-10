@@ -70,11 +70,10 @@ fun RegisterScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Place,
+                    androidx.compose.foundation.Image(
+                        painter = androidx.compose.ui.res.painterResource(id = org.aurora.android.R.mipmap.ic_launcher),
                         contentDescription = "Aurora Logo",
-                        modifier = Modifier.size(48.dp),
-                        tint = Color(0xFF1E88E5)
+                        modifier = Modifier.size(64.dp)
                     )
 
                     Text(

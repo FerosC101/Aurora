@@ -15,9 +15,9 @@ pluginManagement {
         kotlin("android") version "1.9.10"
         kotlin("multiplatform") version "1.9.10"
 
-        // Android Gradle Plugin - Use 8.1.4 for stability with Gradle 8.2
-        id("com.android.application") version "8.1.4"
-        id("com.android.library") version "8.1.4"
+        // Android Gradle Plugin - Use 8.2.0 for better JDK compatibility
+        id("com.android.application") version "8.10.1"
+        id("com.android.library") version "8.10.1"
 
         // Compose Multiplatform Gradle plugin - 1.5.3 is stable with Kotlin 1.9.10 and Gradle 8.2
         id("org.jetbrains.compose") version "1.5.3"

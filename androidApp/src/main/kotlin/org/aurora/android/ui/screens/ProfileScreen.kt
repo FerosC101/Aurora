@@ -42,18 +42,18 @@ fun ProfileScreen(
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Profile Picture
+                // Profile Picture with Logo
                 Surface(
                     shape = CircleShape,
-                    color = Color(0xFF1E88E5),
-                    modifier = Modifier.size(80.dp)
+                    color = Color.White,
+                    modifier = Modifier.size(80.dp),
+                    shadowElevation = 4.dp
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = userName.take(1).uppercase(),
-                            fontSize = 32.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
+                        androidx.compose.foundation.Image(
+                            painter = androidx.compose.ui.res.painterResource(id = org.aurora.android.R.mipmap.ic_launcher),
+                            contentDescription = "Profile",
+                            modifier = Modifier.size(72.dp)
                         )
                     }
                 }
