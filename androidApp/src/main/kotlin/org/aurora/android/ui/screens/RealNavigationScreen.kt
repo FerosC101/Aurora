@@ -24,8 +24,12 @@ import kotlinx.coroutines.launch
 import org.aurora.android.audio.VoiceNavigationService
 import org.aurora.android.database.AppDatabase
 import org.aurora.android.database.WaypointData
+import org.aurora.android.location.LocationService
 import org.aurora.android.models.LaneConfigurations
 import org.aurora.android.models.LaneGuidance
+import org.aurora.android.navigation.DirectionsService
+import org.aurora.android.navigation.NavigationStep
+import org.aurora.android.navigation.RouteInfo
 import org.aurora.android.repository.SavedRoutesRepository
 import org.aurora.android.sensors.SpeedMonitor
 import org.aurora.android.ui.components.CompactLaneGuidance
@@ -36,11 +40,15 @@ import org.aurora.android.ui.components.SpeedDisplay
 fun RealNavigationScreen(
     origin: String,
     destination: String,
+    originLocation: LatLng? = null,
+    destinationLocation: LatLng? = null,
     onBack: () -> Unit,
     onViewAlternativeRoutes: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val locationService = remember { LocationService(context) }
+    val directionsService = remember { DirectionsService(context) }
     val voiceService = remember { VoiceNavigationService(context) }
     val speedMonitor = remember { SpeedMonitor(context) }
     // TODO: Re-enable when KSP is working
@@ -51,15 +59,19 @@ fun RealNavigationScreen(
     val isVoiceEnabled by voiceService.isEnabled.collectAsState()
     val isVoiceReady by voiceService.isReady.collectAsState()
     
-    // Current location state (demo: Manila area)
-    var currentLocation by remember { mutableStateOf(LatLng(14.5995, 120.9842)) }
-    var currentInstruction by remember { mutableStateOf("Head north on EDSA") }
-    var distanceToTurn by remember { mutableStateOf(450) }
-    var eta by remember { mutableStateOf("12 min") }
-    var remainingDistance by remember { mutableStateOf("5.2 km") }
+    // Get real current location or use origin location or default
+    val initialLocation = locationService.getLastKnownLocation() ?: originLocation ?: LatLng(14.5995, 120.9842)
+    var currentLocation by remember { mutableStateOf(initialLocation) }
+    var routeInfo by remember { mutableStateOf<RouteInfo?>(null) }
+    var currentStepIndex by remember { mutableStateOf(0) }
+    var currentInstruction by remember { mutableStateOf("Calculating route...") }
+    var distanceToTurn by remember { mutableStateOf(0) }
+    var eta by remember { mutableStateOf("--") }
+    var remainingDistance by remember { mutableStateOf("--") }
     var showLaneGuidance by remember { mutableStateOf(false) }
     var currentLaneGuidance by remember { mutableStateOf<LaneGuidance?>(null) }
     var showSaveDialog by remember { mutableStateOf(false) }
+    var isLoadingRoute by remember { mutableStateOf(false) }
     
     // Save route dialog
     if (showSaveDialog) {
@@ -112,63 +124,100 @@ fun RealNavigationScreen(
     
     // Camera position state
     val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(currentLocation, 15f)
+        position = CameraPosition.fromLatLngZoom(currentLocation, 17f)
     }
     
-    // Demo: Simulate location updates with lane guidance
+    // Track real GPS location updates
     LaunchedEffect(Unit) {
+        locationService.getCurrentLocationFlow().collect { location ->
+            currentLocation = location
+            // Update camera to follow current location
+            cameraPositionState.animate(
+                CameraUpdateFactory.newLatLngZoom(location, 17f),
+                durationMs = 1000
+            )
+        }
+    }
+    
+    // Fetch route from Directions API
+    LaunchedEffect(originLocation, destinationLocation) {
+        if (originLocation != null && destinationLocation != null) {
+            isLoadingRoute = true
+            val result = directionsService.getDirections(originLocation, destinationLocation)
+            result.onSuccess { route ->
+                routeInfo = route
+                eta = directionsService.formatDuration(route.duration)
+                remainingDistance = directionsService.formatDistance(route.distance)
+                
+                if (route.steps.isNotEmpty()) {
+                    currentStepIndex = 0
+                    currentInstruction = route.steps[0].instruction
+                    distanceToTurn = route.steps[0].distance
+                    
+                    voiceService.announce("Navigation started to $destination. ${route.steps[0].instruction}")
+                }
+            }.onFailure { error ->
+                currentInstruction = "Unable to calculate route: ${error.message}"
+                voiceService.announce(currentInstruction)
+            }
+            isLoadingRoute = false
+        }
+        
         speedMonitor.setSpeedLimit(60)
         speedMonitor.startMonitoring()
-        
-        // Announce start
-        delay(1000)
-        voiceService.announce("Navigation started. $currentInstruction")
-        
-        // Simulate moving north (demo)
-        var latOffset = 0.0
-        var turnCounter = 0
-        while (true) {
-            delay(2000)
-            latOffset += 0.0002 // Move north slightly
-            currentLocation = LatLng(14.5995 + latOffset, 120.9842)
-            
-            // Update camera to follow
-            cameraPositionState.move(
-                CameraUpdateFactory.newLatLng(currentLocation)
-            )
-            
-            // Simulate distance to turn
-            distanceToTurn = (distanceToTurn - 25).coerceAtLeast(0)
-            
-            // Show lane guidance when approaching turn (within 300m)
-            if (distanceToTurn < 300 && distanceToTurn > 0) {
-                showLaneGuidance = true
-                // Cycle through different lane configurations for demo
-                currentLaneGuidance = when (turnCounter % 4) {
-                    0 -> LaneConfigurations.leftTurnFromLeft()
-                    1 -> LaneConfigurations.rightTurnFromRight()
-                    2 -> LaneConfigurations.complexIntersection()
-                    else -> LaneConfigurations.leftOrStraight()
+    }
+    
+    // Update navigation based on real GPS location
+    LaunchedEffect(currentLocation, routeInfo) {
+        routeInfo?.let { route ->
+            while (currentStepIndex < route.steps.size) {
+                delay(1000) // Check every second
+                
+                val currentStep = route.steps[currentStepIndex]
+                
+                // Calculate distance to next turn
+                val distanceToNextStep = directionsService.calculateDistanceBetween(
+                    currentLocation,
+                    currentStep.endLocation
+                ).toInt()
+                
+                distanceToTurn = distanceToNextStep
+                
+                // Show lane guidance when approaching turn (within 300m)
+                if (distanceToNextStep < 300 && distanceToNextStep > 50) {
+                    showLaneGuidance = true
+                    // Use maneuver to determine lane guidance
+                    currentLaneGuidance = when (currentStep.maneuver) {
+                        "turn-left" -> LaneConfigurations.leftTurnFromLeft()
+                        "turn-right" -> LaneConfigurations.rightTurnFromRight()
+                        "turn-slight-left", "turn-slight-right" -> LaneConfigurations.leftOrStraight()
+                        else -> LaneConfigurations.complexIntersection()
+                    }
+                    currentLaneGuidance = currentLaneGuidance?.copy(distance = distanceToNextStep)
+                } else if (distanceToNextStep <= 50) {
+                    showLaneGuidance = false
+                    currentLaneGuidance = null
                 }
-                currentLaneGuidance = currentLaneGuidance?.copy(distance = distanceToTurn)
-            } else if (distanceToTurn == 0) {
-                showLaneGuidance = false
-                currentLaneGuidance = null
-            }
-            
-            // Simulate turn instruction every 10 seconds
-            if (distanceToTurn == 0) {
-                val instructions = listOf(
-                    "Turn right onto Quezon Avenue",
-                    "Turn left onto España Boulevard",
-                    "Continue straight on Roxas Boulevard",
-                    "Take the exit to Makati Avenue"
-                )
-                turnCounter++
-                val index = turnCounter % instructions.size
-                currentInstruction = instructions[index]
-                distanceToTurn = 450 // Reset distance
-                voiceService.announce(currentInstruction)
+                
+                // Move to next step when close enough (within 50m)
+                if (distanceToNextStep < 50 && currentStepIndex < route.steps.size - 1) {
+                    currentStepIndex++
+                    val nextStep = route.steps[currentStepIndex]
+                    currentInstruction = nextStep.instruction
+                    voiceService.announce(currentInstruction)
+                    
+                    // Calculate remaining distance and time
+                    val remainingSteps = route.steps.drop(currentStepIndex)
+                    val totalRemainingDistance = remainingSteps.sumOf { it.distance }
+                    val totalRemainingDuration = remainingSteps.sumOf { it.duration }
+                    remainingDistance = directionsService.formatDistance(totalRemainingDistance)
+                    eta = directionsService.formatDuration(totalRemainingDuration)
+                } else if (distanceToNextStep < 50 && currentStepIndex == route.steps.size - 1) {
+                    // Arrived at destination
+                    currentInstruction = "You have arrived at $destination"
+                    voiceService.announce(currentInstruction)
+                    break
+                }
             }
         }
     }
@@ -194,27 +243,57 @@ fun RealNavigationScreen(
             .fillMaxSize()
             .background(Color(0xFFF8F9FA))
     ) {
-        // Google Map
+        // Google Map with real location tracking
         GoogleMap(
             modifier = Modifier.fillMaxSize(),
             cameraPositionState = cameraPositionState,
             properties = MapProperties(
-                isMyLocationEnabled = false,
+                isMyLocationEnabled = locationService.hasLocationPermission(),
                 mapType = MapType.NORMAL
             ),
             uiSettings = MapUiSettings(
                 zoomControlsEnabled = false,
-                myLocationButtonEnabled = false,
+                myLocationButtonEnabled = true,
                 compassEnabled = true,
                 mapToolbarEnabled = false
             )
         ) {
-            // Current location marker
-            Marker(
-                state = MarkerState(position = currentLocation),
-                title = "You are here",
-                snippet = "Current speed: ${speedData.currentSpeed.toInt()} km/h"
-            )
+            // Draw route polyline if available
+            routeInfo?.let { route ->
+                // Decode and draw polyline
+                val polylinePoints = decodePolyline(route.polyline)
+                if (polylinePoints.isNotEmpty()) {
+                    Polyline(
+                        points = polylinePoints,
+                        color = Color(0xFF1E88E5),
+                        width = 10f
+                    )
+                }
+            }
+            
+            // Origin marker if coordinates available
+            originLocation?.let { origLoc ->
+                Marker(
+                    state = MarkerState(position = origLoc),
+                    title = origin,
+                    snippet = "Starting point",
+                    icon = com.google.android.gms.maps.model.BitmapDescriptorFactory.defaultMarker(
+                        com.google.android.gms.maps.model.BitmapDescriptorFactory.HUE_GREEN
+                    )
+                )
+            }
+            
+            // Destination marker if coordinates available
+            destinationLocation?.let { destLoc ->
+                Marker(
+                    state = MarkerState(position = destLoc),
+                    title = destination,
+                    snippet = "Destination",
+                    icon = com.google.android.gms.maps.model.BitmapDescriptorFactory.defaultMarker(
+                        com.google.android.gms.maps.model.BitmapDescriptorFactory.HUE_RED
+                    )
+                )
+            }
         }
         
         // Top Bar
@@ -426,4 +505,46 @@ fun RealNavigationScreen(
             }
         }
     }
+}
+
+/**
+ * Decode Google Maps encoded polyline string into list of LatLng points
+ */
+private fun decodePolyline(encoded: String): List<LatLng> {
+    val poly = ArrayList<LatLng>()
+    var index = 0
+    val len = encoded.length
+    var lat = 0
+    var lng = 0
+
+    while (index < len) {
+        var b: Int
+        var shift = 0
+        var result = 0
+        do {
+            b = encoded[index++].code - 63
+            result = result or (b and 0x1f shl shift)
+            shift += 5
+        } while (b >= 0x20)
+        val dlat = if (result and 1 != 0) (result shr 1).inv() else result shr 1
+        lat += dlat
+
+        shift = 0
+        result = 0
+        do {
+            b = encoded[index++].code - 63
+            result = result or (b and 0x1f shl shift)
+            shift += 5
+        } while (b >= 0x20)
+        val dlng = if (result and 1 != 0) (result shr 1).inv() else result shr 1
+        lng += dlng
+
+        val p = LatLng(
+            lat.toDouble() / 1E5,
+            lng.toDouble() / 1E5
+        )
+        poly.add(p)
+    }
+
+    return poly
 }

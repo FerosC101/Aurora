@@ -1,5 +1,6 @@
 package org.aurora.android.ui.screens
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,9 +16,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.android.gms.maps.model.LatLng
+import org.aurora.android.location.LocationService
 import org.aurora.android.models.Waypoint
 import org.aurora.android.traffic.model.Position
 
@@ -25,12 +29,18 @@ import org.aurora.android.traffic.model.Position
 fun MultiStopPlanningScreen(
     onStartNavigation: (List<Waypoint>) -> Unit,
     onBack: () -> Unit,
+    onMapPicker: (String, LatLng?, (LatLng, String) -> Unit) -> Unit = { _, _, _ -> },
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val locationService = remember { LocationService(context) }
+    
     var waypoints by remember { mutableStateOf(listOf<Waypoint>()) }
     var showAddDialog by remember { mutableStateOf(false) }
     var origin by remember { mutableStateOf("") }
     var destination by remember { mutableStateOf("") }
+    var originLocation by remember { mutableStateOf<LatLng?>(null) }
+    var destinationLocation by remember { mutableStateOf<LatLng?>(null) }
     var newStopName by remember { mutableStateOf("") }
     var stopDuration by remember { mutableStateOf(5) }
     
@@ -89,14 +99,45 @@ fun MultiStopPlanningScreen(
                 // Origin
                 OutlinedTextField(
                     value = origin,
-                    onValueChange = { origin = it },
+                    onValueChange = { 
+                        origin = it
+                        originLocation = null
+                    },
                     placeholder = { Text("Starting point") },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Default.LocationOn,
-                            contentDescription = null,
-                            tint = Color(0xFF4CAF50)
-                        )
+                    trailingIcon = {
+                        Row {
+                            // Use Current Location
+                            IconButton(
+                                onClick = {
+                                    val currentLoc = locationService.getLastKnownLocation()
+                                    if (currentLoc != null) {
+                                        originLocation = currentLoc
+                                        origin = locationService.formatLocationToAddress(currentLoc)
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    Icons.Default.LocationOn,
+                                    contentDescription = "Use Current Location",
+                                    tint = Color(0xFF4CAF50)
+                                )
+                            }
+                            // Pick on Map
+                            IconButton(
+                                onClick = {
+                                    onMapPicker("Select Starting Point", originLocation) { location, address ->
+                                        originLocation = location
+                                        origin = address
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    Icons.Default.Place,
+                                    contentDescription = "Pick on Map",
+                                    tint = Color(0xFF1E88E5)
+                                )
+                            }
+                        }
                     },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
@@ -108,14 +149,26 @@ fun MultiStopPlanningScreen(
                 // Destination
                 OutlinedTextField(
                     value = destination,
-                    onValueChange = { destination = it },
+                    onValueChange = { 
+                        destination = it
+                        destinationLocation = null
+                    },
                     placeholder = { Text("Final destination") },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Default.Place,
-                            contentDescription = null,
-                            tint = Color(0xFFE91E63)
-                        )
+                    trailingIcon = {
+                        IconButton(
+                            onClick = {
+                                onMapPicker("Select Final Destination", destinationLocation) { location, address ->
+                                    destinationLocation = location
+                                    destination = address
+                                }
+                            }
+                        ) {
+                            Icon(
+                                Icons.Default.Place,
+                                contentDescription = "Pick on Map",
+                                tint = Color(0xFF1E88E5)
+                            )
+                        }
                     },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
