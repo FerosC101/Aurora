@@ -119,13 +119,13 @@ class HazardDetectionService {
         }
     }
     
-    fun getHazardEmoji(hazardType: String): String {
+    fun getHazardIcon(hazardType: String): String {
         return when (hazardType) {
-            "construction" -> "🚧"
-            "pothole" -> "🕳️"
-            "flooding" -> "🌊"
-            "accident" -> "🚨"
-            else -> "⚠️"
+            "construction" -> "build"
+            "pothole" -> "wrong_location"
+            "flooding" -> "water_damage"
+            "accident" -> "warning"
+            else -> "error"
         }
     }
     

@@ -7,6 +7,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -214,12 +216,23 @@ private fun AiRecommendationCard(analysis: GeminiAIService.RouteAnalysis) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "🤖 AI Recommendation",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF7C3AED)
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = "AI",
+                        tint = Color(0xFF7C3AED),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "AI Recommendation",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF7C3AED)
+                    )
+                }
                 Surface(
                     color = Color(0xFF7C3AED),
                     shape = RoundedCornerShape(6.dp)
@@ -260,12 +273,23 @@ private fun AiRecommendationCard(analysis: GeminiAIService.RouteAnalysis) {
                     color = Color(0xFFFFEBEE),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text(
-                        text = "⚠️ ${analysis.warning}",
+                    Row(
                         modifier = Modifier.padding(12.dp),
-                        fontSize = 12.sp,
-                        color = Color(0xFFC62828)
-                    )
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = "Warning",
+                            tint = Color(0xFFC62828),
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = analysis.warning,
+                            fontSize = 12.sp,
+                            color = Color(0xFFC62828)
+                        )
+                    }
                 }
             }
         }

@@ -330,9 +330,17 @@ fun HazardItem(hazard: DetectedHazard) {
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.Top
     ) {
-        Text(
-            text = getHazardEmoji(hazard.type),
-            fontSize = 16.sp
+        // Use icon instead of emoji
+        val iconColor = parseColorString(getHazardColor(hazard.severity))
+        Icon(
+            imageVector = when (hazard.type) {
+                "construction" -> Icons.Default.Build
+                "accident" -> Icons.Default.Warning
+                else -> Icons.Default.LocationOn
+            },
+            contentDescription = hazard.type,
+            tint = iconColor,
+            modifier = Modifier.size(20.dp)
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -387,9 +395,9 @@ private fun getRouteColor(routeName: String): Color {
 
 private fun getRouteBadge(routeName: String): String {
     return when (routeName) {
-        "Smart Route" -> "🚀 FASTEST"
-        "Chill Route" -> "🌳 SCENIC"
-        "Regular Route" -> "🛣️ BALANCED"
+        "Smart Route" -> "FASTEST"
+        "Chill Route" -> "SCENIC"
+        "Regular Route" -> "STANDARD"
         else -> ""
     }
 }
@@ -400,16 +408,6 @@ private fun getHazardColor(severity: HazardSeverity): String {
         HazardSeverity.MODERATE -> "#FB923C"
         HazardSeverity.HIGH -> "#EF4444"
         HazardSeverity.CRITICAL -> "#DC2626"
-    }
-}
-
-private fun getHazardEmoji(hazardType: String): String {
-    return when (hazardType) {
-        "construction" -> "🚧"
-        "pothole" -> "🕳️"
-        "flooding" -> "🌊"
-        "accident" -> "🚨"
-        else -> "⚠️"
     }
 }
 

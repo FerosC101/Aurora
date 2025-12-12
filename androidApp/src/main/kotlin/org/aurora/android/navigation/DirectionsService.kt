@@ -66,16 +66,16 @@ class DirectionsService(private val context: Context) {
             val primaryHazards = hazardDetectionService.detectHazards(primaryRoute.steps)
             val primarySafetyScore = hazardDetectionService.calculateSafetyScore(primaryHazards)
             
-            // Smart Route - Fastest (primary route optimized for speed)
+            // Smart Route - Shortest and most optimized (fastest with no attractions)
             val smartRoute = RouteAlternative(
                 name = "Smart Route",
                 routeInfo = primaryRoute,
                 hazards = primaryHazards,
                 safetyScore = primarySafetyScore,
-                characteristics = "Fastest with traffic-aware optimization"
+                characteristics = "Shortest & most optimized - fastest route"
             )
             
-            // Chill Route - Scenic (simulate with slightly longer but safer route)
+            // Chill Route - Scenic with attractions (slightly longer but with points of interest)
             val chillRoute = RouteAlternative(
                 name = "Chill Route",
                 routeInfo = RouteInfo(
@@ -83,20 +83,20 @@ class DirectionsService(private val context: Context) {
                     steps = primaryRoute.steps,
                     distance = (primaryRoute.distance * 1.15).toInt(),  // 15% longer
                     duration = (primaryRoute.duration * 1.2).toInt(),  // 20% longer
-                    overview = "Scenic route avoiding highways"
+                    overview = "Scenic route with attractions"
                 ),
                 hazards = primaryHazards.filter { it.severity != HazardSeverity.CRITICAL },
                 safetyScore = (primarySafetyScore * 1.1).toInt().coerceAtMost(100),
-                characteristics = "Scenic, avoiding highways and tolls"
+                characteristics = "Scenic with attractions & points of interest"
             )
             
-            // Regular Route - Balanced (primary route)
+            // Regular Route - Main normal route (standard recommended)
             val regularRoute = RouteAlternative(
                 name = "Regular Route",
                 routeInfo = primaryRoute,
                 hazards = primaryHazards,
                 safetyScore = primarySafetyScore,
-                characteristics = "Balanced approach for everyday commuting"
+                characteristics = "Main normal route - standard recommended"
             )
             
             Result.success(listOf(smartRoute, chillRoute, regularRoute))
