@@ -27,9 +27,12 @@ fun RouteComparisonScreen(
     routes: List<RouteAlternative>,
     onRouteSelected: (RouteAlternative) -> Unit,
     onBack: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    aiRecommendation: String? = null
 ) {
-    var selectedRoute by remember { mutableStateOf<RouteAlternative?>(routes.firstOrNull()) }
+    var selectedRoute by remember { mutableStateOf<RouteAlternative?>(
+        routes.find { it.name == aiRecommendation } ?: routes.firstOrNull()
+    ) }
     
     Column(
         modifier = modifier
@@ -77,7 +80,8 @@ fun RouteComparisonScreen(
                 RouteComparisonCard(
                     route = route,
                     isSelected = selectedRoute == route,
-                    onSelect = { selectedRoute = it }
+                    onSelect = { selectedRoute = it },
+                    isAiRecommended = route.name == aiRecommendation
                 )
             }
             
@@ -118,7 +122,8 @@ fun RouteComparisonScreen(
 fun RouteComparisonCard(
     route: RouteAlternative,
     isSelected: Boolean,
-    onSelect: (RouteAlternative) -> Unit
+    onSelect: (RouteAlternative) -> Unit,
+    isAiRecommended: Boolean = false
 ) {
     Card(
         modifier = Modifier
@@ -131,16 +136,45 @@ fun RouteComparisonCard(
                         Color(0xFF1E88E5),
                         RoundedCornerShape(12.dp)
                     )
+                } else if (isAiRecommended) {
+                    Modifier.border(
+                        2.dp,
+                        Color(0xFF7C3AED),
+                        RoundedCornerShape(12.dp)
+                    )
                 } else {
                     Modifier
                 }
             ),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) Color(0xFFE3F2FD) else Color.White
+            containerColor = when {
+                isSelected -> Color(0xFFE3F2FD)
+                isAiRecommended -> Color(0xFFF3E5F5)
+                else -> Color.White
+            }
         ),
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+            // AI Recommendation Badge
+            if (isAiRecommended) {
+                Surface(
+                    color = Color(0xFF7C3AED),
+                    shape = RoundedCornerShape(6.dp),
+                    modifier = Modifier
+                        .align(Alignment.Start)
+                        .padding(bottom = 8.dp)
+                ) {
+                    Text(
+                        text = "🤖 AI Recommended",
+                        modifier = Modifier.padding(6.dp, 3.dp),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+            }
+            
             // Route Name & Badge
             Row(
                 modifier = Modifier.fillMaxWidth(),

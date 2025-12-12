@@ -44,6 +44,7 @@ fun RealNavigationScreen(
     destination: String,
     originLocation: LatLng? = null,
     destinationLocation: LatLng? = null,
+    selectedRoute: org.aurora.android.navigation.RouteAlternative? = null,
     onBack: () -> Unit,
     onViewAlternativeRoutes: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -148,36 +149,51 @@ fun RealNavigationScreen(
     }
     
     // Fetch route from Directions API
-    LaunchedEffect(originLocation, destinationLocation) {
+    LaunchedEffect(originLocation, destinationLocation, selectedRoute) {
         if (originLocation != null && destinationLocation != null) {
             isLoadingRoute = true
-            val result = directionsService.getDirections(originLocation, destinationLocation)
-            result.onSuccess { route ->
-                routeInfo = route
-                eta = directionsService.formatDuration(route.duration)
-                remainingDistance = directionsService.formatDistance(route.distance)
+            
+            // Use selected route if available, otherwise fetch from API
+            val route = if (selectedRoute != null) {
+                selectedRoute.routeInfo
+            } else {
+                val result = directionsService.getDirections(originLocation, destinationLocation)
+                result.getOrNull()
+            }
+            
+            route?.let {
+                routeInfo = it
+                eta = directionsService.formatDuration(it.duration)
+                remainingDistance = directionsService.formatDistance(it.distance)
                 
-                // Detect hazards on route
-                detectedHazards = hazardService.detectHazards(route.steps)
-                safetyScore = hazardService.calculateSafetyScore(detectedHazards)
+                // Use detected hazards from selected route if available
+                if (selectedRoute != null) {
+                    detectedHazards = selectedRoute.hazards
+                    safetyScore = selectedRoute.safetyScore
+                } else {
+                    // Detect hazards on route
+                    detectedHazards = hazardService.detectHazards(it.steps)
+                    safetyScore = hazardService.calculateSafetyScore(detectedHazards)
+                }
                 
-                if (route.steps.isNotEmpty()) {
+                if (it.steps.isNotEmpty()) {
                     currentStepIndex = 0
-                    currentInstruction = route.steps[0].instruction
-                    distanceToTurn = route.steps[0].distance
+                    currentInstruction = it.steps[0].instruction
+                    distanceToTurn = it.steps[0].distance
                     
                     // Find first hazard on route
-                    nextHazard = detectedHazards.minByOrNull { it.distanceFromStart }
+                    nextHazard = detectedHazards.minByOrNull { hazard -> hazard.distanceFromStart }
                     
                     val hazardInfo = if (detectedHazards.isNotEmpty()) {
                         " Found ${detectedHazards.size} hazards on route."
                     } else {
                         ""
                     }
-                    voiceService.announce("Navigation started to $destination. ${route.steps[0].instruction}$hazardInfo")
+                    val routeTypeInfo = if (selectedRoute != null) " Using ${selectedRoute.name}." else ""
+                    voiceService.announce("Navigation started to $destination. ${it.steps[0].instruction}$hazardInfo$routeTypeInfo")
                 }
-            }.onFailure { error ->
-                currentInstruction = "Unable to calculate route: ${error.message}"
+            } ?: run {
+                currentInstruction = "Unable to calculate route"
                 voiceService.announce(currentInstruction)
             }
             isLoadingRoute = false

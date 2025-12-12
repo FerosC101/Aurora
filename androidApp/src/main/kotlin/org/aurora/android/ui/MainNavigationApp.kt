@@ -125,6 +125,7 @@ fun NavigationGraph(
     var selectedDestination by remember { mutableStateOf("") }
     var selectedOriginLocation by remember { mutableStateOf<LatLng?>(null) }
     var selectedDestinationLocation by remember { mutableStateOf<LatLng?>(null) }
+    var selectedRoute by remember { mutableStateOf<org.aurora.android.navigation.RouteAlternative?>(null) }
     
     var mapPickerCallback by remember { mutableStateOf<((LatLng, String) -> Unit)?>(null) }
     var mapPickerTitle by remember { mutableStateOf("Select Location") }
@@ -246,6 +247,7 @@ fun NavigationGraph(
                 destination = destination,
                 originLocation = originLocation,
                 destinationLocation = destinationLocation,
+                selectedRoute = selectedRoute,
                 onBack = { navController.navigateUp() },
                 onViewAlternativeRoutes = {
                     navController.navigate("alternatives/$encodedOrigin/$encodedDestination")
@@ -263,7 +265,8 @@ fun NavigationGraph(
                 origin = origin,
                 destination = destination,
                 onRouteSelected = { route ->
-                    // Navigate back and potentially update the main navigation with selected route
+                    // Store the selected route and return to navigation
+                    selectedRoute = route
                     navController.navigateUp()
                 },
                 onBack = { navController.navigateUp() }
