@@ -250,20 +250,40 @@ fun NavigationGraph(
                 selectedRoute = selectedRoute,
                 onBack = { navController.navigateUp() },
                 onViewAlternativeRoutes = {
-                    navController.navigate("alternatives/$encodedOrigin/$encodedDestination")
+                    // Pass coordinates to alternative routes for accurate route calculation
+                    val origLatStr = (originLocation?.latitude ?: 14.5995).toString()
+                    val origLngStr = (originLocation?.longitude ?: 120.9842).toString()
+                    val destLatStr = (destinationLocation?.latitude ?: 14.6000).toString()
+                    val destLngStr = (destinationLocation?.longitude ?: 120.9593).toString()
+                    navController.navigate("alternatives/$encodedOrigin/$encodedDestination/$origLatStr/$origLngStr/$destLatStr/$destLngStr")
                 }
             )
         }
         
-        composable("alternatives/{origin}/{destination}") { backStackEntry ->
+        composable("alternatives/{origin}/{destination}/{origLat}/{origLng}/{destLat}/{destLng}") { backStackEntry ->
             val encodedOrigin = backStackEntry.arguments?.getString("origin") ?: ""
             val encodedDestination = backStackEntry.arguments?.getString("destination") ?: ""
             val origin = URLDecoder.decode(encodedOrigin, StandardCharsets.UTF_8.toString())
             val destination = URLDecoder.decode(encodedDestination, StandardCharsets.UTF_8.toString())
             
+            val origLat = backStackEntry.arguments?.getString("origLat")?.toDoubleOrNull()
+            val origLng = backStackEntry.arguments?.getString("origLng")?.toDoubleOrNull()
+            val destLat = backStackEntry.arguments?.getString("destLat")?.toDoubleOrNull()
+            val destLng = backStackEntry.arguments?.getString("destLng")?.toDoubleOrNull()
+            
+            val originLocation = if (origLat != null && origLng != null) {
+                LatLng(origLat, origLng)
+            } else null
+            
+            val destinationLocation = if (destLat != null && destLng != null) {
+                LatLng(destLat, destLng)
+            } else null
+            
             AlternativeRoutesScreen(
                 origin = origin,
                 destination = destination,
+                originLocation = originLocation,
+                destinationLocation = destinationLocation,
                 onRouteSelected = { route ->
                     // Store the selected route and return to navigation
                     selectedRoute = route

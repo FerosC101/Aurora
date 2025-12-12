@@ -417,21 +417,22 @@ fun RealNavigationScreen(
             }
         }
         
-        // Speed Display Overlay (Top-Right)
+        // Speed Display Overlay (Top-Left, below back button)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .align(Alignment.TopEnd)
+                .align(Alignment.TopStart)
                 .padding(16.dp)
-                .padding(top = 72.dp) // Below top bar
+                .padding(top = 140.dp) // Below top bar and back button
         ) {
             SpeedDisplay(
                 currentSpeed = speedData.currentSpeed,
                 speedLimit = speedData.speedLimit,
                 isExceeding = speedData.isExceeding,
-                modifier = Modifier.align(Alignment.TopEnd)
+                modifier = Modifier.align(Alignment.TopStart)
             )
         }
+        
         
         // Bottom Instruction Panel
         Surface(

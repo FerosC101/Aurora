@@ -1,14 +1,14 @@
 package org.aurora.android.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -30,6 +30,8 @@ import java.time.format.DateTimeFormatter
 fun AlternativeRoutesScreen(
     origin: String,
     destination: String,
+    originLocation: LatLng? = null,
+    destinationLocation: LatLng? = null,
     onRouteSelected: (RouteAlternative) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
@@ -45,9 +47,9 @@ fun AlternativeRoutesScreen(
     var isLoading by remember { mutableStateOf(true) }
     var isAnalyzing by remember { mutableStateOf(false) }
     
-    // Parse origin and destination addresses to coordinates
-    val originCoords = LatLng(14.5995, 120.9842)
-    val destCoords = LatLng(14.6091, 121.0159)
+    // Use provided coordinates or default fallback
+    val originCoords = originLocation ?: LatLng(14.5995, 120.9842)
+    val destCoords = destinationLocation ?: LatLng(14.6091, 121.0159)
     
     LaunchedEffect(origin, destination) {
         scope.launch {
@@ -153,47 +155,54 @@ fun AlternativeRoutesScreen(
                 }
             }
             
-            // AI Recommendation Card
-            if (aiAnalysis != null && !isAnalyzing) {
-                AiRecommendationCard(analysis = aiAnalysis!!)
-            } else if (isAnalyzing) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                        .background(Color(0xFFF3E5F5), RoundedCornerShape(12.dp))
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = Color(0xFF7C3AED)
-                        )
-                        Text(
-                            "AI analyzing routes...",
-                            color = Color(0xFF7C3AED),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-            }
-            
-            // Route Comparison
-            RouteComparisonScreen(
-                routes = routes!!,
-                onRouteSelected = onRouteSelected,
-                onBack = onBack,
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
-                aiRecommendation = aiAnalysis?.recommendedRoute
-            )
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(bottom = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // AI Recommendation Card
+                if (aiAnalysis != null && !isAnalyzing) {
+                    AiRecommendationCard(analysis = aiAnalysis!!)
+                } else if (isAnalyzing) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                            .background(Color(0xFFF3E5F5), RoundedCornerShape(12.dp))
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = Color(0xFF7C3AED)
+                            )
+                            Text(
+                                "AI analyzing routes...",
+                                color = Color(0xFF7C3AED),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+                
+                // Route Cards directly here (not using RouteComparisonScreen)
+                routes!!.forEach { route ->
+                    RouteCard(
+                        route = route,
+                        isRecommended = route.name == aiAnalysis?.recommendedRoute,
+                        onSelect = { onRouteSelected(route) }
+                    )
+                }
+            }
         }
     }
 }
@@ -330,6 +339,165 @@ private fun ScoreIndicator(label: String, score: Int) {
             text = label,
             fontSize = 11.sp,
             color = Color(0xFF424242)
+        )
+    }
+}
+
+@Composable
+private fun RouteCard(
+    route: RouteAlternative,
+    isRecommended: Boolean,
+    onSelect: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .clickable(onClick = onSelect)
+            .then(
+                if (isRecommended) {
+                    Modifier.border(3.dp, Color(0xFF7C3AED), RoundedCornerShape(16.dp))
+                } else {
+                    Modifier
+                }
+            ),
+        color = if (isRecommended) Color(0xFFF3E5F5) else Color.White,
+        shape = RoundedCornerShape(16.dp),
+        shadowElevation = 4.dp
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Route Name and Badge
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = route.name,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF212121)
+                )
+                
+                if (isRecommended) {
+                    Surface(
+                        color = Color(0xFF7C3AED),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = "AI Recommended",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
+                } else {
+                    // Route Type Badge
+                    val badgeText = when (route.name) {
+                        "Smart Route" -> "FASTEST"
+                        "Chill Route" -> "SCENIC"
+                        else -> "STANDARD"
+                    }
+                    Surface(
+                        color = when (badgeText) {
+                            "FASTEST" -> Color(0xFF1976D2)
+                            "SCENIC" -> Color(0xFF388E3C)
+                            else -> Color(0xFF757575)
+                        },
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = badgeText,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
+            
+            // Characteristics
+            Text(
+                text = route.characteristics,
+                fontSize = 14.sp,
+                color = Color(0xFF757575)
+            )
+            
+            // Stats Grid
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                RouteStatItem(
+                    icon = Icons.Default.Info,
+                    label = "ETA",
+                    value = "${route.routeInfo.duration / 60} min"
+                )
+                RouteStatItem(
+                    icon = Icons.Default.Place,
+                    label = "Distance",
+                    value = String.format("%.1f km", route.routeInfo.distance / 1000.0)
+                )
+                RouteStatItem(
+                    icon = Icons.Default.Star,
+                    label = "Safety",
+                    value = "${route.safetyScore}%"
+                )
+                RouteStatItem(
+                    icon = Icons.Default.Warning,
+                    label = "Hazards",
+                    value = "${route.hazards.size}"
+                )
+            }
+            
+            // Continue Button
+            Button(
+                onClick = onSelect,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isRecommended) Color(0xFF7C3AED) else Color(0xFF1E88E5)
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = "Continue with ${route.name}",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RouteStatItem(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, value: String) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = Color(0xFF1E88E5),
+            modifier = Modifier.size(20.dp)
+        )
+        Text(
+            text = label,
+            fontSize = 10.sp,
+            color = Color(0xFF9E9E9E)
+        )
+        Text(
+            text = value,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF212121)
         )
     }
 }
