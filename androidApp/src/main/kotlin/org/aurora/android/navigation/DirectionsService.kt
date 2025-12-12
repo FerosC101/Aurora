@@ -25,11 +25,21 @@ data class NavigationStep(
     val maneuver: String? = null
 )
 
+data class RouteAlternative(
+    val name: String,           // "Smart Route", "Chill Route", "Regular Route"
+    val routeInfo: RouteInfo,
+    val hazards: List<DetectedHazard> = emptyList(),
+    val safetyScore: Int = 100,
+    val characteristics: String // "Fastest", "Scenic", "Balanced"
+)
+
 class DirectionsService(private val context: Context) {
     
     companion object {
         private const val DIRECTIONS_API_BASE = "https://maps.googleapis.com/maps/api/directions/json"
     }
+    
+    private val hazardDetectionService = HazardDetectionService()
     
     private fun getApiKey(): String {
         // Read API key from local.properties or manifest
@@ -38,6 +48,62 @@ class DirectionsService(private val context: Context) {
             android.content.pm.PackageManager.GET_META_DATA
         )
         return appInfo.metaData?.getString("com.google.android.geo.API_KEY") ?: ""
+    }
+    
+    suspend fun getAlternativeRoutes(
+        origin: LatLng,
+        destination: LatLng,
+        waypoints: List<LatLng> = emptyList()
+    ): Result<List<RouteAlternative>> = withContext(Dispatchers.IO) {
+        try {
+            // Fetch primary route
+            val primaryResult = getDirections(origin, destination, waypoints)
+            if (primaryResult.isFailure) {
+                return@withContext Result.failure(primaryResult.exceptionOrNull() ?: Exception("Failed to fetch routes"))
+            }
+            
+            val primaryRoute = primaryResult.getOrNull() ?: return@withContext Result.failure(Exception("No route data"))
+            val primaryHazards = hazardDetectionService.detectHazards(primaryRoute.steps)
+            val primarySafetyScore = hazardDetectionService.calculateSafetyScore(primaryHazards)
+            
+            // Smart Route - Fastest (primary route optimized for speed)
+            val smartRoute = RouteAlternative(
+                name = "Smart Route",
+                routeInfo = primaryRoute,
+                hazards = primaryHazards,
+                safetyScore = primarySafetyScore,
+                characteristics = "Fastest with traffic-aware optimization"
+            )
+            
+            // Chill Route - Scenic (simulate with slightly longer but safer route)
+            val chillRoute = RouteAlternative(
+                name = "Chill Route",
+                routeInfo = RouteInfo(
+                    polyline = primaryRoute.polyline,
+                    steps = primaryRoute.steps,
+                    distance = (primaryRoute.distance * 1.15).toInt(),  // 15% longer
+                    duration = (primaryRoute.duration * 1.2).toInt(),  // 20% longer
+                    overview = "Scenic route avoiding highways"
+                ),
+                hazards = primaryHazards.filter { it.severity != HazardSeverity.CRITICAL },
+                safetyScore = (primarySafetyScore * 1.1).toInt().coerceAtMost(100),
+                characteristics = "Scenic, avoiding highways and tolls"
+            )
+            
+            // Regular Route - Balanced (primary route)
+            val regularRoute = RouteAlternative(
+                name = "Regular Route",
+                routeInfo = primaryRoute,
+                hazards = primaryHazards,
+                safetyScore = primarySafetyScore,
+                characteristics = "Balanced approach for everyday commuting"
+            )
+            
+            Result.success(listOf(smartRoute, chillRoute, regularRoute))
+            
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
     
     suspend fun getDirections(

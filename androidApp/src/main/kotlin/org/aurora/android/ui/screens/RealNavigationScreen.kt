@@ -30,6 +30,8 @@ import org.aurora.android.models.LaneGuidance
 import org.aurora.android.navigation.DirectionsService
 import org.aurora.android.navigation.NavigationStep
 import org.aurora.android.navigation.RouteInfo
+import org.aurora.android.navigation.HazardDetectionService
+import org.aurora.android.navigation.TripHistoryService
 import org.aurora.android.repository.SavedRoutesRepository
 import org.aurora.android.sensors.SpeedMonitor
 import org.aurora.android.ui.components.CompactLaneGuidance
@@ -49,6 +51,8 @@ fun RealNavigationScreen(
     val context = LocalContext.current
     val locationService = remember { LocationService(context) }
     val directionsService = remember { DirectionsService(context) }
+    val hazardService = remember { HazardDetectionService() }
+    val tripHistoryService = remember { TripHistoryService(context) }
     val voiceService = remember { VoiceNavigationService(context) }
     val speedMonitor = remember { SpeedMonitor(context) }
     // TODO: Re-enable when KSP is working
@@ -63,6 +67,8 @@ fun RealNavigationScreen(
     val initialLocation = locationService.getLastKnownLocation() ?: originLocation ?: LatLng(14.5995, 120.9842)
     var currentLocation by remember { mutableStateOf(initialLocation) }
     var routeInfo by remember { mutableStateOf<RouteInfo?>(null) }
+    var detectedHazards by remember { mutableStateOf(emptyList<org.aurora.android.navigation.DetectedHazard>()) }
+    var safetyScore by remember { mutableStateOf(100) }
     var currentStepIndex by remember { mutableStateOf(0) }
     var currentInstruction by remember { mutableStateOf("Calculating route...") }
     var distanceToTurn by remember { mutableStateOf(0) }
@@ -72,6 +78,8 @@ fun RealNavigationScreen(
     var currentLaneGuidance by remember { mutableStateOf<LaneGuidance?>(null) }
     var showSaveDialog by remember { mutableStateOf(false) }
     var isLoadingRoute by remember { mutableStateOf(false) }
+    var showHazardAlert by remember { mutableStateOf(false) }
+    var nextHazard by remember { mutableStateOf<org.aurora.android.navigation.DetectedHazard?>(null) }
     
     // Save route dialog
     if (showSaveDialog) {
@@ -149,12 +157,24 @@ fun RealNavigationScreen(
                 eta = directionsService.formatDuration(route.duration)
                 remainingDistance = directionsService.formatDistance(route.distance)
                 
+                // Detect hazards on route
+                detectedHazards = hazardService.detectHazards(route.steps)
+                safetyScore = hazardService.calculateSafetyScore(detectedHazards)
+                
                 if (route.steps.isNotEmpty()) {
                     currentStepIndex = 0
                     currentInstruction = route.steps[0].instruction
                     distanceToTurn = route.steps[0].distance
                     
-                    voiceService.announce("Navigation started to $destination. ${route.steps[0].instruction}")
+                    // Find first hazard on route
+                    nextHazard = detectedHazards.minByOrNull { it.distanceFromStart }
+                    
+                    val hazardInfo = if (detectedHazards.isNotEmpty()) {
+                        " Found ${detectedHazards.size} hazards on route."
+                    } else {
+                        ""
+                    }
+                    voiceService.announce("Navigation started to $destination. ${route.steps[0].instruction}$hazardInfo")
                 }
             }.onFailure { error ->
                 currentInstruction = "Unable to calculate route: ${error.message}"
