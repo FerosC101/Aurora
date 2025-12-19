@@ -21,6 +21,9 @@ pluginManagement {
 
         // Compose Multiplatform Gradle plugin - 1.5.3 is stable with Kotlin 1.9.10 and Gradle 8.2
         id("org.jetbrains.compose") version "1.5.3"
+        
+        // Google Services for Firebase
+        id("com.google.gms.google-services") version "4.4.0" apply false
     }
 }
 

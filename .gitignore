@@ -40,6 +40,6 @@ bin/
 
 ### VS Code ###
 .vscode/
-
+google-services.json
 ### Mac OS ###
 .DS_Store

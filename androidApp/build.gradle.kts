@@ -3,14 +3,15 @@ plugins {
     kotlin("android")
     // Temporarily disable KSP to bypass jlink issue
     // id("com.google.devtools.ksp") version "1.9.10-1.0.13"
+    id("com.google.gms.google-services")
 }
 
 android {
-    namespace = "org.aurora.android"
+    namespace = "com.nextcs.aurora"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "org.aurora.android"
+        applicationId = "com.nextcs.aurora"
         minSdk = 24
         targetSdk = 34
         versionCode = 1
@@ -84,6 +85,9 @@ dependencies {
     implementation("com.google.android.gms:play-services-maps:18.2.0")
     implementation("com.google.android.gms:play-services-location:21.1.0")
     
+    // Google Places API for location search/autocomplete
+    implementation("com.google.android.libraries.places:places:3.3.0")
+    
     // WorkManager for background tasks
     implementation("androidx.work:work-runtime-ktx:2.9.0")
     
@@ -106,6 +110,14 @@ dependencies {
     
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
+    
+    // Firebase - BOM manages all versions
+    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+    implementation("com.google.firebase:firebase-analytics-ktx")
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-messaging-ktx")
+    implementation("com.google.firebase:firebase-storage-ktx")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")

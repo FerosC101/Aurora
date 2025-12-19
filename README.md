@@ -1,53 +1,22 @@
-# 🌟 Aurora Rider - AI-Powered Smart Navigation
+# Aurora - AI-Powered Smart Navigation
 
-<div align="center">
+## Project Information
 
-**Next-Generation Navigation System Built with Kotlin Multiplatform**
+**Project Name:** Aurora Rider - Smart Navigation Platform
 
-[![Kotlin](https://img.shields.io/badge/Kotlin-1.9.25-blue.svg)](https://kotlinlang.org)
-[![Compose](https://img.shields.io/badge/Compose-1.6.11-4285F4.svg)](https://www.jetbrains.com/lp/compose-multiplatform/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+### Technology Stack
+- **Frontend:** Kotlin Multiplatform with Compose Multiplatform
+- **Backend:** Firebase (Authentication, Firestore, Storage)
+- **Platform:** Android & Desktop (cross-platform)
+- **Maps & Navigation:** Google Maps API with AI-powered routing
+- **Development Purpose:** Educational/Portfolio project demonstrating mobile app development skills with focus on intelligent transportation and safety innovation aligned with UN SDG 11 (Sustainable Cities and Communities).
 
-*Revolutionizing rider navigation with real-time AI hazard detection, intelligent route optimization, and adaptive traffic predictions.*
-
-</div>
-
----
-
-## ✨ Features
-
-### 🛡️ Aurora SHIELD - Advanced Safety System
-- **Real-Time Hazard Detection**: AI-powered system identifies construction zones, potholes, floods, and accidents
-- **97% Safety Rate**: Proven track record of keeping riders safe
-- **Proactive Alerts**: Get notified before reaching dangerous areas
-- **Animated Visual Indicators**: Clear, animated hazard markers on the map
-
-### 🧠 Intelligent Route Selection
-Three optimized routing strategies powered by Google Maps API:
-
-- **Smart Route** 🚀: Fastest path with real-time traffic optimization
-- **Chill Route** 🌳: Scenic routes avoiding highways and tolls
-- **Regular Route** 🛣️: Balanced approach for everyday commuting
-
-Each route displays:
-- Precise ETA with live traffic updates
-- Time saved vs baseline routes
-- Hazard count and safety score
-- Distance and difficulty ratings
-
-### 🎨 Modern UI/UX Design
-
-#### Dashboard Home Screen
-- **Animated Statistics Cards**: Real-time metrics with smooth animations
-  - Total trips tracked
-  - Hazards avoided with safety percentage
-  - Time saved this month
-- **Flowing Gradient Background**: Dynamic, subtle animations
-- **Glassmorphism Effects**: Modern translucent design elements
-- **Professional Typography**: Clean hierarchy and readability
-
-#### Interactive Onboarding
-- **Multi-Slide Experience**: 4 engaging screens introducing key features
+## Core Functionality
+- User authentication and profile management
+- AI-powered hazard detection and route optimization
+- Real-time navigation with traffic updates
+- Social features (trip sharing, community safety reports)
+- Real-time database synchronization
 - **Animated Transitions**: Smooth slide animations with progress indicators
 - **Feature Highlights**: Aurora SHIELD, Route Selection, Real-time Insights
 - **Adaptive Colors**: Each slide features unique thematic colors
