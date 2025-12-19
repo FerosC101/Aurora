@@ -44,6 +44,7 @@ fun RealNavigationScreen(
     destination: String,
     originLocation: LatLng? = null,
     destinationLocation: LatLng? = null,
+    waypoints: List<LatLng> = emptyList(),
     selectedRoute: com.nextcs.aurora.navigation.RouteAlternative? = null,
     onBack: () -> Unit,
     onViewAlternativeRoutes: () -> Unit = {},
@@ -157,7 +158,7 @@ fun RealNavigationScreen(
             val route = if (selectedRoute != null) {
                 selectedRoute.routeInfo
             } else {
-                val result = directionsService.getDirections(originLocation, destinationLocation)
+                val result = directionsService.getDirections(originLocation, destinationLocation, waypoints)
                 result.getOrNull()
             }
             

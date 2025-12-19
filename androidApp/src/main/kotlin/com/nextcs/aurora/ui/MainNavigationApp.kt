@@ -126,6 +126,7 @@ fun NavigationGraph(
     var selectedOriginLocation by remember { mutableStateOf<LatLng?>(null) }
     var selectedDestinationLocation by remember { mutableStateOf<LatLng?>(null) }
     var selectedRoute by remember { mutableStateOf<com.nextcs.aurora.navigation.RouteAlternative?>(null) }
+    var selectedWaypoints by remember { mutableStateOf<List<LatLng>>(emptyList()) }
     
     var mapPickerCallback by remember { mutableStateOf<((LatLng, String) -> Unit)?>(null) }
     var mapPickerTitle by remember { mutableStateOf("Select Location") }
@@ -247,8 +248,12 @@ fun NavigationGraph(
                 destination = destination,
                 originLocation = originLocation,
                 destinationLocation = destinationLocation,
+                waypoints = selectedWaypoints,
                 selectedRoute = selectedRoute,
-                onBack = { navController.navigateUp() },
+                onBack = {
+                    selectedWaypoints = emptyList() // Clear waypoints when leaving
+                    navController.navigateUp()
+                },
                 onViewAlternativeRoutes = {
                     // Pass coordinates to alternative routes for accurate route calculation
                     val origLatStr = (originLocation?.latitude ?: 14.5995).toString()
@@ -296,13 +301,31 @@ fun NavigationGraph(
         composable("multistop") {
             MultiStopPlanningScreen(
                 onStartNavigation = { waypoints ->
-                    // For now, navigate to simple navigation with first and last
-                    val origin = waypoints.firstOrNull()?.name ?: ""
-                    val destination = waypoints.lastOrNull()?.name ?: ""
-                    val encodedOrigin = URLEncoder.encode(origin, StandardCharsets.UTF_8.toString())
-                    val encodedDestination = URLEncoder.encode(destination, StandardCharsets.UTF_8.toString())
-                    navController.navigate("navigation/$encodedOrigin/$encodedDestination") {
-                        popUpTo("multistop") { inclusive = true }
+                    // Extract origin and destination with their coordinates
+                    val firstWaypoint = waypoints.firstOrNull()
+                    val lastWaypoint = waypoints.lastOrNull()
+                    
+                    if (firstWaypoint != null && lastWaypoint != null) {
+                        val origin = firstWaypoint.name
+                        val destination = lastWaypoint.name
+                        val encodedOrigin = URLEncoder.encode(origin, StandardCharsets.UTF_8.toString())
+                        val encodedDestination = URLEncoder.encode(destination, StandardCharsets.UTF_8.toString())
+                        
+                        // Extract coordinates from Position object (x=lat, y=lng)
+                        val origLat = firstWaypoint.position.x.toString()
+                        val origLng = firstWaypoint.position.y.toString()
+                        val destLat = lastWaypoint.position.x.toString()
+                        val destLng = lastWaypoint.position.y.toString()
+                        
+                        // Extract intermediate waypoints (exclude first and last)
+                        selectedWaypoints = waypoints
+                            .drop(1) // Skip origin
+                            .dropLast(1) // Skip destination
+                            .map { LatLng(it.position.x.toDouble(), it.position.y.toDouble()) }
+                        
+                        navController.navigate("navigation/$encodedOrigin/$encodedDestination/$origLat/$origLng/$destLat/$destLng") {
+                            popUpTo("multistop") { inclusive = true }
+                        }
                     }
                 },
                 onBack = { navController.navigateUp() },

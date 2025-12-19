@@ -24,6 +24,7 @@ import com.google.android.gms.maps.model.LatLng
 import com.nextcs.aurora.location.LocationService
 import com.nextcs.aurora.models.Waypoint
 import com.nextcs.aurora.traffic.model.Position
+import com.nextcs.aurora.ui.components.LocationSearchField
 
 @Composable
 fun MultiStopPlanningScreen(
@@ -96,83 +97,61 @@ fun MultiStopPlanningScreen(
                 
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                // Origin
-                OutlinedTextField(
+                // Origin with Places Autocomplete
+                LocationSearchField(
                     value = origin,
-                    onValueChange = { 
-                        origin = it
-                        originLocation = null
+                    onValueChange = { newValue, location ->
+                        origin = newValue
+                        originLocation = location
                     },
-                    placeholder = { Text("Starting point") },
-                    trailingIcon = {
-                        Row {
-                            // Use Current Location
-                            IconButton(
-                                onClick = {
-                                    val currentLoc = locationService.getLastKnownLocation()
-                                    if (currentLoc != null) {
-                                        originLocation = currentLoc
-                                        origin = locationService.formatLocationToAddress(currentLoc)
-                                    }
-                                }
-                            ) {
-                                Icon(
-                                    Icons.Default.LocationOn,
-                                    contentDescription = "Use Current Location",
-                                    tint = Color(0xFF4CAF50)
-                                )
-                            }
-                            // Pick on Map
-                            IconButton(
-                                onClick = {
-                                    onMapPicker("Select Starting Point", originLocation) { location, address ->
-                                        originLocation = location
-                                        origin = address
-                                    }
-                                }
-                            ) {
-                                Icon(
-                                    Icons.Default.Place,
-                                    contentDescription = "Pick on Map",
-                                    tint = Color(0xFF1E88E5)
-                                )
-                            }
+                    placeholder = "Starting point",
+                    leadingIcon = {
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .background(Color(0xFF4CAF50), shape = CircleShape)
+                        )
+                    },
+                    onCurrentLocationClick = {
+                        val currentLoc = locationService.getLastKnownLocation()
+                        if (currentLoc != null) {
+                            originLocation = currentLoc
+                            origin = locationService.formatLocationToAddress(currentLoc)
                         }
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    singleLine = true
+                    onMapPickerClick = {
+                        onMapPicker("Select Starting Point", originLocation) { location, address ->
+                            originLocation = location
+                            origin = address
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
                 )
                 
                 Spacer(modifier = Modifier.height(12.dp))
                 
-                // Destination
-                OutlinedTextField(
+                // Destination with Places Autocomplete
+                LocationSearchField(
                     value = destination,
-                    onValueChange = { 
-                        destination = it
-                        destinationLocation = null
+                    onValueChange = { newValue, location ->
+                        destination = newValue
+                        destinationLocation = location
                     },
-                    placeholder = { Text("Final destination") },
-                    trailingIcon = {
-                        IconButton(
-                            onClick = {
-                                onMapPicker("Select Final Destination", destinationLocation) { location, address ->
-                                    destinationLocation = location
-                                    destination = address
-                                }
-                            }
-                        ) {
-                            Icon(
-                                Icons.Default.Place,
-                                contentDescription = "Pick on Map",
-                                tint = Color(0xFF1E88E5)
-                            )
+                    placeholder = "Final destination",
+                    leadingIcon = {
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .background(Color(0xFFEF4444), shape = CircleShape)
+                        )
+                    },
+                    onMapPickerClick = {
+                        onMapPicker("Select Final Destination", destinationLocation) { location, address ->
+                            destinationLocation = location
+                            destination = address
                         }
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    singleLine = true
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
@@ -279,18 +258,22 @@ fun MultiStopPlanningScreen(
                     Text("Add Stop")
                 }
                 
-                if (origin.isNotEmpty() && destination.isNotEmpty()) {
+                if (origin.isNotEmpty() && destination.isNotEmpty() && 
+                    originLocation != null && destinationLocation != null) {
                     Spacer(modifier = Modifier.height(8.dp))
                     
                     Button(
                         onClick = {
-                            // Create waypoints list
+                            // Create waypoints list with real coordinates
                             val allWaypoints = mutableListOf<Waypoint>()
                             
-                            // Origin
+                            // Origin with real coordinates
                             allWaypoints.add(
                                 Waypoint(
-                                    position = Position(0f, 0f), // Mock position
+                                    position = Position(
+                                        originLocation!!.latitude.toFloat(),
+                                        originLocation!!.longitude.toFloat()
+                                    ),
                                     name = origin,
                                     address = origin,
                                     order = 0,
@@ -298,15 +281,18 @@ fun MultiStopPlanningScreen(
                                 )
                             )
                             
-                            // Intermediate stops
+                            // Intermediate stops (already have coordinates)
                             allWaypoints.addAll(waypoints.mapIndexed { index, wp ->
                                 wp.copy(order = index + 1)
                             })
                             
-                            // Destination
+                            // Destination with real coordinates
                             allWaypoints.add(
                                 Waypoint(
-                                    position = Position(0f, 0f), // Mock position
+                                    position = Position(
+                                        destinationLocation!!.latitude.toFloat(),
+                                        destinationLocation!!.longitude.toFloat()
+                                    ),
                                     name = destination,
                                     address = destination,
                                     order = waypoints.size + 1,
@@ -314,6 +300,7 @@ fun MultiStopPlanningScreen(
                                 )
                             )
                             
+                            Log.d("MultiStop", "Starting navigation with ${allWaypoints.size} waypoints")
                             onStartNavigation(allWaypoints)
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -324,7 +311,10 @@ fun MultiStopPlanningScreen(
                     ) {
                         Icon(Icons.Default.Place, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Start Navigation")
+                        Text(
+                            "Start Navigation (${2 + waypoints.size} stops)",
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 }
             }
@@ -333,37 +323,77 @@ fun MultiStopPlanningScreen(
     
     // Add Stop Dialog
     if (showAddDialog) {
+        var stopLocation by remember { mutableStateOf<LatLng?>(null) }
+        
         AlertDialog(
-            onDismissRequest = { showAddDialog = false },
-            title = { Text("Add Stop") },
+            onDismissRequest = { 
+                showAddDialog = false
+                newStopName = ""
+                stopDuration = 5
+                stopLocation = null
+            },
+            title = { Text("Add Stop", fontWeight = FontWeight.Bold) },
             text = {
-                Column {
-                    OutlinedTextField(
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    // Location search with Places Autocomplete
+                    LocationSearchField(
                         value = newStopName,
-                        onValueChange = { newStopName = it },
-                        label = { Text("Location name") },
-                        singleLine = true,
+                        onValueChange = { newValue, location ->
+                            newStopName = newValue
+                            stopLocation = location
+                        },
+                        placeholder = "Search for a location",
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Search,
+                                contentDescription = null,
+                                tint = Color(0xFF1E88E5),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        onMapPickerClick = {
+                            // Close dialog and open map picker
+                            showAddDialog = false
+                            onMapPicker("Select Stop Location", stopLocation) { location, address ->
+                                newStopName = address
+                                stopLocation = location
+                                // Re-open dialog with updated info
+                                showAddDialog = true
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth()
                     )
                     
                     Spacer(modifier = Modifier.height(16.dp))
                     
-                    Text("Stop duration: $stopDuration minutes", fontSize = 14.sp)
+                    Text(
+                        "Stop duration: $stopDuration minutes",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF212121)
+                    )
                     
                     Slider(
                         value = stopDuration.toFloat(),
                         onValueChange = { stopDuration = it.toInt() },
                         valueRange = 0f..60f,
-                        steps = 11
+                        steps = 11,
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color(0xFF1E88E5),
+                            activeTrackColor = Color(0xFF1E88E5)
+                        )
                     )
                 }
             },
             confirmButton = {
-                TextButton(
+                Button(
                     onClick = {
-                        if (newStopName.isNotEmpty()) {
+                        if (newStopName.isNotEmpty() && stopLocation != null) {
                             waypoints = waypoints + Waypoint(
-                                position = Position(0f, 0f), // Mock position
+                                position = Position(
+                                    stopLocation!!.latitude.toFloat(),
+                                    stopLocation!!.longitude.toFloat()
+                                ),
                                 name = newStopName,
                                 address = newStopName,
                                 order = waypoints.size,
@@ -371,15 +401,25 @@ fun MultiStopPlanningScreen(
                             )
                             newStopName = ""
                             stopDuration = 5
+                            stopLocation = null
+                            showAddDialog = false
                         }
-                        showAddDialog = false
-                    }
+                    },
+                    enabled = newStopName.isNotEmpty() && stopLocation != null,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF1E88E5)
+                    )
                 ) {
-                    Text("Add")
+                    Text("Add Stop")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showAddDialog = false }) {
+                TextButton(onClick = { 
+                    showAddDialog = false
+                    newStopName = ""
+                    stopDuration = 5
+                    stopLocation = null
+                }) {
                     Text("Cancel")
                 }
             }
