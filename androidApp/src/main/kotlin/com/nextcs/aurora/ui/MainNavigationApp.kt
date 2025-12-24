@@ -31,9 +31,10 @@ fun MainNavigationApp(
     // Hide bottom bar when navigating
     LaunchedEffect(navController) {
         navController.currentBackStackEntryFlow.collect { backStackEntry ->
-            showBottomBar = backStackEntry.destination.route in listOf(
+        showBottomBar = backStackEntry.destination.route in listOf(
                 BottomNavItem.Home.route,
                 BottomNavItem.Explore.route,
+                BottomNavItem.Assistant.route,
                 BottomNavItem.Activity.route,
                 BottomNavItem.Profile.route
             )
@@ -63,6 +64,7 @@ fun BottomNavigationBar(navController: NavHostController) {
     val items = listOf(
         BottomNavItem.Home,
         BottomNavItem.Explore,
+        BottomNavItem.Assistant,
         BottomNavItem.Activity,
         BottomNavItem.Profile
     )
@@ -208,6 +210,17 @@ fun NavigationGraph(
                     val encodedDestination = URLEncoder.encode(route.destination, StandardCharsets.UTF_8.toString())
                     navController.navigate("navigation/$encodedOrigin/$encodedDestination")
                 }
+            )
+        }
+        
+        composable(BottomNavItem.Assistant.route) {
+            AIAssistantScreen(
+                onNavigateToRoute = { origin, destination, waypoints ->
+                    // TODO: Resolve addresses to coordinates using PlacesAutocompleteService
+                    // For now, navigate to multi-stop planning screen
+                    navController.navigate("multistop")
+                },
+                onBack = { navController.navigateUp() }
             )
         }
         

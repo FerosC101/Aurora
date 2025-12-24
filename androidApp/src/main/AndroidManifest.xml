@@ -5,6 +5,9 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
             android:name=".AuroraApplication"
@@ -20,6 +23,17 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyClM3oua_QM_fSy_9WgnhQK6jkoN50lGTc"/>
+        
+        <!-- Gemini AI API Key (using same key for demo, should be separate) -->
+        <meta-data
+            android:name="com.google.android.geo.GEMINI_API_KEY"
+            android:value="AIzaSyClM3oua_QM_fSy_9WgnhQK6jkoN50lGTc"/>
+        
+        <!-- Navigation Foreground Service -->
+        <service
+            android:name=".services.NavigationForegroundService"
+            android:foregroundServiceType="location"
+            android:exported="false" />
         
         <activity
                 android:name=".MainActivity"

@@ -224,17 +224,22 @@ class DirectionsService(private val context: Context) {
             
             val route = routes.getJSONObject(0)
             val legs = route.getJSONArray("legs")
-            val leg = legs.getJSONObject(0)
             
-            // Parse total distance and duration
-            val totalDistance = leg.getJSONObject("distance").getInt("value")
-            val totalDuration = leg.getJSONObject("duration").getInt("value")
-            
-            // Parse steps
-            val stepsArray = leg.getJSONArray("steps")
+            // Parse total distance and duration across ALL legs (for multi-stop routes)
+            var totalDistance = 0
+            var totalDuration = 0
             val steps = mutableListOf<NavigationStep>()
             
-            for (i in 0 until stepsArray.length()) {
+            // Process each leg (one leg per waypoint segment)
+            for (legIndex in 0 until legs.length()) {
+                val leg = legs.getJSONObject(legIndex)
+                totalDistance += leg.getJSONObject("distance").getInt("value")
+                totalDuration += leg.getJSONObject("duration").getInt("value")
+                
+                // Parse steps for this leg
+                val stepsArray = leg.getJSONArray("steps")
+                
+                for (i in 0 until stepsArray.length()) {
                 val stepJson = stepsArray.getJSONObject(i)
                 
                 val instruction = stripHtml(stepJson.getString("html_instructions"))
@@ -260,12 +265,14 @@ class DirectionsService(private val context: Context) {
                     )
                 )
             }
+            }
             
             // Get overview polyline
             val polyline = route.getJSONObject("overview_polyline").getString("points")
             
-            // Create overview summary from end address (it's a string, not JSONObject)
-            val overview = leg.getString("end_address")
+            // Create overview summary from destination address
+            val lastLeg = legs.getJSONObject(legs.length() - 1)
+            val overview = lastLeg.getString("end_address")
             
             Result.success(
                 RouteInfo(

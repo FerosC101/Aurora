@@ -88,6 +88,9 @@ dependencies {
     // Google Places API for location search/autocomplete
     implementation("com.google.android.libraries.places:places:3.3.0")
     
+    // Google AI (Gemini) for chatbot
+    implementation("com.google.ai.client.generativeai:generativeai:0.1.2")
+    
     // WorkManager for background tasks
     implementation("androidx.work:work-runtime-ktx:2.9.0")
     
