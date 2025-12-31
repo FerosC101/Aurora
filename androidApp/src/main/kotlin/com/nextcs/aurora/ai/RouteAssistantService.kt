@@ -1,6 +1,7 @@
 package com.nextcs.aurora.ai
 
 import android.content.Context
+import android.util.Log
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.content
 import com.google.android.gms.maps.model.LatLng
@@ -25,13 +26,20 @@ data class ChatMessage(
 
 class RouteAssistantService(private val context: Context) {
     
+    private val TAG = "RouteAssistantService"
     private val apiKey = getGeminiApiKey()
     private val model = GenerativeModel(
-        modelName = "gemini-pro",
+        modelName = "gemini-2.5-flash",
         apiKey = apiKey
     )
     
     private val conversationHistory = mutableListOf<ChatMessage>()
+    
+    init {
+        Log.d(TAG, "Initializing RouteAssistantService")
+        Log.d(TAG, "API Key length: ${apiKey.length}")
+        Log.d(TAG, "API Key starts with: ${apiKey.take(10)}...")
+    }
     
     private fun getGeminiApiKey(): String {
         return try {
@@ -39,8 +47,11 @@ class RouteAssistantService(private val context: Context) {
                 context.packageName,
                 android.content.pm.PackageManager.GET_META_DATA
             )
-            appInfo.metaData?.getString("com.google.android.geo.GEMINI_API_KEY") ?: ""
+            val key = appInfo.metaData?.getString("com.google.android.geo.GEMINI_API_KEY") ?: ""
+            Log.d(TAG, "Retrieved API key from manifest: ${if (key.isEmpty()) "EMPTY" else "OK"}")
+            key
         } catch (e: Exception) {
+            Log.e(TAG, "Error getting API key", e)
             ""
         }
     }
@@ -49,6 +60,8 @@ class RouteAssistantService(private val context: Context) {
         // Add user message to history
         val userChatMessage = ChatMessage(text = userMessage, isUser = true)
         conversationHistory.add(userChatMessage)
+        
+        Log.d(TAG, "Sending message to Gemini: $userMessage")
         
         try {
             // Build context-aware prompt
@@ -81,8 +94,11 @@ class RouteAssistantService(private val context: Context) {
             
             val prompt = "$systemPrompt\n\nUser: $userMessage\n\nAssistant:"
             
+            Log.d(TAG, "Calling Gemini API...")
             val response = model.generateContent(prompt)
             val aiText = response.text ?: "I'm having trouble understanding. Could you rephrase that?"
+            
+            Log.d(TAG, "Gemini response received: ${aiText.take(100)}...")
             
             // Parse response for route information
             val routeRequest = parseRouteFromResponse(aiText)
@@ -100,8 +116,23 @@ class RouteAssistantService(private val context: Context) {
             aiMessage
             
         } catch (e: Exception) {
+            Log.e(TAG, "Error sending message to Gemini", e)
+            Log.e(TAG, "Exception type: ${e.javaClass.simpleName}")
+            Log.e(TAG, "Exception message: ${e.message}")
+            
+            val errorText = when {
+                e.message?.contains("403") == true || e.message?.contains("Forbidden") == true -> 
+                    "API key error. Please enable Generative Language API in Google Cloud Console."
+                e.message?.contains("API key") == true -> 
+                    "Invalid API key. Please check your Google Cloud Console settings."
+                e.message?.contains("network") == true || e.message?.contains("Unable to resolve host") == true -> 
+                    "Network error. Please check your internet connection."
+                else -> 
+                    "Error: ${e.message ?: "Unknown error"}. Please try again."
+            }
+            
             val errorMessage = ChatMessage(
-                text = "I'm having trouble connecting right now. Please try again.",
+                text = errorText,
                 isUser = false
             )
             conversationHistory.add(errorMessage)

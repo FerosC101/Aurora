@@ -39,13 +39,11 @@ fun ExploreScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    // TODO: Re-enable when KSP is working
-    // Repository disabled due to missing Room implementation
     val scope = rememberCoroutineScope()
     
     var selectedTab by remember { mutableStateOf(0) }
     
-    // Dummy data since database is not available
+    // Database currently disabled - showing empty state
     val savedRoutes = remember { emptyList<SavedRoute>() }
     val favoriteRoutes = remember { emptyList<SavedRoute>() }
 

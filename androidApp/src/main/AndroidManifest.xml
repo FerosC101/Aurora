@@ -22,12 +22,12 @@
         <!-- Google Maps API Key -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyClM3oua_QM_fSy_9WgnhQK6jkoN50lGTc"/>
+            android:value="${GOOGLE_MAPS_API_KEY}"/>
         
-        <!-- Gemini AI API Key (using same key for demo, should be separate) -->
+        <!-- Gemini AI API Key -->
         <meta-data
             android:name="com.google.android.geo.GEMINI_API_KEY"
-            android:value="AIzaSyClM3oua_QM_fSy_9WgnhQK6jkoN50lGTc"/>
+            android:value="${GEMINI_API_KEY}"/>
         
         <!-- Navigation Foreground Service -->
         <service

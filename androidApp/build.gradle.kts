@@ -6,6 +6,19 @@ plugins {
     id("com.google.gms.google-services")
 }
 
+import java.util.Properties
+import java.io.FileInputStream
+
+// Load API keys from local.properties
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    FileInputStream(localPropertiesFile).use { localProperties.load(it) }
+}
+
+val googleMapsApiKey: String = localProperties.getProperty("GOOGLE_MAPS_API_KEY") ?: ""
+val geminiApiKey: String = localProperties.getProperty("GEMINI_API_KEY") ?: ""
+
 android {
     namespace = "com.nextcs.aurora"
     compileSdk = 34
@@ -16,6 +29,10 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+        
+        // Pass API keys to manifest
+        manifestPlaceholders["GOOGLE_MAPS_API_KEY"] = googleMapsApiKey
+        manifestPlaceholders["GEMINI_API_KEY"] = geminiApiKey
 
         vectorDrawables {
             useSupportLibrary = true

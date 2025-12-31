@@ -216,9 +216,16 @@ fun NavigationGraph(
         composable(BottomNavItem.Assistant.route) {
             AIAssistantScreen(
                 onNavigateToRoute = { origin, destination, waypoints ->
-                    // TODO: Resolve addresses to coordinates using PlacesAutocompleteService
-                    // For now, navigate to multi-stop planning screen
-                    navController.navigate("multistop")
+                    // Navigate with AI-generated route information
+                    if (waypoints.isNotEmpty()) {
+                        // Multi-stop route - go to multi-stop planning
+                        navController.navigate("multistop")
+                    } else {
+                        // Single destination - encode and navigate
+                        val encodedOrigin = URLEncoder.encode(origin, StandardCharsets.UTF_8.toString())
+                        val encodedDestination = URLEncoder.encode(destination, StandardCharsets.UTF_8.toString())
+                        navController.navigate("navigation/$encodedOrigin/$encodedDestination////")
+                    }
                 },
                 onBack = { navController.navigateUp() }
             )

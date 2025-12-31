@@ -25,14 +25,26 @@ import com.nextcs.aurora.ui.AuroraRiderApp
 class MainActivity : ComponentActivity() {
     private lateinit var authService: AuthService
     private val httpClient = HttpClient(Android)
+    
+    private fun getGoogleMapsApiKey(): String {
+        return try {
+            val appInfo = packageManager.getApplicationInfo(
+                packageName,
+                android.content.pm.PackageManager.GET_META_DATA
+            )
+            appInfo.metaData?.getString("com.google.android.geo.API_KEY") ?: ""
+        } catch (e: Exception) {
+            ""
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
         authService = AuthService(applicationContext)
         
-        // Initialize Google Maps Provider with your API key
-        val apiKey = "YOUR_GOOGLE_MAPS_API_KEY" // TODO: Add your API key
+        // Initialize Google Maps Provider
+        val apiKey = getGoogleMapsApiKey()
         val mapsProvider = GoogleMapsProvider(apiKey, httpClient)
 
         setContent {
