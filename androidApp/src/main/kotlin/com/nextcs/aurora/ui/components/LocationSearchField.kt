@@ -92,7 +92,7 @@ fun LocationSearchField(
                     isSearching = false
                 }
             },
-            placeholder = { Text(placeholder, color = Color(0xFF9E9E9E), fontSize = 15.sp) },
+            placeholder = { Text(placeholder, color = Color(0xFF424242), fontSize = 15.sp) },
             leadingIcon = leadingIcon,
             trailingIcon = {
                 Row(
@@ -196,7 +196,9 @@ fun LocationSearchField(
                 focusedBorderColor = Color(0xFF1E88E5),
                 unfocusedBorderColor = Color(0xFFE0E0E0),
                 unfocusedContainerColor = Color.White,
-                focusedContainerColor = Color.White
+                focusedContainerColor = Color.White,
+                focusedTextColor = Color(0xFF212121),
+                unfocusedTextColor = Color(0xFF212121)
             ),
             singleLine = true,
             textStyle = androidx.compose.ui.text.TextStyle(fontSize = 15.sp)

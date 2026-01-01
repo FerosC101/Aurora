@@ -250,9 +250,35 @@ fun RealNavigationScreen(
                     remainingDistance = directionsService.formatDistance(totalRemainingDistance)
                     eta = directionsService.formatDuration(totalRemainingDuration)
                 } else if (distanceToNextStep < 50 && currentStepIndex == route.steps.size - 1) {
-                    // Arrived at destination
+                    // Arrived at destination - save trip
                     currentInstruction = "You have arrived at $destination"
                     voiceService.announce(currentInstruction)
+                    
+                    // Save completed trip
+                    scope.launch {
+                        try {
+                            val totalDistance = route.steps.sumOf { it.distance }
+                            val totalDuration = route.steps.sumOf { it.duration }
+                            
+                            tripHistoryService.saveTrip(
+                                origin = origin,
+                                destination = destination,
+                                routeInfo = com.nextcs.aurora.navigation.RouteInfo(
+                                    polyline = route.polyline,
+                                    steps = route.steps,
+                                    distance = totalDistance,
+                                    duration = totalDuration,
+                                    overview = "$origin to $destination"
+                                ),
+                                hazards = detectedHazards,
+                                safetyScore = 85, // Calculate based on hazards and speed violations
+                                routeType = "Regular"
+                            )
+                            android.util.Log.d("RealNavigation", "Trip saved successfully")
+                        } catch (e: Exception) {
+                            android.util.Log.e("RealNavigation", "Failed to save trip", e)
+                        }
+                    }
                     break
                 }
             }

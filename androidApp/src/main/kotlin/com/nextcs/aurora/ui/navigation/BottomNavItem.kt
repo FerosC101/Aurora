@@ -10,7 +10,6 @@ sealed class BottomNavItem(
     val label: String
 ) {
     object Home : BottomNavItem("home", Icons.Default.Home, "Home")
-    object Explore : BottomNavItem("explore", Icons.Default.Search, "Explore")
     object Assistant : BottomNavItem("assistant", Icons.Default.Star, "AI")
     object Activity : BottomNavItem("activity", Icons.Default.Notifications, "Activity")
     object Profile : BottomNavItem("profile", Icons.Default.Person, "Profile")

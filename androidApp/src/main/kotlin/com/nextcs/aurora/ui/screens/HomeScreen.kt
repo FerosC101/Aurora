@@ -19,7 +19,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.android.gms.maps.model.LatLng
 import com.nextcs.aurora.location.LocationService
+import com.nextcs.aurora.navigation.TripHistoryService
+import com.nextcs.aurora.navigation.TripRecord
 import com.nextcs.aurora.ui.components.LocationSearchField
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun HomeScreen(
@@ -36,12 +42,24 @@ fun HomeScreen(
     val context = LocalContext.current
     val locationService = remember { LocationService(context) }
     val reminderService = remember { com.nextcs.aurora.reminder.DepartureReminderService(context) }
+    val tripHistoryService = remember { TripHistoryService(context) }
+    val scope = rememberCoroutineScope()
     
     var origin by remember { mutableStateOf(initialOrigin) }
     var destination by remember { mutableStateOf(initialDestination) }
     var originLocation by remember { mutableStateOf(initialOriginLocation) }
     var destinationLocation by remember { mutableStateOf(initialDestinationLocation) }
     var showReminderDialog by remember { mutableStateOf(false) }
+    var recentTrips by remember { mutableStateOf<List<TripRecord>>(emptyList()) }
+    
+    // Load recent trips on launch
+    LaunchedEffect(Unit) {
+        scope.launch {
+            tripHistoryService.getAllTrips().onSuccess { trips ->
+                recentTrips = trips.take(3)
+            }
+        }
+    }
     
     // Update parent state when local state changes
     LaunchedEffect(origin, destination, originLocation, destinationLocation) {
@@ -232,59 +250,73 @@ fun HomeScreen(
                         icon = Icons.Default.Home,
                         label = "Home",
                         modifier = Modifier.weight(1f),
-                        onClick = { destination = "Home" }
+                        onClick = {
+                            destination = "Home"
+                            destinationLocation = null
+                        }
                     )
                     
                     QuickActionCard(
                         icon = Icons.Default.Star,
                         label = "Work",
                         modifier = Modifier.weight(1f),
-                        onClick = { destination = "Work" }
+                        onClick = {
+                            destination = "Work"
+                            destinationLocation = null
+                        }
                     )
                     
                     QuickActionCard(
-                        icon = Icons.Default.FavoriteBorder,
-                        label = "Favorites",
+                        icon = Icons.Default.LocationOn,
+                        label = "Nearby",
                         modifier = Modifier.weight(1f),
-                        onClick = { /* Show favorites */ }
+                        onClick = {
+                            // Use current location as origin
+                            val currentLoc = locationService.getLastKnownLocation()
+                            if (currentLoc != null) {
+                                originLocation = currentLoc
+                                origin = "Current Location"
+                            }
+                        }
                     )
                 }
             }
         }
         
-        // Recent Destinations
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-        ) {
-            Text(
-                text = "Recent",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color(0xFF757575),
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
-            
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                shape = RoundedCornerShape(12.dp)
+        // Recent Trips
+        if (recentTrips.isNotEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
             ) {
-                Column {
-                    RecentDestinationItem(
-                        name = "Mall of Asia",
-                        address = "Seaside Boulevard, Pasay",
-                        icon = Icons.Default.ShoppingCart,
-                        onClick = { destination = "Mall of Asia" }
-                    )
-                    Divider(color = Color(0xFFE0E0E0))
-                    RecentDestinationItem(
-                        name = "Coffee Shop",
-                        address = "Makati Avenue, Makati",
-                        icon = Icons.Default.Place,
-                        onClick = { destination = "Coffee Shop" }
-                    )
+                Text(
+                    text = "Recent Trips",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF757575),
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+                
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column {
+                        recentTrips.forEachIndexed { index, trip ->
+                            RecentTripItem(
+                                trip = trip,
+                                onClick = {
+                                    destination = trip.destination
+                                    destinationLocation = null
+                                }
+                            )
+                            if (index < recentTrips.size - 1) {
+                                Divider(color = Color(0xFFE0E0E0))
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -349,6 +381,65 @@ fun QuickActionCard(
                 fontWeight = FontWeight.Medium
             )
         }
+    }
+}
+
+@Composable
+fun RecentTripItem(
+    trip: TripRecord,
+    onClick: () -> Unit
+) {
+    val dateFormat = remember { SimpleDateFormat("MMM dd, h:mm a", Locale.getDefault()) }
+    val distanceKm = (trip.distance / 1000.0).let { 
+        if (it < 1) "%.0f m".format(trip.distance.toDouble()) 
+        else "%.1f km".format(it) 
+    }
+    val durationMin = (trip.duration / 60).toString()
+    
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Surface(
+            shape = CircleShape,
+            color = Color(0xFFF5F5F5),
+            modifier = Modifier.size(40.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    Icons.Default.Place,
+                    contentDescription = null,
+                    tint = Color(0xFF1E88E5),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.width(12.dp))
+        
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = trip.destination,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFF212121),
+                maxLines = 1
+            )
+            Text(
+                text = "$distanceKm • $durationMin min • ${dateFormat.format(Date(trip.timestamp))}",
+                fontSize = 12.sp,
+                color = Color(0xFF757575)
+            )
+        }
+        
+        Icon(
+            Icons.Default.KeyboardArrowRight,
+            contentDescription = null,
+            tint = Color(0xFF9E9E9E)
+        )
     }
 }
 

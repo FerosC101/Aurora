@@ -33,7 +33,6 @@ fun MainNavigationApp(
         navController.currentBackStackEntryFlow.collect { backStackEntry ->
         showBottomBar = backStackEntry.destination.route in listOf(
                 BottomNavItem.Home.route,
-                BottomNavItem.Explore.route,
                 BottomNavItem.Assistant.route,
                 BottomNavItem.Activity.route,
                 BottomNavItem.Profile.route
@@ -63,7 +62,6 @@ fun MainNavigationApp(
 fun BottomNavigationBar(navController: NavHostController) {
     val items = listOf(
         BottomNavItem.Home,
-        BottomNavItem.Explore,
         BottomNavItem.Assistant,
         BottomNavItem.Activity,
         BottomNavItem.Profile
@@ -199,16 +197,6 @@ fun NavigationGraph(
                         }
                     }
                     navController.navigate("mappicker")
-                }
-            )
-        }
-        
-        composable(BottomNavItem.Explore.route) {
-            ExploreScreen(
-                onRouteClick = { route ->
-                    val encodedOrigin = URLEncoder.encode(route.origin, StandardCharsets.UTF_8.toString())
-                    val encodedDestination = URLEncoder.encode(route.destination, StandardCharsets.UTF_8.toString())
-                    navController.navigate("navigation/$encodedOrigin/$encodedDestination")
                 }
             )
         }
