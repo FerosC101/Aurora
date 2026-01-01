@@ -138,41 +138,31 @@ fun NavigationGraph(
         modifier = modifier
     ) {
         composable(BottomNavItem.Home.route) {
-            // Use shared state from NavigationGraph scope
-            var origin by remember { mutableStateOf(selectedOrigin) }
-            var destination by remember { mutableStateOf(selectedDestination) }
-            var originLocation by remember { mutableStateOf(selectedOriginLocation) }
-            var destinationLocation by remember { mutableStateOf(selectedDestinationLocation) }
-            
-            // Sync back to shared state when changed
-            LaunchedEffect(origin, destination, originLocation, destinationLocation) {
-                selectedOrigin = origin
-                selectedDestination = destination
-                selectedOriginLocation = originLocation
-                selectedDestinationLocation = destinationLocation
-            }
-            
             HomeScreen(
-                initialOrigin = origin,
-                initialDestination = destination,
-                initialOriginLocation = originLocation,
-                initialDestinationLocation = destinationLocation,
+                initialOrigin = selectedOrigin,
+                initialDestination = selectedDestination,
+                initialOriginLocation = selectedOriginLocation,
+                initialDestinationLocation = selectedDestinationLocation,
                 onStateChange = { newOrigin, newDest, newOrigLoc, newDestLoc ->
-                    origin = newOrigin
-                    destination = newDest
-                    originLocation = newOrigLoc
-                    destinationLocation = newDestLoc
+                    selectedOrigin = newOrigin
+                    selectedDestination = newDest
+                    selectedOriginLocation = newOrigLoc
+                    selectedDestinationLocation = newDestLoc
                 },
                 onStartNavigation = { orig, dest ->
+                    // Clear selected route before starting new navigation
+                    selectedRoute = null
+                    selectedWaypoints = emptyList()
+                    
                     // Encode text addresses
                     val encodedOrigin = URLEncoder.encode(orig, StandardCharsets.UTF_8.toString())
                     val encodedDestination = URLEncoder.encode(dest, StandardCharsets.UTF_8.toString())
                     
                     // Encode coordinates if available
-                    val origLat = originLocation?.latitude?.toString() ?: ""
-                    val origLng = originLocation?.longitude?.toString() ?: ""
-                    val destLat = destinationLocation?.latitude?.toString() ?: ""
-                    val destLng = destinationLocation?.longitude?.toString() ?: ""
+                    val origLat = selectedOriginLocation?.latitude?.toString() ?: ""
+                    val origLng = selectedOriginLocation?.longitude?.toString() ?: ""
+                    val destLat = selectedDestinationLocation?.latitude?.toString() ?: ""
+                    val destLng = selectedDestinationLocation?.longitude?.toString() ?: ""
                     
                     navController.navigate(
                         "navigation/$encodedOrigin/$encodedDestination/$origLat/$origLng/$destLat/$destLng"
@@ -187,11 +177,11 @@ fun NavigationGraph(
                     mapPickerCallback = { location, address ->
                         Log.d("MainNavApp", "Invoking callback with: $location, $address")
                         callback(location, address)
-                        // Update shared state immediately
-                        if (title.contains("Origin")) {
+                        // Update shared state immediately based on picker type
+                        if (title.contains("Origin", ignoreCase = true)) {
                             selectedOrigin = address
                             selectedOriginLocation = location
-                        } else {
+                        } else if (title.contains("Destination", ignoreCase = true)) {
                             selectedDestination = address
                             selectedDestinationLocation = location
                         }
@@ -259,7 +249,9 @@ fun NavigationGraph(
                 waypoints = selectedWaypoints,
                 selectedRoute = selectedRoute,
                 onBack = {
-                    selectedWaypoints = emptyList() // Clear waypoints when leaving
+                    // Clear navigation state when going back
+                    selectedWaypoints = emptyList()
+                    selectedRoute = null
                     navController.navigateUp()
                 },
                 onViewAlternativeRoutes = {
@@ -298,8 +290,9 @@ fun NavigationGraph(
                 originLocation = originLocation,
                 destinationLocation = destinationLocation,
                 onRouteSelected = { route ->
-                    // Store the selected route and return to navigation
+                    // Store the selected route and clear waypoints for this route
                     selectedRoute = route
+                    selectedWaypoints = emptyList() // Clear any previous waypoints
                     navController.navigateUp()
                 },
                 onBack = { navController.navigateUp() }
