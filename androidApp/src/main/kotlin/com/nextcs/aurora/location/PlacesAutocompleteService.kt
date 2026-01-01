@@ -22,9 +22,19 @@ class PlacesAutocompleteService(private val context: Context) {
     private var sessionToken: AutocompleteSessionToken = AutocompleteSessionToken.newInstance()
 
     init {
-        // Initialize Places SDK (use your Google Maps API Key)
+        // Initialize Places SDK
         if (!Places.isInitialized()) {
-            Places.initialize(context, "AIzaSyClM3oua_QM_fSy_9WgnhQK6jkoN50lGTc")
+            val apiKey = try {
+                val appInfo = context.packageManager.getApplicationInfo(
+                    context.packageName,
+                    android.content.pm.PackageManager.GET_META_DATA
+                )
+                appInfo.metaData?.getString("com.google.android.geo.API_KEY") ?: ""
+            } catch (e: Exception) {
+                Log.e("PlacesAutocomplete", "Failed to get API key", e)
+                ""
+            }
+            Places.initialize(context, apiKey)
         }
         placesClient = Places.createClient(context)
     }

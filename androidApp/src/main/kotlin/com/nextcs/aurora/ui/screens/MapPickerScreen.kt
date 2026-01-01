@@ -95,9 +95,18 @@ fun MapPickerScreen(
                 // Confirm Selection Button
                 ExtendedFloatingActionButton(
                     onClick = {
-                        val address = locationService.formatLocationToAddress(selectedLocation)
-                        Log.d("MapPicker", "Confirming location: $selectedLocation, address: $address")
-                        onLocationSelected(selectedLocation, address)
+                        scope.launch {
+                            try {
+                                val address = locationService.reverseGeocode(selectedLocation)
+                                Log.d("MapPicker", "Confirming location: $selectedLocation, address: $address")
+                                onLocationSelected(selectedLocation, address)
+                            } catch (e: Exception) {
+                                Log.e("MapPicker", "Error getting address", e)
+                                // Fallback to coordinates if geocoding fails
+                                val fallbackAddress = "${selectedLocation.latitude}, ${selectedLocation.longitude}"
+                                onLocationSelected(selectedLocation, fallbackAddress)
+                            }
+                        }
                     },
                     containerColor = Color(0xFF1E88E5),
                     contentColor = Color.White

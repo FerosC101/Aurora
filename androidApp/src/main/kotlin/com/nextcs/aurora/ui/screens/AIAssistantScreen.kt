@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.util.Log
 import com.google.android.gms.maps.model.LatLng
 import com.nextcs.aurora.ai.ChatMessage
 import com.nextcs.aurora.ai.RouteAssistantService
@@ -117,11 +118,16 @@ fun AIAssistantScreen(
                     ChatBubble(
                         message = message,
                         onStartRoute = { routeRequest ->
-                            onNavigateToRoute(
-                                routeRequest.origin,
-                                routeRequest.destination,
-                                routeRequest.waypoints
-                            )
+                            try {
+                                Log.d("AIAssistant", "Navigating to: ${routeRequest.destination}")
+                                onNavigateToRoute(
+                                    routeRequest.origin,
+                                    routeRequest.destination,
+                                    routeRequest.waypoints
+                                )
+                            } catch (e: Exception) {
+                                Log.e("AIAssistant", "Navigation error", e)
+                            }
                         }
                     )
                 }

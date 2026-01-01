@@ -3,15 +3,21 @@ package com.nextcs.aurora.location
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.location.Address
+import android.location.Geocoder
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
+import android.os.Build
 import android.os.Bundle
 import androidx.core.content.ContextCompat
 import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.suspendCancellableCoroutine
+import java.util.Locale
+import kotlin.coroutines.resume
 
 class LocationService(private val context: Context) {
     
@@ -93,5 +99,88 @@ class LocationService(private val context: Context) {
     fun formatLocationToAddress(latLng: LatLng): String {
         // Simple formatting - in production, use Geocoder for reverse geocoding
         return "Lat: ${String.format("%.4f", latLng.latitude)}, Lng: ${String.format("%.4f", latLng.longitude)}"
+    }
+    
+    suspend fun reverseGeocode(latLng: LatLng): String {
+        if (!Geocoder.isPresent()) {
+            return formatLocationToAddress(latLng)
+        }
+        
+        return try {
+            val geocoder = Geocoder(context, Locale.getDefault())
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                // Use new async API for Android 13+
+                suspendCancellableCoroutine { continuation ->
+                    geocoder.getFromLocation(
+                        latLng.latitude,
+                        latLng.longitude,
+                        1,
+                        object : Geocoder.GeocodeListener {
+                            override fun onGeocode(addresses: List<Address>) {
+                                val address = addresses.firstOrNull()
+                                val result = if (address != null) {
+                                    buildAddressString(address)
+                                } else {
+                                    formatLocationToAddress(latLng)
+                                }
+                                continuation.resume(result)
+                            }
+                            
+                            override fun onError(errorMessage: String?) {
+                                continuation.resume(formatLocationToAddress(latLng))
+                            }
+                        }
+                    )
+                }
+            } else {
+                // Use synchronous API for older versions
+                @Suppress("DEPRECATION")
+                val addresses = geocoder.getFromLocation(latLng.latitude, latLng.longitude, 1)
+                val address = addresses?.firstOrNull()
+                if (address != null) {
+                    buildAddressString(address)
+                } else {
+                    formatLocationToAddress(latLng)
+                }
+            }
+        } catch (e: Exception) {
+            formatLocationToAddress(latLng)
+        }
+    }
+    
+    private fun buildAddressString(address: Address): String {
+        val parts = mutableListOf<String>()
+        
+        // Add street address
+        if (address.thoroughfare != null) {
+            val street = if (address.subThoroughfare != null) {
+                "${address.subThoroughfare} ${address.thoroughfare}"
+            } else {
+                address.thoroughfare
+            }
+            parts.add(street)
+        }
+        
+        // Add locality (city)
+        if (address.locality != null) {
+            parts.add(address.locality)
+        }
+        
+        // Add admin area (state/province)
+        if (address.adminArea != null) {
+            parts.add(address.adminArea)
+        }
+        
+        // Add country
+        if (address.countryName != null) {
+            parts.add(address.countryName)
+        }
+        
+        return if (parts.isNotEmpty()) {
+            parts.joinToString(", ")
+        } else {
+            address.getAddressLine(0) ?: "Unknown Address"
+        }
     }
 }
