@@ -77,7 +77,7 @@ class RouteAssistantService(private val context: Context) {
                    - Suggested route preferences (fastest, avoid tolls, scenic, etc.)
                    - Any relevant tips (traffic patterns, best times to travel, landmarks to look for)
                    - Alternative route suggestions if applicable
-                3. Return route information in JSON format at the end
+                3. ALWAYS end with route JSON on a new line
                 
                 Format your response as:
                 [Your detailed, friendly message with route information]
@@ -107,14 +107,12 @@ class RouteAssistantService(private val context: Context) {
                 Ready to start navigation?"
                 
                 ROUTE_JSON:
-                {
-                    "origin": "location name or 'current location'",
-                    "destination": "location name",
-                    "waypoints": ["waypoint1", "waypoint2"]
-                }
+                {"origin": "current location", "destination": "SM Mall Makati", "waypoints": []}
                 
-                If the user's request is unclear, ask clarifying questions in detail.
-                If they're just chatting, respond naturally and helpfully without the JSON.
+                CRITICAL: For ANY navigation/route request, you MUST include the ROUTE_JSON line.
+                If user says "Take me to X" or "Navigate to Y" or "Go to Z", you MUST include ROUTE_JSON.
+                If the user's request is unclear, ask clarifying questions but still include ROUTE_JSON if you can infer the destination.
+                If they're just chatting (no navigation intent), respond naturally without the JSON.
                 
                 Always be conversational, informative, and helpful. Think like a local guide who knows the area well.
             """.trimIndent()
@@ -126,9 +124,12 @@ class RouteAssistantService(private val context: Context) {
             val aiText = response.text ?: "I'm having trouble understanding. Could you rephrase that?"
             
             Log.d(TAG, "Gemini response received: ${aiText.take(100)}...")
+            Log.d(TAG, "Full response length: ${aiText.length}")
+            Log.d(TAG, "Contains ROUTE_JSON: ${aiText.contains("ROUTE_JSON:")}")
             
             // Parse response for route information
             val routeRequest = parseRouteFromResponse(aiText)
+            Log.d(TAG, "Parsed route request: $routeRequest")
             
             // Clean AI response (remove JSON if present)
             val cleanedText = aiText.split("ROUTE_JSON:")[0].trim()
@@ -169,14 +170,42 @@ class RouteAssistantService(private val context: Context) {
     
     private fun parseRouteFromResponse(response: String): RouteRequest? {
         return try {
-            if (!response.contains("ROUTE_JSON:")) return null
+            Log.d(TAG, "Attempting to parse route from response")
             
-            val jsonPart = response.split("ROUTE_JSON:")[1].trim()
-            val json = JSONObject(jsonPart)
+            if (!response.contains("ROUTE_JSON:")) {
+                Log.d(TAG, "No ROUTE_JSON found in response")
+                return null
+            }
+            
+            // Extract JSON part after ROUTE_JSON:
+            val parts = response.split("ROUTE_JSON:")
+            if (parts.size < 2) {
+                Log.e(TAG, "ROUTE_JSON found but no content after it")
+                return null
+            }
+            
+            val jsonPart = parts[1].trim()
+            Log.d(TAG, "Extracted JSON part: $jsonPart")
+            
+            // Find the JSON object (between first { and matching })
+            val startIdx = jsonPart.indexOf('{')
+            val endIdx = jsonPart.indexOf('}', startIdx)
+            
+            if (startIdx == -1 || endIdx == -1) {
+                Log.e(TAG, "Could not find valid JSON braces")
+                return null
+            }
+            
+            val jsonString = jsonPart.substring(startIdx, endIdx + 1)
+            Log.d(TAG, "Parsed JSON string: $jsonString")
+            
+            val json = JSONObject(jsonString)
             
             val origin = json.optString("origin", "")
             val destination = json.optString("destination", "")
             val waypointsArray = json.optJSONArray("waypoints")
+            
+            Log.d(TAG, "Origin: $origin, Destination: $destination")
             
             val waypoints = mutableListOf<String>()
             waypointsArray?.let {
@@ -186,10 +215,17 @@ class RouteAssistantService(private val context: Context) {
             }
             
             if (origin.isNotEmpty() && destination.isNotEmpty()) {
-                RouteRequest(origin, destination, waypoints)
-            } else null
+                val request = RouteRequest(origin, destination, waypoints)
+                Log.d(TAG, "Successfully created RouteRequest: $request")
+                request
+            } else {
+                Log.e(TAG, "Origin or destination is empty")
+                null
+            }
             
         } catch (e: Exception) {
+            Log.e(TAG, "Error parsing route from response", e)
+            Log.e(TAG, "Exception: ${e.message}")
             null
         }
     }

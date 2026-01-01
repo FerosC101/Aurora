@@ -6,6 +6,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -13,8 +14,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.google.android.gms.maps.model.LatLng
+import com.nextcs.aurora.location.LocationService
+import com.nextcs.aurora.location.PlacesAutocompleteService
 import com.nextcs.aurora.ui.navigation.BottomNavItem
 import com.nextcs.aurora.ui.screens.*
+import kotlinx.coroutines.launch
 import java.net.URLDecoder
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -120,6 +124,11 @@ fun NavigationGraph(
     onLogout: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val locationService = remember { LocationService(context) }
+    val placesService = remember { PlacesAutocompleteService(context) }
+    
     // Shared state for location selection across navigation
     var selectedOrigin by remember { mutableStateOf("") }
     var selectedDestination by remember { mutableStateOf("") }
@@ -194,15 +203,61 @@ fun NavigationGraph(
         composable(BottomNavItem.Assistant.route) {
             AIAssistantScreen(
                 onNavigateToRoute = { origin, destination, waypoints ->
-                    // Navigate with AI-generated route information
-                    if (waypoints.isNotEmpty()) {
-                        // Multi-stop route - go to multi-stop planning
-                        navController.navigate("multistop")
-                    } else {
-                        // Single destination - encode and navigate
-                        val encodedOrigin = URLEncoder.encode(origin, StandardCharsets.UTF_8.toString())
-                        val encodedDestination = URLEncoder.encode(destination, StandardCharsets.UTF_8.toString())
-                        navController.navigate("navigation/$encodedOrigin/$encodedDestination////")
+                    scope.launch {
+                        try {
+                            Log.d("MainNavApp", "AI Navigation request - Origin: $origin, Destination: $destination")
+                            
+                            // Handle multi-stop routes
+                            if (waypoints.isNotEmpty()) {
+                                navController.navigate("multistop")
+                                return@launch
+                            }
+                            
+                            // Resolve origin location
+                            val originResult = if (origin.equals("current location", ignoreCase = true) || 
+                                                    origin.equals("current", ignoreCase = true) ||
+                                                    origin.equals("my location", ignoreCase = true)) {
+                                // Get current location
+                                val currentLoc = locationService.getLastKnownLocation()
+                                if (currentLoc != null) {
+                                    Pair(currentLoc, "Current Location")
+                                } else null
+                            } else {
+                                // Geocode origin address
+                                placesService.searchAndGetCoordinates(origin)
+                            }
+                            
+                            // Geocode destination address
+                            val destinationResult = placesService.searchAndGetCoordinates(destination)
+                            
+                            if (originResult == null || destinationResult == null) {
+                                Log.e("MainNavApp", "Failed to geocode locations - Origin: $originResult, Dest: $destinationResult")
+                                // Fallback: navigate with text addresses only
+                                val encodedOrigin = URLEncoder.encode(origin, StandardCharsets.UTF_8.toString())
+                                val encodedDestination = URLEncoder.encode(destination, StandardCharsets.UTF_8.toString())
+                                navController.navigate("navigation/$encodedOrigin/$encodedDestination////")
+                                return@launch
+                            }
+                            
+                            val (originLocation, originAddress) = originResult
+                            val (destinationLocation, destinationAddress) = destinationResult
+                            
+                            Log.d("MainNavApp", "Resolved locations - Origin: $originLocation, Dest: $destinationLocation")
+                            
+                            // Navigate with coordinates
+                            val encodedOrigin = URLEncoder.encode(originAddress, StandardCharsets.UTF_8.toString())
+                            val encodedDestination = URLEncoder.encode(destinationAddress, StandardCharsets.UTF_8.toString())
+                            val origLat = originLocation.latitude.toString()
+                            val origLng = originLocation.longitude.toString()
+                            val destLat = destinationLocation.latitude.toString()
+                            val destLng = destinationLocation.longitude.toString()
+                            
+                            navController.navigate(
+                                "navigation/$encodedOrigin/$encodedDestination/$origLat/$origLng/$destLat/$destLng"
+                            )
+                        } catch (e: Exception) {
+                            Log.e("MainNavApp", "Error resolving AI navigation", e)
+                        }
                     }
                 },
                 onBack = { navController.navigateUp() }
