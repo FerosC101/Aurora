@@ -12,11 +12,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.nextcs.aurora.navigation.TripHistoryService
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
 
-data class TripRecord(
+data class TripDisplayRecord(
     val id: String,
     val date: String,
     val route: String,
@@ -30,14 +35,56 @@ data class TripRecord(
 fun ActivityScreen(
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val tripHistoryService = remember { TripHistoryService(context) }
+    val scope = rememberCoroutineScope()
+    
     var selectedTab by remember { mutableStateOf(0) }
-    val tripHistory = remember {
-        listOf(
-            TripRecord("1", "Today, 8:30 AM", "Home → Office", "12.5 km", "23 min", "32 km/h", 3),
-            TripRecord("2", "Yesterday, 6:15 PM", "Office → Mall", "8.2 km", "18 min", "27 km/h", 1),
-            TripRecord("3", "Yesterday, 8:00 AM", "Home → Office", "12.5 km", "26 min", "29 km/h", 2),
-            TripRecord("4", "Dec 8, 7:45 PM", "Restaurant → Home", "15.3 km", "31 min", "30 km/h", 4)
-        )
+    var tripHistory by remember { mutableStateOf<List<TripDisplayRecord>>(emptyList()) }
+    var weeklyDistance by remember { mutableStateOf("0.0") }
+    var timeSaved by remember { mutableStateOf("0h 0m") }
+    var hazardsAvoided by remember { mutableStateOf(0) }
+    var isLoading by remember { mutableStateOf(true) }
+    
+    // Load actual trip data
+    LaunchedEffect(Unit) {
+        scope.launch {
+            isLoading = true
+            val result = tripHistoryService.getAllTrips()
+            result.onSuccess { trips ->
+                // Convert to display format
+                tripHistory = trips.map { trip ->
+                    val dateFormat = SimpleDateFormat("MMM dd, h:mm a", Locale.getDefault())
+                    val date = dateFormat.format(Date(trip.timestamp))
+                    val distanceKm = trip.distance / 1000.0
+                    val durationMin = trip.duration / 60
+                    val avgSpeed = if (durationMin > 0) {
+                        (distanceKm / (durationMin / 60.0)).toInt()
+                    } else 0
+                    
+                    TripDisplayRecord(
+                        id = trip.id,
+                        date = date,
+                        route = "${trip.origin} → ${trip.destination}",
+                        distance = String.format("%.1f km", distanceKm),
+                        duration = "$durationMin min",
+                        avgSpeed = "$avgSpeed km/h",
+                        hazardsAvoided = trip.hazardsEncountered
+                    )
+                }
+                
+                // Calculate analytics
+                val analyticsResult = tripHistoryService.getAnalytics()
+                analyticsResult.onSuccess { analytics ->
+                    weeklyDistance = String.format("%.1f", analytics.totalDistance)
+                    val hours = analytics.totalTimeSaved.toInt()
+                    val minutes = ((analytics.totalTimeSaved - hours) * 60).toInt()
+                    timeSaved = "${hours}h ${minutes}m"
+                    hazardsAvoided = analytics.hazardsAvoided
+                }
+            }
+            isLoading = false
+        }
     }
 
     Column(
@@ -66,31 +113,40 @@ fun ActivityScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 // Stats Summary
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    StatCard(
-                        icon = Icons.Default.Star,
-                        value = "128.4",
-                        unit = "km",
-                        label = "This Week",
-                        modifier = Modifier.weight(1f)
-                    )
-                    StatCard(
-                        icon = Icons.Default.DateRange,
-                        value = "2h 45m",
-                        unit = "",
-                        label = "Time Saved",
-                        modifier = Modifier.weight(1f)
-                    )
-                    StatCard(
-                        icon = Icons.Default.Build,
-                        value = "12",
-                        unit = "",
-                        label = "Hazards",
-                        modifier = Modifier.weight(1f)
-                    )
+                if (isLoading) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        StatCard(
+                            icon = Icons.Default.Star,
+                            value = weeklyDistance,
+                            unit = "km",
+                            label = "Total Distance",
+                            modifier = Modifier.weight(1f)
+                        )
+                        StatCard(
+                            icon = Icons.Default.DateRange,
+                            value = timeSaved,
+                            unit = "",
+                            label = "Time Saved",
+                            modifier = Modifier.weight(1f)
+                        )
+                        StatCard(
+                            icon = Icons.Default.Build,
+                            value = hazardsAvoided.toString(),
+                            unit = "",
+                            label = "Hazards",
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
         }
@@ -120,11 +176,55 @@ fun ActivityScreen(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(tripHistory) { trip ->
-                    TripCard(trip)
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else if (tripHistory.isEmpty()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            Icons.Default.Place,
+                            contentDescription = null,
+                            tint = Color(0xFF9E9E9E),
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "No trips yet",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF212121)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Start navigating to see your trip history",
+                            fontSize = 14.sp,
+                            color = Color(0xFF757575)
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(tripHistory) { trip ->
+                        TripCard(trip)
+                    }
                 }
             }
         }
@@ -186,7 +286,7 @@ fun StatCard(
 }
 
 @Composable
-fun TripCard(trip: TripRecord) {
+fun TripCard(trip: TripDisplayRecord) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color.White),

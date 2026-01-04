@@ -423,6 +423,46 @@ fun RealNavigationScreen(
                                    else Color(0xFF9E9E9E)
                         )
                     }
+                    
+                    // Finish Navigation button
+                    IconButton(
+                        onClick = {
+                            scope.launch {
+                                routeInfo?.let { route ->
+                                    try {
+                                        val totalDistance = route.steps.sumOf { it.distance }
+                                        val totalDuration = route.steps.sumOf { it.duration }
+                                        
+                                        tripHistoryService.saveTrip(
+                                            origin = origin,
+                                            destination = destination,
+                                            routeInfo = RouteInfo(
+                                                polyline = route.polyline,
+                                                steps = route.steps,
+                                                distance = totalDistance,
+                                                duration = totalDuration,
+                                                overview = "$origin to $destination"
+                                            ),
+                                            hazards = detectedHazards,
+                                            safetyScore = safetyScore,
+                                            routeType = selectedRoute?.name ?: "Regular"
+                                        )
+                                        android.util.Log.d("RealNavigation", "Trip manually finished and saved")
+                                    } catch (e: Exception) {
+                                        android.util.Log.e("RealNavigation", "Failed to save trip", e)
+                                    }
+                                }
+                                onBack()
+                            }
+                        },
+                        enabled = routeInfo != null
+                    ) {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = "Finish navigation",
+                            tint = if (routeInfo != null) Color(0xFF4CAF50) else Color(0xFF9E9E9E)
+                        )
+                    }
                 }
             }
         }
