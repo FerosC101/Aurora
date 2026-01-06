@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -73,6 +74,7 @@ fun RealNavigationScreen(
     var safetyScore by remember { mutableStateOf(100) }
     var currentStepIndex by remember { mutableStateOf(0) }
     var currentInstruction by remember { mutableStateOf("Calculating route...") }
+    var nextInstruction by remember { mutableStateOf<String?>(null) }
     var distanceToTurn by remember { mutableStateOf(0) }
     var eta by remember { mutableStateOf("--") }
     var remainingDistance by remember { mutableStateOf("--") }
@@ -82,6 +84,7 @@ fun RealNavigationScreen(
     var isLoadingRoute by remember { mutableStateOf(false) }
     var showHazardAlert by remember { mutableStateOf(false) }
     var nextHazard by remember { mutableStateOf<com.nextcs.aurora.navigation.DetectedHazard?>(null) }
+    var isNavigating by remember { mutableStateOf(false) }
     
     // Save route dialog
     if (showSaveDialog) {
@@ -182,20 +185,18 @@ fun RealNavigationScreen(
                     currentInstruction = it.steps[0].instruction
                     distanceToTurn = it.steps[0].distance
                     
+                    // Set next instruction preview
+                    if (it.steps.size > 1) {
+                        nextInstruction = it.steps[1].instruction
+                    }
+                    
                     // Find first hazard on route
                     nextHazard = detectedHazards.minByOrNull { hazard -> hazard.distanceFromStart }
                     
-                    val hazardInfo = if (detectedHazards.isNotEmpty()) {
-                        " Found ${detectedHazards.size} hazards on route."
-                    } else {
-                        ""
-                    }
-                    val routeTypeInfo = if (selectedRoute != null) " Using ${selectedRoute.name}." else ""
-                    voiceService.announce("Navigation started to $destination. ${it.steps[0].instruction}$hazardInfo$routeTypeInfo")
+                    // Don't auto-announce, wait for Start Navigation button
                 }
             } ?: run {
                 currentInstruction = "Unable to calculate route"
-                voiceService.announce(currentInstruction)
             }
             isLoadingRoute = false
         }
@@ -205,7 +206,9 @@ fun RealNavigationScreen(
     }
     
     // Update navigation based on real GPS location
-    LaunchedEffect(currentLocation, routeInfo) {
+    LaunchedEffect(currentLocation, routeInfo, isNavigating) {
+        if (!isNavigating) return@LaunchedEffect
+        
         routeInfo?.let { route ->
             while (currentStepIndex < route.steps.size) {
                 delay(1000) // Check every second
@@ -241,6 +244,14 @@ fun RealNavigationScreen(
                     currentStepIndex++
                     val nextStep = route.steps[currentStepIndex]
                     currentInstruction = nextStep.instruction
+                    
+                    // Update next instruction preview
+                    if (currentStepIndex < route.steps.size - 1) {
+                        nextInstruction = route.steps[currentStepIndex + 1].instruction
+                    } else {
+                        nextInstruction = null
+                    }
+                    
                     voiceService.announce(currentInstruction)
                     
                     // Calculate remaining distance and time
@@ -501,7 +512,7 @@ fun RealNavigationScreen(
         }
         
         
-        // Bottom Instruction Panel
+        // Bottom Navigation Panel - 3 States
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -509,101 +520,246 @@ fun RealNavigationScreen(
             color = Color.White,
             shadowElevation = 8.dp
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // Direction Icon
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = Color(0xFF1E88E5),
-                        modifier = Modifier.size(56.dp)
+            when {
+                // State 1: Loading - Calculating route
+                routeInfo == null -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Default.ArrowBack,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(32.dp)
-                            )
-                        }
-                    }
-                    
-                    // Instruction Text
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = currentInstruction,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF212121)
+                        CircularProgressIndicator(
+                            color = Color(0xFF1E88E5),
+                            modifier = Modifier.size(48.dp)
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "in $distanceToTurn m",
-                            fontSize = 14.sp,
+                            text = "Calculating route...",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
                             color = Color(0xFF757575)
                         )
                     }
                 }
                 
-                // Speed Warning Banner
-                if (speedData.isExceeding) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = Color(0xFFFFEBEE),
-                        shape = RoundedCornerShape(8.dp)
+                // State 2: Route Preview - Show Start Navigation button
+                !isNavigating -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp)
                     ) {
+                        // Route Summary
                         Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = destination,
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF212121),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Text(
+                                        text = "${routeInfo?.distance?.div(1000)?.toInt() ?: 0} km",
+                                        fontSize = 14.sp,
+                                        color = Color(0xFF757575)
+                                    )
+                                    Text(
+                                        text = "•",
+                                        fontSize = 14.sp,
+                                        color = Color(0xFF757575)
+                                    )
+                                    Text(
+                                        text = "${routeInfo?.duration?.div(60)?.toInt() ?: 0} min",
+                                        fontSize = 14.sp,
+                                        color = Color(0xFF757575)
+                                    )
+                                }
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        // Start Navigation Button
+                        Button(
+                            onClick = {
+                                isNavigating = true
+                                routeInfo?.let { route ->
+                                    if (route.steps.isNotEmpty()) {
+                                        voiceService.announce("Starting navigation to $destination")
+                                        speedMonitor.startMonitoring()
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF1E88E5)
+                            ),
+                            shape = RoundedCornerShape(12.dp)
                         ) {
                             Icon(
-                                Icons.Default.Warning,
+                                Icons.Default.PlayArrow,
                                 contentDescription = null,
-                                tint = Color(0xFFD32F2F),
-                                modifier = Modifier.size(20.dp)
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
                             )
+                            Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Exceeding speed limit!",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = Color(0xFFD32F2F)
+                                text = "Start Navigation",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White
                             )
                         }
                     }
                 }
                 
-                // Route Info
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text(
-                            text = "From: $origin",
-                            fontSize = 12.sp,
-                            color = Color(0xFF757575)
-                        )
-                        Text(
-                            text = "To: $destination",
-                            fontSize = 12.sp,
-                            color = Color(0xFF757575)
-                        )
-                    }
-                    
-                    TextButton(onClick = { /* Show route options */ }) {
-                        Text("Options", fontSize = 12.sp)
+                // State 3: Active Navigation - Show turn-by-turn
+                else -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp)
+                    ) {
+                        // Current Instruction
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            // Direction Icon
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = Color(0xFF1E88E5),
+                                modifier = Modifier.size(56.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        Icons.Default.ArrowBack,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(32.dp)
+                                    )
+                                }
+                            }
+                            
+                            // Instruction Text
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = currentInstruction,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color(0xFF212121)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "in $distanceToTurn m",
+                                    fontSize = 14.sp,
+                                    color = Color(0xFF757575)
+                                )
+                            }
+                        }
+                        
+                        // Next Instruction Preview
+                        if (nextInstruction != null) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = Color(0xFFF5F5F5),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.ArrowForward,
+                                        contentDescription = null,
+                                        tint = Color(0xFF757575),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Text(
+                                        text = "Then: $nextInstruction",
+                                        fontSize = 14.sp,
+                                        color = Color(0xFF757575)
+                                    )
+                                }
+                            }
+                        }
+                        
+                        // Speed Warning Banner
+                        if (speedData.isExceeding) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = Color(0xFFFFEBEE),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Warning,
+                                        contentDescription = null,
+                                        tint = Color(0xFFD32F2F),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Text(
+                                        text = "Exceeding speed limit!",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = Color(0xFFD32F2F)
+                                    )
+                                }
+                            }
+                        }
+                        
+                        // ETA and Distance
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column {
+                                Text(
+                                    text = "ETA: ${routeInfo?.duration?.div(60)?.toInt() ?: 0} min",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color(0xFF212121)
+                                )
+                                Text(
+                                    text = "${routeInfo?.distance?.div(1000)?.toInt() ?: 0} km remaining",
+                                    fontSize = 12.sp,
+                                    color = Color(0xFF757575)
+                                )
+                            }
+                            
+                            TextButton(
+                                onClick = {
+                                    isNavigating = false
+                                    speedMonitor.stopMonitoring()
+                                }
+                            ) {
+                                Text("End", fontSize = 14.sp, color = Color(0xFFD32F2F))
+                            }
+                        }
                     }
                 }
             }
