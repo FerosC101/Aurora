@@ -34,11 +34,15 @@ class RouteAssistantService(private val context: Context) {
     )
     
     private val conversationHistory = mutableListOf<ChatMessage>()
+    private val sharedPrefs = context.getSharedPreferences("ai_chat_history", Context.MODE_PRIVATE)
+    private val CHAT_HISTORY_KEY = "chat_messages"
     
     init {
         Log.d(TAG, "Initializing RouteAssistantService")
         Log.d(TAG, "API Key length: ${apiKey.length}")
         Log.d(TAG, "API Key starts with: ${apiKey.take(10)}...")
+        // Load saved conversation history
+        loadConversationHistory()
     }
     
     private fun getGeminiApiKey(): String {
@@ -60,6 +64,7 @@ class RouteAssistantService(private val context: Context) {
         // Add user message to history
         val userChatMessage = ChatMessage(text = userMessage, isUser = true)
         conversationHistory.add(userChatMessage)
+        saveConversationHistory()
         
         Log.d(TAG, "Sending message to Gemini: $userMessage")
         
@@ -133,14 +138,16 @@ class RouteAssistantService(private val context: Context) {
             
             // Clean AI response (remove JSON if present)
             val cleanedText = aiText.split("ROUTE_JSON:")[0].trim()
+            val formattedText = stripMarkdown(cleanedText)
             
             val aiMessage = ChatMessage(
-                text = cleanedText,
+                text = formattedText,
                 isUser = false,
                 routeRequest = routeRequest
             )
             
             conversationHistory.add(aiMessage)
+            saveConversationHistory()
             aiMessage
             
         } catch (e: Exception) {
@@ -164,8 +171,20 @@ class RouteAssistantService(private val context: Context) {
                 isUser = false
             )
             conversationHistory.add(errorMessage)
+            saveConversationHistory()
             errorMessage
         }
+    }
+    
+    private fun stripMarkdown(text: String): String {
+        return text
+            .replace("**", "")  // Remove bold markers
+            .replace("__", "")  // Remove bold markers
+            .replace("*", "")   // Remove italic markers
+            .replace("_", "")   // Remove italic markers
+            .replace("##", "")  // Remove heading markers
+            .replace("#", "")   // Remove heading markers
+            .trim()
     }
     
     private fun parseRouteFromResponse(response: String): RouteRequest? {
@@ -210,9 +229,15 @@ class RouteAssistantService(private val context: Context) {
             val waypoints = mutableListOf<String>()
             waypointsArray?.let {
                 for (i in 0 until it.length()) {
-                    waypoints.add(it.getString(i))
+                    val waypoint = it.getString(i).trim()
+                    // Only add non-empty waypoints
+                    if (waypoint.isNotEmpty()) {
+                        waypoints.add(waypoint)
+                    }
                 }
             }
+            
+            Log.d(TAG, "Parsed waypoints: $waypoints (count: ${waypoints.size})")
             
             if (origin.isNotEmpty() && destination.isNotEmpty()) {
                 val request = RouteRequest(origin, destination, waypoints)
@@ -230,12 +255,77 @@ class RouteAssistantService(private val context: Context) {
         }
     }
     
+    private fun loadConversationHistory() {
+        try {
+            val json = sharedPrefs.getString(CHAT_HISTORY_KEY, null) ?: return
+            val jsonArray = JSONArray(json)
+            conversationHistory.clear()
+            
+            for (i in 0 until jsonArray.length()) {
+                val obj = jsonArray.getJSONObject(i)
+                val message = ChatMessage(
+                    id = obj.getString("id"),
+                    text = obj.getString("text"),
+                    isUser = obj.getBoolean("isUser"),
+                    timestamp = obj.getLong("timestamp"),
+                    routeRequest = if (obj.has("routeRequest") && !obj.isNull("routeRequest")) {
+                        val routeObj = obj.getJSONObject("routeRequest")
+                        RouteRequest(
+                            origin = routeObj.getString("origin"),
+                            destination = routeObj.getString("destination"),
+                            waypoints = if (routeObj.has("waypoints")) {
+                                val wpArray = routeObj.getJSONArray("waypoints")
+                                (0 until wpArray.length()).map { wpArray.getString(it) }
+                            } else emptyList()
+                        )
+                    } else null
+                )
+                conversationHistory.add(message)
+            }
+            Log.d(TAG, "Loaded ${conversationHistory.size} messages from history")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error loading conversation history", e)
+            conversationHistory.clear()
+        }
+    }
+    
+    private fun saveConversationHistory() {
+        try {
+            val jsonArray = JSONArray()
+            for (msg in conversationHistory) {
+                val obj = JSONObject()
+                obj.put("id", msg.id)
+                obj.put("text", msg.text)
+                obj.put("isUser", msg.isUser)
+                obj.put("timestamp", msg.timestamp)
+                
+                if (msg.routeRequest != null) {
+                    val routeObj = JSONObject()
+                    routeObj.put("origin", msg.routeRequest.origin)
+                    routeObj.put("destination", msg.routeRequest.destination)
+                    val waypointsArray = JSONArray(msg.routeRequest.waypoints)
+                    routeObj.put("waypoints", waypointsArray)
+                    obj.put("routeRequest", routeObj)
+                }
+                
+                jsonArray.put(obj)
+            }
+            
+            sharedPrefs.edit().putString(CHAT_HISTORY_KEY, jsonArray.toString()).apply()
+            Log.d(TAG, "Saved ${conversationHistory.size} messages to history")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving conversation history", e)
+        }
+    }
+    
     fun getConversationHistory(): List<ChatMessage> {
         return conversationHistory.toList()
     }
     
     fun clearHistory() {
         conversationHistory.clear()
+        sharedPrefs.edit().remove(CHAT_HISTORY_KEY).apply()
+        Log.d(TAG, "Cleared conversation history")
     }
     
     // Quick suggestions for user

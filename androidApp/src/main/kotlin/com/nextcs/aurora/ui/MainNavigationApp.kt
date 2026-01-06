@@ -205,13 +205,7 @@ fun NavigationGraph(
                 onNavigateToRoute = { origin, destination, waypoints ->
                     scope.launch {
                         try {
-                            Log.d("MainNavApp", "AI Navigation request - Origin: $origin, Destination: $destination")
-                            
-                            // Handle multi-stop routes
-                            if (waypoints.isNotEmpty()) {
-                                navController.navigate("multistop")
-                                return@launch
-                            }
+                            Log.d("MainNavApp", "AI Navigation request - Origin: $origin, Destination: $destination, Waypoints: $waypoints")
                             
                             // Resolve origin location
                             val originResult = if (origin.equals("current location", ignoreCase = true) || 
@@ -220,7 +214,9 @@ fun NavigationGraph(
                                 // Get current location
                                 val currentLoc = locationService.getLastKnownLocation()
                                 if (currentLoc != null) {
-                                    Pair(currentLoc, "Current Location")
+                                    // Reverse geocode to get address name
+                                    val addressName = placesService.reverseGeocode(currentLoc) ?: "Current Location"
+                                    Pair(currentLoc, addressName)
                                 } else null
                             } else {
                                 // Geocode origin address
@@ -232,19 +228,48 @@ fun NavigationGraph(
                             
                             if (originResult == null || destinationResult == null) {
                                 Log.e("MainNavApp", "Failed to geocode locations - Origin: $originResult, Dest: $destinationResult")
-                                // Fallback: navigate with text addresses only
-                                val encodedOrigin = URLEncoder.encode(origin, StandardCharsets.UTF_8.toString())
-                                val encodedDestination = URLEncoder.encode(destination, StandardCharsets.UTF_8.toString())
-                                navController.navigate("navigation/$encodedOrigin/$encodedDestination////")
                                 return@launch
                             }
                             
                             val (originLocation, originAddress) = originResult
                             val (destinationLocation, destinationAddress) = destinationResult
                             
-                            Log.d("MainNavApp", "Resolved locations - Origin: $originLocation, Dest: $destinationLocation")
+                            // Handle multi-stop routes with waypoints
+                            if (waypoints.isNotEmpty()) {
+                                Log.d("MainNavApp", "Multi-stop route with ${waypoints.size} waypoints")
+                                
+                                // Geocode all waypoints
+                                val geocodedWaypoints = mutableListOf<LatLng>()
+                                for (waypointName in waypoints) {
+                                    val waypointResult = placesService.searchAndGetCoordinates(waypointName)
+                                    if (waypointResult != null) {
+                                        geocodedWaypoints.add(waypointResult.first)
+                                        Log.d("MainNavApp", "Geocoded waypoint: $waypointName -> ${waypointResult.first}")
+                                    } else {
+                                        Log.w("MainNavApp", "Failed to geocode waypoint: $waypointName")
+                                    }
+                                }
+                                
+                                // Navigate with all coordinates and waypoints
+                                val encodedOrigin = URLEncoder.encode(originAddress, StandardCharsets.UTF_8.toString())
+                                val encodedDestination = URLEncoder.encode(destinationAddress, StandardCharsets.UTF_8.toString())
+                                val origLat = originLocation.latitude.toString()
+                                val origLng = originLocation.longitude.toString()
+                                val destLat = destinationLocation.latitude.toString()
+                                val destLng = destinationLocation.longitude.toString()
+                                
+                                // Build waypoints string: lat1,lng1|lat2,lng2|...
+                                val waypointsString = geocodedWaypoints.joinToString("|") { "${it.latitude},${it.longitude}" }
+                                
+                                navController.navigate(
+                                    "navigation/$encodedOrigin/$encodedDestination/$origLat/$origLng/$destLat/$destLng/$waypointsString"
+                                )
+                                return@launch
+                            }
                             
-                            // Navigate with coordinates
+                            Log.d("MainNavApp", "Single route without waypoints")
+                            
+                            // Navigate with coordinates for single route
                             val encodedOrigin = URLEncoder.encode(originAddress, StandardCharsets.UTF_8.toString())
                             val encodedDestination = URLEncoder.encode(destinationAddress, StandardCharsets.UTF_8.toString())
                             val origLat = originLocation.latitude.toString()
@@ -276,7 +301,8 @@ fun NavigationGraph(
             )
         }
         
-        composable("navigation/{origin}/{destination}/{origLat}/{origLng}/{destLat}/{destLng}") { backStackEntry ->
+        // Navigation route with optional waypoints (for multi-stop routes)
+        composable("navigation/{origin}/{destination}/{origLat}/{origLng}/{destLat}/{destLng}/{waypoints?}") { backStackEntry ->
             val encodedOrigin = backStackEntry.arguments?.getString("origin") ?: ""
             val encodedDestination = backStackEntry.arguments?.getString("destination") ?: ""
             val origin = URLDecoder.decode(encodedOrigin, StandardCharsets.UTF_8.toString())
@@ -287,6 +313,21 @@ fun NavigationGraph(
             val origLng = backStackEntry.arguments?.getString("origLng")?.toDoubleOrNull()
             val destLat = backStackEntry.arguments?.getString("destLat")?.toDoubleOrNull()
             val destLng = backStackEntry.arguments?.getString("destLng")?.toDoubleOrNull()
+            
+            // Parse waypoints if present (format: lat1,lng1|lat2,lng2|...)
+            val waypointsString = backStackEntry.arguments?.getString("waypoints") ?: ""
+            val waypointsList = if (waypointsString.isNotEmpty()) {
+                waypointsString.split("|").mapNotNull { waypointStr ->
+                    val parts = waypointStr.split(",")
+                    if (parts.size == 2) {
+                        val lat = parts[0].toDoubleOrNull()
+                        val lng = parts[1].toDoubleOrNull()
+                        if (lat != null && lng != null) LatLng(lat, lng) else null
+                    } else null
+                }
+            } else emptyList()
+            
+            Log.d("MainNavApp", "Navigation route with ${waypointsList.size} waypoints")
             
             val originLocation = if (origLat != null && origLng != null) {
                 LatLng(origLat, origLng)
@@ -301,7 +342,7 @@ fun NavigationGraph(
                 destination = destination,
                 originLocation = originLocation,
                 destinationLocation = destinationLocation,
-                waypoints = selectedWaypoints,
+                waypoints = waypointsList,  // Use parsed waypoints from URL
                 selectedRoute = selectedRoute,
                 onBack = {
                     // Clear navigation state when going back

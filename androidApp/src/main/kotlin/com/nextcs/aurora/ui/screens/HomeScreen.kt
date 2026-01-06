@@ -111,7 +111,12 @@ fun HomeScreen(
                         val currentLoc = locationService.getLastKnownLocation()
                         if (currentLoc != null) {
                             originLocation = currentLoc
-                            origin = locationService.formatLocationToAddress(currentLoc)
+                            origin = "Current Location"
+                            // Reverse geocode in background
+                            scope.launch {
+                                val address = locationService.reverseGeocode(currentLoc)
+                                origin = address
+                            }
                         }
                     },
                     onMapPickerClick = {

@@ -45,6 +45,7 @@ fun ActivityScreen(
     var timeSaved by remember { mutableStateOf("0h 0m") }
     var hazardsAvoided by remember { mutableStateOf(0) }
     var isLoading by remember { mutableStateOf(true) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
     
     // Load actual trip data
     LaunchedEffect(Unit) {
@@ -85,6 +86,39 @@ fun ActivityScreen(
             }
             isLoading = false
         }
+    }
+    
+    // Delete confirmation dialog
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Clear All Trips?") },
+            text = { Text("This will permanently delete all your trip history. This action cannot be undone.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        scope.launch {
+                            tripHistoryService.clearAllTrips()
+                            tripHistory = emptyList()
+                            weeklyDistance = "0.0"
+                            timeSaved = "0h 0m"
+                            hazardsAvoided = 0
+                            showDeleteDialog = false
+                        }
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = Color(0xFFD32F2F)
+                    )
+                ) {
+                    Text("Delete All")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     Column(
@@ -169,8 +203,21 @@ fun ActivityScreen(
                     color = Color(0xFF212121)
                 )
                 
-                TextButton(onClick = { /* Show all */ }) {
-                    Text("See All", color = Color(0xFF1E88E5))
+                if (tripHistory.isNotEmpty()) {
+                    TextButton(
+                        onClick = { showDeleteDialog = true },
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = Color(0xFFD32F2F)
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Clear all trips",
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Clear All", fontSize = 14.sp)
+                    }
                 }
             }
             

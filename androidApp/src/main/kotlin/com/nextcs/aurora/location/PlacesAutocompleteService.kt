@@ -9,6 +9,8 @@ import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.api.net.FetchPlaceRequest
 import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest
 import com.google.android.libraries.places.api.net.PlacesClient
+import android.location.Geocoder
+import android.os.Build
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -131,6 +133,56 @@ class PlacesAutocompleteService(private val context: Context) {
         } catch (e: Exception) {
             Log.e("PlacesAutocomplete", "Error in searchAndGetCoordinates", e)
             null
+        }
+    }
+
+    /**
+     * Reverse geocode coordinates to get address name
+     */
+    suspend fun reverseGeocode(latLng: LatLng): String? = suspendCancellableCoroutine { continuation ->
+        try {
+            val geocoder = Geocoder(context)
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                geocoder.getFromLocation(latLng.latitude, latLng.longitude, 1) { addresses ->
+                    val address = addresses.firstOrNull()
+                    val addressText = when {
+                        address == null -> null
+                        address.featureName != null && address.thoroughfare != null -> 
+                            "${address.featureName}, ${address.thoroughfare}"
+                        address.thoroughfare != null && address.locality != null ->
+                            "${address.thoroughfare}, ${address.locality}"
+                        address.locality != null && address.subAdminArea != null ->
+                            "${address.locality}, ${address.subAdminArea}"
+                        address.locality != null ->
+                            address.locality
+                        else -> address.getAddressLine(0)
+                    }
+                    Log.d("PlacesAutocomplete", "Reverse geocoded: $addressText")
+                    continuation.resume(addressText)
+                }
+            } else {
+                @Suppress("DEPRECATION")
+                val addresses = geocoder.getFromLocation(latLng.latitude, latLng.longitude, 1)
+                val address = addresses?.firstOrNull()
+                val addressText = when {
+                    address == null -> null
+                    address.featureName != null && address.thoroughfare != null -> 
+                        "${address.featureName}, ${address.thoroughfare}"
+                    address.thoroughfare != null && address.locality != null ->
+                        "${address.thoroughfare}, ${address.locality}"
+                    address.locality != null && address.subAdminArea != null ->
+                        "${address.locality}, ${address.subAdminArea}"
+                    address.locality != null ->
+                        address.locality
+                    else -> address.getAddressLine(0)
+                }
+                Log.d("PlacesAutocomplete", "Reverse geocoded: $addressText")
+                continuation.resume(addressText)
+            }
+        } catch (e: Exception) {
+            Log.e("PlacesAutocomplete", "Error in reverse geocoding", e)
+            continuation.resume(null)
         }
     }
 }

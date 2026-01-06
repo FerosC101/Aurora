@@ -25,6 +25,7 @@ import com.nextcs.aurora.location.LocationService
 import com.nextcs.aurora.models.Waypoint
 import com.nextcs.aurora.traffic.model.Position
 import com.nextcs.aurora.ui.components.LocationSearchField
+import kotlinx.coroutines.launch
 
 @Composable
 fun MultiStopPlanningScreen(
@@ -35,6 +36,7 @@ fun MultiStopPlanningScreen(
 ) {
     val context = LocalContext.current
     val locationService = remember { LocationService(context) }
+    val scope = rememberCoroutineScope()
     
     var waypoints by remember { mutableStateOf(listOf<Waypoint>()) }
     var showAddDialog by remember { mutableStateOf(false) }
@@ -116,7 +118,12 @@ fun MultiStopPlanningScreen(
                         val currentLoc = locationService.getLastKnownLocation()
                         if (currentLoc != null) {
                             originLocation = currentLoc
-                            origin = locationService.formatLocationToAddress(currentLoc)
+                            origin = "Current Location"
+                            // Reverse geocode in background
+                            scope.launch {
+                                val address = locationService.reverseGeocode(currentLoc)
+                                origin = address
+                            }
                         }
                     },
                     onMapPickerClick = {
