@@ -13,6 +13,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import com.google.android.gms.maps.model.LatLng
 import com.nextcs.aurora.location.LocationService
 import com.nextcs.aurora.location.PlacesAutocompleteService
@@ -165,16 +167,16 @@ fun NavigationGraph(
                     
                     // Encode text addresses
                     val encodedOrigin = URLEncoder.encode(orig, StandardCharsets.UTF_8.toString())
-                    val encodedDestination = URLEncoder.encode(dest, StandardCharsets.UTF_8.toString())
+                    val encodedDest = URLEncoder.encode(dest, StandardCharsets.UTF_8.toString())
                     
-                    // Encode coordinates if available
+                    // Get coordinates
                     val origLat = selectedOriginLocation?.latitude?.toString() ?: ""
                     val origLng = selectedOriginLocation?.longitude?.toString() ?: ""
                     val destLat = selectedDestinationLocation?.latitude?.toString() ?: ""
                     val destLng = selectedDestinationLocation?.longitude?.toString() ?: ""
                     
                     navController.navigate(
-                        "navigation/$encodedOrigin/$encodedDestination/$origLat/$origLng/$destLat/$destLng"
+                        "navigation?origLat=$origLat&origLng=$origLng&destLat=$destLat&destLng=$destLng&origin=$encodedOrigin&dest=$encodedDest&waypoints="
                     )
                 },
                 onMultiStopNavigation = {
@@ -250,7 +252,7 @@ fun NavigationGraph(
                                     }
                                 }
                                 
-                                // Navigate with all coordinates and waypoints
+                                // Navigate with all coordinates and waypoints using query params for addresses
                                 val encodedOrigin = URLEncoder.encode(originAddress, StandardCharsets.UTF_8.toString())
                                 val encodedDestination = URLEncoder.encode(destinationAddress, StandardCharsets.UTF_8.toString())
                                 val origLat = originLocation.latitude.toString()
@@ -262,14 +264,14 @@ fun NavigationGraph(
                                 val waypointsString = geocodedWaypoints.joinToString("|") { "${it.latitude},${it.longitude}" }
                                 
                                 navController.navigate(
-                                    "navigation/$encodedOrigin/$encodedDestination/$origLat/$origLng/$destLat/$destLng/$waypointsString"
+                                    "navigation?origLat=$origLat&origLng=$origLng&destLat=$destLat&destLng=$destLng&origin=$encodedOrigin&dest=$encodedDestination&waypoints=$waypointsString"
                                 )
                                 return@launch
                             }
                             
                             Log.d("MainNavApp", "Single route without waypoints")
                             
-                            // Navigate with coordinates for single route
+                            // Navigate with coordinates using query params for addresses
                             val encodedOrigin = URLEncoder.encode(originAddress, StandardCharsets.UTF_8.toString())
                             val encodedDestination = URLEncoder.encode(destinationAddress, StandardCharsets.UTF_8.toString())
                             val origLat = originLocation.latitude.toString()
@@ -278,7 +280,7 @@ fun NavigationGraph(
                             val destLng = destinationLocation.longitude.toString()
                             
                             navController.navigate(
-                                "navigation/$encodedOrigin/$encodedDestination/$origLat/$origLng/$destLat/$destLng"
+                                "navigation?origLat=$origLat&origLng=$origLng&destLat=$destLat&destLng=$destLng&origin=$encodedOrigin&dest=$encodedDestination"
                             )
                         } catch (e: Exception) {
                             Log.e("MainNavApp", "Error resolving AI navigation", e)
@@ -301,12 +303,23 @@ fun NavigationGraph(
             )
         }
         
-        // Navigation route with optional waypoints (for multi-stop routes)
-        composable("navigation/{origin}/{destination}/{origLat}/{origLng}/{destLat}/{destLng}/{waypoints?}") { backStackEntry ->
+        // Navigation route using query parameters to avoid URL encoding issues
+        composable(
+            route = "navigation?origLat={origLat}&origLng={origLng}&destLat={destLat}&destLng={destLng}&origin={origin}&dest={dest}&waypoints={waypoints}",
+            arguments = listOf(
+                navArgument("origLat") { type = NavType.StringType },
+                navArgument("origLng") { type = NavType.StringType },
+                navArgument("destLat") { type = NavType.StringType },
+                navArgument("destLng") { type = NavType.StringType },
+                navArgument("origin") { type = NavType.StringType; defaultValue = "" },
+                navArgument("dest") { type = NavType.StringType; defaultValue = "" },
+                navArgument("waypoints") { type = NavType.StringType; defaultValue = "" }
+            )
+        ) { backStackEntry ->
             val encodedOrigin = backStackEntry.arguments?.getString("origin") ?: ""
-            val encodedDestination = backStackEntry.arguments?.getString("destination") ?: ""
+            val encodedDest = backStackEntry.arguments?.getString("dest") ?: ""
             val origin = URLDecoder.decode(encodedOrigin, StandardCharsets.UTF_8.toString())
-            val destination = URLDecoder.decode(encodedDestination, StandardCharsets.UTF_8.toString())
+            val destination = URLDecoder.decode(encodedDest, StandardCharsets.UTF_8.toString())
             
             // Parse coordinates
             val origLat = backStackEntry.arguments?.getString("origLat")?.toDoubleOrNull()
@@ -356,7 +369,7 @@ fun NavigationGraph(
                     val origLngStr = (originLocation?.longitude ?: 120.9842).toString()
                     val destLatStr = (destinationLocation?.latitude ?: 14.6000).toString()
                     val destLngStr = (destinationLocation?.longitude ?: 120.9593).toString()
-                    navController.navigate("alternatives/$encodedOrigin/$encodedDestination/$origLatStr/$origLngStr/$destLatStr/$destLngStr")
+                    navController.navigate("alternatives/${URLEncoder.encode(origin, StandardCharsets.UTF_8.toString())}/${URLEncoder.encode(destination, StandardCharsets.UTF_8.toString())}/$origLatStr/$origLngStr/$destLatStr/$destLngStr")
                 }
             )
         }
@@ -406,7 +419,7 @@ fun NavigationGraph(
                         val origin = firstWaypoint.name
                         val destination = lastWaypoint.name
                         val encodedOrigin = URLEncoder.encode(origin, StandardCharsets.UTF_8.toString())
-                        val encodedDestination = URLEncoder.encode(destination, StandardCharsets.UTF_8.toString())
+                        val encodedDest = URLEncoder.encode(destination, StandardCharsets.UTF_8.toString())
                         
                         // Extract coordinates from Position object (x=lat, y=lng)
                         val origLat = firstWaypoint.position.x.toString()
@@ -420,7 +433,15 @@ fun NavigationGraph(
                             .dropLast(1) // Skip destination
                             .map { LatLng(it.position.x.toDouble(), it.position.y.toDouble()) }
                         
-                        navController.navigate("navigation/$encodedOrigin/$encodedDestination/$origLat/$origLng/$destLat/$destLng") {
+                        // Encode waypoints as "lat,lng|lat,lng|..." format
+                        val waypointsParam = if (selectedWaypoints.isNotEmpty()) {
+                            URLEncoder.encode(
+                                selectedWaypoints.joinToString("|") { "${it.latitude},${it.longitude}" },
+                                StandardCharsets.UTF_8.toString()
+                            )
+                        } else ""
+                        
+                        navController.navigate("navigation?origLat=$origLat&origLng=$origLng&destLat=$destLat&destLng=$destLng&origin=$encodedOrigin&dest=$encodedDest&waypoints=$waypointsParam") {
                             popUpTo("multistop") { inclusive = true }
                         }
                     }

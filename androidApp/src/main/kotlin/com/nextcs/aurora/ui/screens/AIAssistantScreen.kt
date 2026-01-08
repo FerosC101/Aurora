@@ -119,14 +119,21 @@ fun AIAssistantScreen(
                         message = message,
                         onStartRoute = { routeRequest ->
                             try {
-                                Log.d("AIAssistant", "Navigating to: ${routeRequest.destination}")
+                                Log.d("AIAssistant", "Start Route button clicked!")
+                                Log.d("AIAssistant", "RouteRequest: $routeRequest")
+                                Log.d("AIAssistant", "Origin: ${routeRequest.origin}")
+                                Log.d("AIAssistant", "Destination: ${routeRequest.destination}")
+                                Log.d("AIAssistant", "Waypoints: ${routeRequest.waypoints}")
                                 onNavigateToRoute(
                                     routeRequest.origin,
                                     routeRequest.destination,
                                     routeRequest.waypoints
                                 )
+                                Log.d("AIAssistant", "onNavigateToRoute called successfully")
                             } catch (e: Exception) {
                                 Log.e("AIAssistant", "Navigation error", e)
+                                Log.e("AIAssistant", "Error details: ${e.message}")
+                                e.printStackTrace()
                             }
                         }
                     )
@@ -266,7 +273,11 @@ fun ChatBubble(
                 message.routeRequest?.let { routeRequest ->
                     Spacer(modifier = Modifier.height(12.dp))
                     Button(
-                        onClick = { onStartRoute(routeRequest) },
+                        onClick = { 
+                            Log.d("ChatBubble", "Start Route button clicked in ChatBubble")
+                            Log.d("ChatBubble", "Route: ${routeRequest.origin} -> ${routeRequest.destination}")
+                            onStartRoute(routeRequest)
+                        },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF4CAF50)
                         ),
