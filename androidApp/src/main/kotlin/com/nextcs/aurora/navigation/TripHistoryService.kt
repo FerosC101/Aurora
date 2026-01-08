@@ -56,7 +56,10 @@ class TripHistoryService(private val context: Context) {
         routeInfo: RouteInfo,
         hazards: List<DetectedHazard>,
         safetyScore: Int,
-        routeType: String
+        routeType: String,
+        harshBrakingCount: Int = 0,
+        rapidAccelerationCount: Int = 0,
+        speedingIncidents: Int = 0
     ) = withContext(Dispatchers.IO) {
         try {
             val tripId = "trip_${System.currentTimeMillis()}"
@@ -69,7 +72,11 @@ class TripHistoryService(private val context: Context) {
                 timestamp = System.currentTimeMillis(),
                 hazardsEncountered = hazards.size,
                 safetyScore = safetyScore,
-                routeType = routeType
+                routeType = routeType,
+                harshBrakingCount = harshBrakingCount,
+                rapidAccelerationCount = rapidAccelerationCount,
+                speedingIncidents = speedingIncidents,
+                smoothDrivingScore = safetyScore
             )
             
             // Get existing trips

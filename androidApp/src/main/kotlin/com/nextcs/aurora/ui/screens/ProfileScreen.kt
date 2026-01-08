@@ -177,7 +177,7 @@ fun ProfileScreen(
                     Divider(color = Color(0xFFE0E0E0))
                     
                     SettingsItem(
-                        icon = Icons.Default.Star,
+                        icon = Icons.Default.Settings,
                         title = "Vehicle Profile",
                         subtitle = vehicleProfileService.getVehicleDisplayName(selectedVehicle),
                         onClick = { showVehicleDialog = true }

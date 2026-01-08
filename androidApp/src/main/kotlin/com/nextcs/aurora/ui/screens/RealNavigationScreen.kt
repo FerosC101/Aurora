@@ -2,6 +2,7 @@ package com.nextcs.aurora.ui.screens
 
 import android.location.Location
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -39,10 +40,18 @@ import com.nextcs.aurora.weather.WeatherData
 import com.nextcs.aurora.sensors.SpeedMonitor
 import com.nextcs.aurora.social.FriendLocationSharingService
 import com.nextcs.aurora.social.FriendLocation
+import com.nextcs.aurora.services.ParkingFinderService
+import com.nextcs.aurora.services.ParkingSpot
+import com.nextcs.aurora.navigation.TrafficAwareNavigationService
+import com.nextcs.aurora.navigation.LiveTrafficLevel
+import com.nextcs.aurora.analytics.DrivingBehaviorAnalyzer
+import com.nextcs.aurora.analytics.DrivingBehavior
+import com.nextcs.aurora.alerts.RouteChangeAlertService
 import com.nextcs.aurora.ui.components.CompactLaneGuidance
 import com.nextcs.aurora.ui.components.LaneGuidanceDisplay
 import com.nextcs.aurora.ui.components.SpeedDisplay
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun RealNavigationScreen(
     origin: String,
@@ -65,6 +74,10 @@ fun RealNavigationScreen(
     val savedRoutesService = remember { SavedRoutesService(context) }
     val weatherService = remember { WeatherService(context) }
     val friendService = remember { FriendLocationSharingService(context) }
+    val parkingService = remember { ParkingFinderService(context) }
+    val trafficService = remember { TrafficAwareNavigationService(context) }
+    val behaviorAnalyzer = remember { DrivingBehaviorAnalyzer() }
+    val routeAlertService = remember { RouteChangeAlertService(context) }
     val scope = rememberCoroutineScope()
     
     val speedData by speedMonitor.speedData.collectAsState()
@@ -74,6 +87,11 @@ fun RealNavigationScreen(
     var currentWeather by remember { mutableStateOf<WeatherData?>(null) }
     var isSharingLocation by remember { mutableStateOf(false) }
     var friendLocations by remember { mutableStateOf<List<FriendLocation>>(emptyList()) }
+    var showParkingSheet by remember { mutableStateOf(false) }
+    var parkingSpots by remember { mutableStateOf<List<ParkingSpot>>(emptyList()) }
+    var showTrafficLayer by remember { mutableStateOf(false) }
+    var currentDrivingBehavior by remember { mutableStateOf<DrivingBehavior?>(null) }
+    var isOffRoute by remember { mutableStateOf(false) }
     
     // Get real current location or use origin location or default
     val initialLocation = locationService.getLastKnownLocation() ?: originLocation ?: LatLng(14.5995, 120.9842)
@@ -148,6 +166,112 @@ fun RealNavigationScreen(
         )
     }
     
+    // Parking Bottom Sheet
+    if (showParkingSheet && parkingSpots.isNotEmpty()) {
+        androidx.compose.material3.ModalBottomSheet(
+            onDismissRequest = { showParkingSheet = false },
+            containerColor = Color.White
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "\ud83c\udd7f\ufe0f Nearby Parking",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    IconButton(onClick = { showParkingSheet = false }) {
+                        Icon(Icons.Default.Close, contentDescription = "Close")
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    "${parkingSpots.size} parking spots found near destination",
+                    fontSize = 14.sp,
+                    color = Color(0xFF757575)
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                parkingSpots.take(5).forEach { spot ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                            .clickable {
+                                // Navigate to parking spot
+                            },
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    spot.name,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    "${String.format("%.0f", spot.distanceFromDestination)} m away",
+                                    fontSize = 13.sp,
+                                    color = Color(0xFF757575)
+                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        Icons.Default.Star,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(14.dp),
+                                        tint = Color(0xFFFFC107)
+                                    )
+                                    Text(
+                                        " ${spot.rating}",
+                                        fontSize = 12.sp,
+                                        color = Color(0xFF757575)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        if (spot.isOpenNow) "Open" else "Closed",
+                                        fontSize = 12.sp,
+                                        color = if (spot.isOpenNow) Color(0xFF4CAF50) else Color(0xFFE53935),
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                            
+                            Surface(
+                                shape = androidx.compose.foundation.shape.CircleShape,
+                                color = Color(0xFF2196F3)
+                            ) {
+                                Icon(
+                                    Icons.Default.ArrowForward,
+                                    contentDescription = null,
+                                    modifier = Modifier.padding(8.dp).size(20.dp),
+                                    tint = Color.White
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
+    }
+    
     // Camera position state
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(currentLocation, 17f)
@@ -162,6 +286,35 @@ fun RealNavigationScreen(
                 CameraUpdateFactory.newLatLngZoom(location, 17f),
                 durationMs = 1000
             )
+            
+            // Analyze driving behavior if navigating
+            if (isNavigating) {
+                val loc = Location("gps").apply {
+                    latitude = location.latitude
+                    longitude = location.longitude
+                    speed = speedData.currentSpeed / 3.6f // Convert km/h to m/s
+                }
+                behaviorAnalyzer.analyzeBehavior(loc, speedData.currentSpeed, speedData.speedLimit)
+                currentDrivingBehavior = behaviorAnalyzer.getBehavior()
+                
+                // Check if off-route
+                routeInfo?.let { route ->
+                    if (trafficService.checkOffRoute(location, route)) {
+                        isOffRoute = true
+                        // Auto-reroute
+                        scope.launch {
+                            destinationLocation?.let { dest ->
+                                trafficService.autoReroute(location, dest).onSuccess { newRoute ->
+                                    routeInfo = newRoute
+                                    isOffRoute = false
+                                }
+                            }
+                        }
+                    } else {
+                        isOffRoute = false
+                    }
+                }
+            }
             
             // Update shared location if sharing is enabled
             if (isSharingLocation && isNavigating) {
@@ -310,6 +463,7 @@ fun RealNavigationScreen(
                         try {
                             val totalDistance = route.steps.sumOf { it.distance }
                             val totalDuration = route.steps.sumOf { it.duration }
+                            val behavior = currentDrivingBehavior ?: behaviorAnalyzer.getBehavior()
                             
                             tripHistoryService.saveTrip(
                                 origin = origin,
@@ -322,8 +476,11 @@ fun RealNavigationScreen(
                                     overview = "$origin to $destination"
                                 ),
                                 hazards = detectedHazards,
-                                safetyScore = 85, // Calculate based on hazards and speed violations
-                                routeType = "Regular"
+                                safetyScore = behavior.smoothDrivingScore,
+                                routeType = "Regular",
+                                harshBrakingCount = behavior.harshBrakingCount,
+                                rapidAccelerationCount = behavior.rapidAccelerationCount,
+                                speedingIncidents = behavior.speedingIncidents
                             )
                             android.util.Log.d("RealNavigation", "Trip saved successfully")
                         } catch (e: Exception) {
@@ -497,6 +654,38 @@ fun RealNavigationScreen(
                         )
                     }
                     
+                    // Traffic toggle
+                    IconButton(onClick = { showTrafficLayer = !showTrafficLayer }) {
+                        Icon(
+                            Icons.Default.DateRange,
+                            contentDescription = "Toggle traffic",
+                            tint = if (showTrafficLayer) Color(0xFFFF9800) else Color(0xFF9E9E9E)
+                        )
+                    }
+                    
+                    // Parking finder (show when near destination)
+                    if (isNavigating && remainingDistance.contains("m") && 
+                        remainingDistance.replace(" m", "").toIntOrNull()?.let { it < 500 } == true) {
+                        IconButton(
+                            onClick = {
+                                scope.launch {
+                                    destinationLocation?.let { dest ->
+                                        parkingService.findParkingNearDestination(dest).onSuccess { spots ->
+                                            parkingSpots = spots
+                                            showParkingSheet = true
+                                        }
+                                    }
+                                }
+                            }
+                        ) {
+                            Icon(
+                                Icons.Default.Place,
+                                contentDescription = "Find parking",
+                                tint = Color(0xFF2196F3)
+                            )
+                        }
+                    }
+                    
                     // Voice toggle
                     IconButton(
                         onClick = { voiceService.setEnabled(!isVoiceEnabled) }
@@ -518,6 +707,7 @@ fun RealNavigationScreen(
                                     try {
                                         val totalDistance = route.steps.sumOf { it.distance }
                                         val totalDuration = route.steps.sumOf { it.duration }
+                                        val behavior = currentDrivingBehavior ?: behaviorAnalyzer.getBehavior()
                                         
                                         tripHistoryService.saveTrip(
                                             origin = origin,
@@ -530,8 +720,11 @@ fun RealNavigationScreen(
                                                 overview = "$origin to $destination"
                                             ),
                                             hazards = detectedHazards,
-                                            safetyScore = safetyScore,
-                                            routeType = selectedRoute?.name ?: "Regular"
+                                            safetyScore = behavior.smoothDrivingScore,
+                                            routeType = selectedRoute?.name ?: "Regular",
+                                            harshBrakingCount = behavior.harshBrakingCount,
+                                            rapidAccelerationCount = behavior.rapidAccelerationCount,
+                                            speedingIncidents = behavior.speedingIncidents
                                         )
                                         android.util.Log.d("RealNavigation", "Trip manually finished and saved")
                                     } catch (e: Exception) {
@@ -584,6 +777,36 @@ fun RealNavigationScreen(
                 isExceeding = speedData.isExceeding,
                 modifier = Modifier.align(Alignment.TopStart)
             )
+            
+            // Off-Route Banner
+            if (isOffRoute) {
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 8.dp),
+                    color = Color(0xFFFF9800),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "Off Route - Recalculating...",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.White
+                        )
+                    }
+                }
+            }
             
             // Weather alerts
             currentWeather?.let { weather ->

@@ -22,6 +22,7 @@ import com.nextcs.aurora.location.LocationService
 import com.nextcs.aurora.navigation.TripHistoryService
 import com.nextcs.aurora.navigation.TripRecord
 import com.nextcs.aurora.ui.components.LocationSearchField
+import com.nextcs.aurora.ui.components.AIAssistantDialog
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -50,6 +51,7 @@ fun HomeScreen(
     var originLocation by remember { mutableStateOf(initialOriginLocation) }
     var destinationLocation by remember { mutableStateOf(initialDestinationLocation) }
     var showReminderDialog by remember { mutableStateOf(false) }
+    var showAIAssistant by remember { mutableStateOf(false) }
     var recentTrips by remember { mutableStateOf<List<TripRecord>>(emptyList()) }
     
     // Load recent trips on launch
@@ -67,10 +69,11 @@ fun HomeScreen(
     }
     var showQuickActions by remember { mutableStateOf(true) }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Color(0xFFF8F9FA))
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFF8F9FA))
     ) {
         // Top Header
         Surface(
@@ -325,6 +328,34 @@ fun HomeScreen(
                 }
             }
         }
+    }
+    
+    // AI Assistant FAB
+    FloatingActionButton(
+        onClick = { showAIAssistant = true },
+        modifier = Modifier
+            .align(Alignment.BottomEnd)
+            .padding(24.dp),
+        containerColor = Color(0xFF9C27B0)
+    ) {
+        Icon(
+            Icons.Default.Face,
+            contentDescription = "AI Assistant",
+            tint = Color.White
+        )
+    }
+}
+    
+    // AI Assistant Dialog
+    if (showAIAssistant) {
+        AIAssistantDialog(
+            onDismiss = { showAIAssistant = false },
+            onRouteSelected = { fromAI, toAI ->
+                origin = fromAI
+                destination = toAI
+                showAIAssistant = false
+            }
+        )
     }
     
     // Departure Reminder Dialog
