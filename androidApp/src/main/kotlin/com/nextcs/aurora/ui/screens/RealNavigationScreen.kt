@@ -591,192 +591,204 @@ fun RealNavigationScreen(
             color = Color.White,
             shadowElevation = 4.dp
         ) {
+            // Minimalist Top Bar - Clean and Simple
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                // Back button
+                Surface(
+                    modifier = Modifier.size(40.dp),
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    color = Color.White,
+                    shadowElevation = 4.dp
+                ) {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color(0xFF212121)
+                        )
+                    }
                 }
                 
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    // Weather display
-                    currentWeather?.let { weather ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.padding(bottom = 4.dp)
-                        ) {
+                // ETA Info - Center
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color.White,
+                    shadowElevation = 4.dp
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        currentWeather?.let { weather ->
                             Text(
                                 text = weatherService.getWeatherEmoji(weather),
-                                fontSize = 16.sp
-                            )
-                            Text(
-                                text = "${String.format("%.0f", weather.temperature)}°C",
-                                fontSize = 13.sp,
-                                color = if (weather.isDangerous) Color(0xFFD32F2F) else Color(0xFF757575)
+                                fontSize = 14.sp
                             )
                         }
+                        Text(
+                            text = eta,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1976D2)
+                        )
+                        Text(
+                            text = "·",
+                            fontSize = 14.sp,
+                            color = Color(0xFFBDBDBD)
+                        )
+                        Text(
+                            text = remainingDistance,
+                            fontSize = 14.sp,
+                            color = Color(0xFF757575)
+                        )
                     }
-                    
-                    Text(
-                        text = eta,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E88E5)
-                    )
-                    Text(
-                        text = remainingDistance,
-                        fontSize = 14.sp,
-                        color = Color(0xFF757575)
-                    )
                 }
                 
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    // Alternative routes button
-                    IconButton(onClick = onViewAlternativeRoutes) {
-                        Icon(
-                            Icons.Default.List,
-                            contentDescription = "View alternative routes",
-                            tint = Color(0xFF1E88E5)
-                        )
-                    }
-                    
-                    // Save route button
-                    IconButton(onClick = { showSaveDialog = true }) {
-                        Icon(
-                            Icons.Default.Favorite,
-                            contentDescription = "Save route",
-                            tint = Color(0xFFE91E63)
-                        )
-                    }
-                    
-                    // Traffic toggle
-                    IconButton(onClick = { showTrafficLayer = !showTrafficLayer }) {
-                        Icon(
-                            Icons.Default.DateRange,
-                            contentDescription = "Toggle traffic",
-                            tint = if (showTrafficLayer) Color(0xFFFF9800) else Color(0xFF9E9E9E)
-                        )
-                    }
-                    
-                    // Parking finder (show when near destination)
-                    if (isNavigating && remainingDistance.contains("m") && 
-                        remainingDistance.replace(" m", "").toIntOrNull()?.let { it < 500 } == true) {
-                        IconButton(
-                            onClick = {
-                                scope.launch {
-                                    destinationLocation?.let { dest ->
-                                        parkingService.findParkingNearDestination(dest).onSuccess { spots ->
-                                            parkingSpots = spots
-                                            showParkingSheet = true
-                                        }
-                                    }
-                                }
-                            }
-                        ) {
+                // Menu button - Shows options
+                var showMenu by remember { mutableStateOf(false) }
+                Surface(
+                    modifier = Modifier.size(40.dp),
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    color = Color.White,
+                    shadowElevation = 4.dp
+                ) {
+                    Box {
+                        IconButton(onClick = { showMenu = !showMenu }) {
                             Icon(
-                                Icons.Default.Place,
-                                contentDescription = "Find parking",
-                                tint = Color(0xFF2196F3)
+                                Icons.Default.MoreVert,
+                                contentDescription = "More options",
+                                tint = Color(0xFF212121)
                             )
                         }
-                    }
-                    
-                    // Voice toggle
-                    IconButton(
-                        onClick = { voiceService.setEnabled(!isVoiceEnabled) }
-                    ) {
-                        Icon(
-                            if (isVoiceEnabled && isVoiceReady) Icons.Default.Notifications 
-                            else Icons.Default.Clear,
-                            contentDescription = "Toggle voice",
-                            tint = if (isVoiceEnabled && isVoiceReady) Color(0xFF4CAF50) 
-                                   else Color(0xFF9E9E9E)
-                        )
-                    }
-                    
-                    // Finish Navigation button
-                    IconButton(
-                        onClick = {
-                            scope.launch {
-                                routeInfo?.let { route ->
-                                    try {
-                                        val totalDistance = route.steps.sumOf { it.distance }
-                                        val totalDuration = route.steps.sumOf { it.duration }
-                                        val behavior = currentDrivingBehavior ?: behaviorAnalyzer.getBehavior()
-                                        
-                                        tripHistoryService.saveTrip(
-                                            origin = origin,
-                                            destination = destination,
-                                            routeInfo = RouteInfo(
-                                                polyline = route.polyline,
-                                                steps = route.steps,
-                                                distance = totalDistance,
-                                                duration = totalDuration,
-                                                overview = "$origin to $destination"
-                                            ),
-                                            hazards = detectedHazards,
-                                            safetyScore = behavior.smoothDrivingScore,
-                                            routeType = selectedRoute?.name ?: "Regular",
-                                            harshBrakingCount = behavior.harshBrakingCount,
-                                            rapidAccelerationCount = behavior.rapidAccelerationCount,
-                                            speedingIncidents = behavior.speedingIncidents
-                                        )
-                                        android.util.Log.d("RealNavigation", "Trip manually finished and saved")
-                                    } catch (e: Exception) {
-                                        android.util.Log.e("RealNavigation", "Failed to save trip", e)
-                                    }
+                        
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Alternative Routes") },
+                                onClick = {
+                                    showMenu = false
+                                    onViewAlternativeRoutes()
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.List, contentDescription = null)
                                 }
-                                onBack()
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Save Route") },
+                                onClick = {
+                                    showMenu = false
+                                    showSaveDialog = true
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Favorite, contentDescription = null)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { 
+                                    Text(if (showTrafficLayer) "Hide Traffic" else "Show Traffic") 
+                                },
+                                onClick = {
+                                    showTrafficLayer = !showTrafficLayer
+                                    showMenu = false
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Warning,
+                                        contentDescription = null,
+                                        tint = if (showTrafficLayer) Color(0xFFFF9800) else Color.Unspecified
+                                    )
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { 
+                                    Text(if (isVoiceEnabled) "Voice: ON" else "Voice: OFF") 
+                                },
+                                onClick = {
+                                    voiceService.setEnabled(!isVoiceEnabled)
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Phone,
+                                        contentDescription = null,
+                                        tint = if (isVoiceEnabled) Color(0xFF4CAF50) else Color.Unspecified
+                                    )
+                                }
+                            )
+                            if (isNavigating && remainingDistance.contains("m") && 
+                                remainingDistance.replace(" m", "").toIntOrNull()?.let { it < 500 } == true) {
+                                DropdownMenuItem(
+                                    text = { Text("Find Parking") },
+                                    onClick = {
+                                        showMenu = false
+                                        scope.launch {
+                                            destinationLocation?.let { dest ->
+                                                parkingService.findParkingNearDestination(dest).onSuccess { spots ->
+                                                    parkingSpots = spots
+                                                    showParkingSheet = true
+                                                }
+                                            }
+                                        }
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Place, contentDescription = null)
+                                    }
+                                )
                             }
-                        },
-                        enabled = routeInfo != null
-                    ) {
-                        Icon(
-                            Icons.Default.CheckCircle,
-                            contentDescription = "Finish navigation",
-                            tint = if (routeInfo != null) Color(0xFF4CAF50) else Color(0xFF9E9E9E)
-                        )
+                        }
                     }
                 }
             }
         }
         
-        // Lane Guidance (Top-Center, below top bar)
+        // Compact Lane Guidance
         if (showLaneGuidance && currentLaneGuidance != null) {
-            Box(
+            Surface(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 80.dp)
                     .align(Alignment.TopCenter)
+                    .padding(top = 70.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = Color.White.copy(alpha = 0.95f),
+                shadowElevation = 4.dp
             ) {
-                LaneGuidanceDisplay(
+                CompactLaneGuidance(
                     laneGuidance = currentLaneGuidance!!,
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .align(Alignment.Center)
+                    modifier = Modifier.padding(12.dp)
                 )
             }
         }
         
-        // Speed Display Overlay (Top-Left, below back button)
-        Box(
+        // Compact Speed Display - Bottom Left Corner
+        Surface(
             modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.TopStart)
-                .padding(16.dp)
-                .padding(top = 140.dp) // Below top bar and back button
+                .align(Alignment.BottomStart)
+                .padding(start = 16.dp, bottom = 180.dp),
+            shape = RoundedCornerShape(16.dp),
+            color = Color.White,
+            shadowElevation = 4.dp
         ) {
             SpeedDisplay(
                 currentSpeed = speedData.currentSpeed,
                 speedLimit = speedData.speedLimit,
                 isExceeding = speedData.isExceeding,
-                modifier = Modifier.align(Alignment.TopStart)
+                modifier = Modifier.padding(12.dp)
             )
+        }
+        
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.TopCenter)
+                .padding(top = 70.dp)
+        ) {
             
             // Off-Route Banner
             if (isOffRoute) {
@@ -808,61 +820,37 @@ fun RealNavigationScreen(
                 }
             }
             
-            // Weather alerts
+            // Compact Weather/Hazard Warnings (only show critical)
             currentWeather?.let { weather ->
-                val alerts = weatherService.getWeatherAlerts(weather)
-                if (alerts.isNotEmpty()) {
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .padding(top = 90.dp)
-                            .fillMaxWidth(0.95f)
-                    ) {
-                        alerts.take(2).forEach { alert ->
-                            Surface(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 8.dp),
-                                shape = RoundedCornerShape(8.dp),
-                                color = when (alert.severity) {
-                                    com.nextcs.aurora.weather.AlertSeverity.DANGER -> Color(0xFFFFEBEE)
-                                    com.nextcs.aurora.weather.AlertSeverity.WARNING -> Color(0xFFFFF3E0)
-                                    else -> Color(0xFFE3F2FD)
-                                },
-                                shadowElevation = 2.dp
+                if (weather.isDangerous) {
+                    val alerts = weatherService.getWeatherAlerts(weather)
+                    if (alerts.isNotEmpty()) {
+                        Surface(
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(top = 90.dp, start = 16.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFFD32F2F).copy(alpha = 0.9f),
+                            shadowElevation = 4.dp
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Icon(
-                                        when (alert.severity) {
-                                            com.nextcs.aurora.weather.AlertSeverity.DANGER -> Icons.Default.Warning
-                                            else -> Icons.Default.Info
-                                        },
-                                        contentDescription = null,
-                                        tint = when (alert.severity) {
-                                            com.nextcs.aurora.weather.AlertSeverity.DANGER -> Color(0xFFD32F2F)
-                                            com.nextcs.aurora.weather.AlertSeverity.WARNING -> Color(0xFFF57C00)
-                                            else -> Color(0xFF1976D2)
-                                        },
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = alert.message,
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            color = Color(0xFF212121)
-                                        )
-                                        Text(
-                                            text = alert.recommendation,
-                                            fontSize = 11.sp,
-                                            color = Color(0xFF757575)
-                                        )
-                                    }
-                                }
+                                Icon(
+                                    Icons.Default.Warning,
+                                    contentDescription = "Warning",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Text(
+                                    text = alerts.first().message,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color.White,
+                                    maxLines = 1
+                                )
                             }
                         }
                     }
@@ -871,152 +859,76 @@ fun RealNavigationScreen(
         }
         
         
-        // Bottom Navigation Panel - 3 States
+        // Minimalist Bottom Navigation Panel
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter),
             color = Color.White,
-            shadowElevation = 8.dp
+            shadowElevation = 8.dp,
+            shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
         ) {
             when {
-                // State 1: Loading - Calculating route
+                // Loading state - compact
                 routeInfo == null -> {
-                    Column(
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(32.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                            .padding(20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         CircularProgressIndicator(
-                            color = Color(0xFF1E88E5),
-                            modifier = Modifier.size(48.dp)
+                            color = Color(0xFF1976D2),
+                            modifier = Modifier.size(28.dp),
+                            strokeWidth = 3.dp
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
                         Text(
                             text = "Calculating route...",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Medium,
+                            fontSize = 15.sp,
                             color = Color(0xFF757575)
                         )
                     }
                 }
                 
-                // State 2: Route Preview - Show Start Navigation button
+                // Ready state - Clean and simple
                 !isNavigating -> {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(20.dp)
                     ) {
-                        // Route Summary
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = destination,
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF212121),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    Text(
-                                        text = "${routeInfo?.distance?.div(1000)?.toInt() ?: 0} km",
-                                        fontSize = 14.sp,
-                                        color = Color(0xFF757575)
-                                    )
-                                    Text(
-                                        text = "•",
-                                        fontSize = 14.sp,
-                                        color = Color(0xFF757575)
-                                    )
-                                    Text(
-                                        text = "${routeInfo?.duration?.div(60)?.toInt() ?: 0} min",
-                                        fontSize = 14.sp,
-                                        color = Color(0xFF757575)
-                                    )
-                                }
-                            }
+                        // Just destination and start button
+                        Text(
+                            text = destination,
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF212121),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                text = "${routeInfo?.distance?.div(1000)?.toInt() ?: 0} km",
+                                fontSize = 14.sp,
+                                color = Color(0xFF757575)
+                            )
+                            Text(
+                                text = "\u00b7",
+                                fontSize = 14.sp,
+                                color = Color(0xFFBDBDBD)
+                            )
+                            Text(
+                                text = "${routeInfo?.duration?.div(60)?.toInt() ?: 0} min",
+                                fontSize = 14.sp,
+                                color = Color(0xFF757575)
+                            )
                         }
                         
                         Spacer(modifier = Modifier.height(16.dp))
                         
-                        // Location Sharing Toggle Row
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // Share Location Toggle
-                            OutlinedButton(
-                                onClick = {
-                                    scope.launch {
-                                        if (isSharingLocation) {
-                                            friendService.stopSharingLocation()
-                                            isSharingLocation = false
-                                        } else {
-                                            val result = friendService.startSharingLocation(
-                                                location = currentLocation,
-                                                tripId = null,
-                                                destination = destination,
-                                                eta = eta
-                                            )
-                                            result.onSuccess {
-                                                isSharingLocation = true
-                                            }
-                                        }
-                                    }
-                                },
-                                modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    containerColor = if (isSharingLocation) Color(0xFFE3F2FD) else Color.Transparent
-                                )
-                            ) {
-                                Icon(
-                                    if (isSharingLocation) Icons.Default.Share else Icons.Default.Share,
-                                    contentDescription = null,
-                                    tint = if (isSharingLocation) Color(0xFF1976D2) else Color(0xFF757575),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = if (isSharingLocation) "Sharing" else "Share",
-                                    fontSize = 14.sp,
-                                    color = if (isSharingLocation) Color(0xFF1976D2) else Color(0xFF757575)
-                                )
-                            }
-                            
-                            // View Friends Button
-                            OutlinedButton(
-                                onClick = { /* Navigate to friends screen */ },
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Icon(
-                                    Icons.Default.Person,
-                                    contentDescription = null,
-                                    tint = Color(0xFF757575),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "Friends (${friendLocations.size})",
-                                    fontSize = 14.sp,
-                                    color = Color(0xFF757575)
-                                )
-                            }
-                        }
-                        
-                        Spacer(modifier = Modifier.height(12.dp))
-                        
-                        // Start Navigation Button
+                        // Single prominent start button
                         Button(
                             onClick = {
                                 isNavigating = true
@@ -1029,21 +941,21 @@ fun RealNavigationScreen(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(56.dp),
+                                .height(52.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF1E88E5)
+                                containerColor = Color(0xFF1976D2)
                             ),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(16.dp)
                         ) {
                             Icon(
                                 Icons.Default.PlayArrow,
                                 contentDescription = null,
                                 tint = Color.White,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(22.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Start Navigation",
+                                text = "Start",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color.White
@@ -1052,138 +964,73 @@ fun RealNavigationScreen(
                     }
                 }
                 
-                // State 3: Active Navigation - Show turn-by-turn
+                // Active navigation - Compact turn-by-turn
                 else -> {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(20.dp)
+                            .padding(horizontal = 20.dp, vertical = 16.dp)
                     ) {
-                        // Current Instruction
+                        // Main instruction - clean layout
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            // Direction Icon
+                            // Direction icon - smaller
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
-                                color = Color(0xFF1E88E5),
-                                modifier = Modifier.size(56.dp)
+                                color = Color(0xFF1976D2),
+                                modifier = Modifier.size(48.dp)
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(
                                         Icons.Default.ArrowBack,
                                         contentDescription = null,
                                         tint = Color.White,
-                                        modifier = Modifier.size(32.dp)
+                                        modifier = Modifier.size(28.dp)
                                     )
                                 }
                             }
                             
-                            // Instruction Text
+                            // Instruction text
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = currentInstruction,
-                                    fontSize = 18.sp,
+                                    fontSize = 17.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = Color(0xFF212121)
+                                    color = Color(0xFF212121),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
-                                Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = "in $distanceToTurn m",
-                                    fontSize = 14.sp,
+                                    fontSize = 13.sp,
                                     color = Color(0xFF757575)
                                 )
                             }
                         }
                         
-                        // Next Instruction Preview
+                        // Next instruction - only if exists, more compact
                         if (nextInstruction != null) {
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Surface(
-                                modifier = Modifier.fillMaxWidth(),
-                                color = Color(0xFFF5F5F5),
-                                shape = RoundedCornerShape(8.dp)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.padding(start = 60.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.ArrowForward,
-                                        contentDescription = null,
-                                        tint = Color(0xFF757575),
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Text(
-                                        text = "Then: $nextInstruction",
-                                        fontSize = 14.sp,
-                                        color = Color(0xFF757575)
-                                    )
-                                }
-                            }
-                        }
-                        
-                        // Speed Warning Banner
-                        if (speedData.isExceeding) {
-                            Spacer(modifier = Modifier.height(12.dp))
-                            
-                            Surface(
-                                modifier = Modifier.fillMaxWidth(),
-                                color = Color(0xFFFFEBEE),
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.Warning,
-                                        contentDescription = null,
-                                        tint = Color(0xFFD32F2F),
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Text(
-                                        text = "Exceeding speed limit!",
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = Color(0xFFD32F2F)
-                                    )
-                                }
-                            }
-                        }
-                        
-                        // ETA and Distance
-                        Spacer(modifier = Modifier.height(12.dp))
-                        
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column {
                                 Text(
-                                    text = "ETA: ${routeInfo?.duration?.div(60)?.toInt() ?: 0} min",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = Color(0xFF212121)
-                                )
-                                Text(
-                                    text = "${routeInfo?.distance?.div(1000)?.toInt() ?: 0} km remaining",
+                                    text = "Then:",
                                     fontSize = 12.sp,
-                                    color = Color(0xFF757575)
+                                    color = Color(0xFF9E9E9E)
                                 )
-                            }
-                            
-                            TextButton(
-                                onClick = {
-                                    isNavigating = false
-                                    speedMonitor.stopMonitoring()
-                                }
-                            ) {
-                                Text("End", fontSize = 14.sp, color = Color(0xFFD32F2F))
+                                Text(
+                                    text = nextInstruction!!,
+                                    fontSize = 12.sp,
+                                    color = Color(0xFF757575),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
                         }
                     }
