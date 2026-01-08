@@ -33,8 +33,12 @@ import com.nextcs.aurora.navigation.NavigationStep
 import com.nextcs.aurora.navigation.RouteInfo
 import com.nextcs.aurora.navigation.HazardDetectionService
 import com.nextcs.aurora.navigation.TripHistoryService
-import com.nextcs.aurora.repository.SavedRoutesRepository
+import com.nextcs.aurora.navigation.SavedRoutesService
+import com.nextcs.aurora.weather.WeatherService
+import com.nextcs.aurora.weather.WeatherData
 import com.nextcs.aurora.sensors.SpeedMonitor
+import com.nextcs.aurora.social.FriendLocationSharingService
+import com.nextcs.aurora.social.FriendLocation
 import com.nextcs.aurora.ui.components.CompactLaneGuidance
 import com.nextcs.aurora.ui.components.LaneGuidanceDisplay
 import com.nextcs.aurora.ui.components.SpeedDisplay
@@ -58,13 +62,18 @@ fun RealNavigationScreen(
     val tripHistoryService = remember { TripHistoryService(context) }
     val voiceService = remember { VoiceNavigationService(context) }
     val speedMonitor = remember { SpeedMonitor(context) }
-    // TODO: Re-enable when KSP is working
-    // Repository disabled due to missing Room implementation
+    val savedRoutesService = remember { SavedRoutesService(context) }
+    val weatherService = remember { WeatherService(context) }
+    val friendService = remember { FriendLocationSharingService(context) }
     val scope = rememberCoroutineScope()
     
     val speedData by speedMonitor.speedData.collectAsState()
     val isVoiceEnabled by voiceService.isEnabled.collectAsState()
     val isVoiceReady by voiceService.isReady.collectAsState()
+    
+    var currentWeather by remember { mutableStateOf<WeatherData?>(null) }
+    var isSharingLocation by remember { mutableStateOf(false) }
+    var friendLocations by remember { mutableStateOf<List<FriendLocation>>(emptyList()) }
     
     // Get real current location or use origin location or default
     val initialLocation = locationService.getLastKnownLocation() ?: originLocation ?: LatLng(14.5995, 120.9842)
@@ -108,17 +117,21 @@ fun RealNavigationScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        if (routeName.isNotBlank()) {
-                            // TODO: Re-enable when KSP is working
-                            // scope.launch {
-                            //     repository.saveRoute(
-                            //         name = routeName,
-                            //         origin = origin,
-                            //         destination = destination,
-                            //         distance = remainingDistance.replace(" km", "").toDoubleOrNull() ?: 0.0,
-                            //         estimatedTime = eta.replace(" min", "").toIntOrNull() ?: 0
-                            //     )
-                            // }
+                        if (routeName.isNotBlank() && routeInfo != null) {
+                            scope.launch {
+                                // Calculate or parse distance and time from routeInfo
+                                val distanceKm = routeInfo!!.distance / 1000.0
+                                val timeMinutes = routeInfo!!.duration / 60
+                                
+                                savedRoutesService.saveRoute(
+                                    name = routeName,
+                                    origin = origin,
+                                    destination = destination,
+                                    distance = distanceKm,
+                                    estimatedTime = timeMinutes,
+                                    waypoints = waypoints
+                                )
+                            }
                             showSaveDialog = false
                         }
                     },
@@ -149,6 +162,33 @@ fun RealNavigationScreen(
                 CameraUpdateFactory.newLatLngZoom(location, 17f),
                 durationMs = 1000
             )
+            
+            // Update shared location if sharing is enabled
+            if (isSharingLocation && isNavigating) {
+                scope.launch {
+                    friendService.updateLocation(
+                        location = location,
+                        eta = eta
+                    )
+                }
+            }
+            
+            // Fetch weather for current location every 5 minutes
+            if (currentWeather == null || System.currentTimeMillis() % 300000 < 5000) {
+                scope.launch {
+                    val weatherResult = weatherService.getWeather(location)
+                    weatherResult.onSuccess { weather ->
+                        currentWeather = weather
+                    }
+                }
+            }
+        }
+    }
+    
+    // Observe friends' locations
+    LaunchedEffect(Unit) {
+        friendService.observeFriendsLocations().collect { locations ->
+            friendLocations = locations.filter { it.isSharing }
         }
     }
     
@@ -368,6 +408,22 @@ fun RealNavigationScreen(
                     )
                 )
             }
+            
+            // Friend location markers
+            friendLocations.forEach { friendLocation ->
+                Marker(
+                    state = MarkerState(position = friendLocation.toLatLng()),
+                    title = friendLocation.displayName,
+                    snippet = if (friendLocation.destination != null && friendLocation.eta != null) {
+                        "Going to ${friendLocation.destination} • ETA: ${friendLocation.eta}"
+                    } else {
+                        "Sharing location"
+                    },
+                    icon = com.google.android.gms.maps.model.BitmapDescriptorFactory.defaultMarker(
+                        com.google.android.gms.maps.model.BitmapDescriptorFactory.HUE_AZURE
+                    )
+                )
+            }
         }
         
         // Top Bar
@@ -390,6 +446,25 @@ fun RealNavigationScreen(
                 }
                 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    // Weather display
+                    currentWeather?.let { weather ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        ) {
+                            Text(
+                                text = weatherService.getWeatherEmoji(weather),
+                                fontSize = 16.sp
+                            )
+                            Text(
+                                text = "${String.format("%.0f", weather.temperature)}°C",
+                                fontSize = 13.sp,
+                                color = if (weather.isDangerous) Color(0xFFD32F2F) else Color(0xFF757575)
+                            )
+                        }
+                    }
+                    
                     Text(
                         text = eta,
                         fontSize = 20.sp,
@@ -509,6 +584,67 @@ fun RealNavigationScreen(
                 isExceeding = speedData.isExceeding,
                 modifier = Modifier.align(Alignment.TopStart)
             )
+            
+            // Weather alerts
+            currentWeather?.let { weather ->
+                val alerts = weatherService.getWeatherAlerts(weather)
+                if (alerts.isNotEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(top = 90.dp)
+                            .fillMaxWidth(0.95f)
+                    ) {
+                        alerts.take(2).forEach { alert ->
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 8.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                color = when (alert.severity) {
+                                    com.nextcs.aurora.weather.AlertSeverity.DANGER -> Color(0xFFFFEBEE)
+                                    com.nextcs.aurora.weather.AlertSeverity.WARNING -> Color(0xFFFFF3E0)
+                                    else -> Color(0xFFE3F2FD)
+                                },
+                                shadowElevation = 2.dp
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        when (alert.severity) {
+                                            com.nextcs.aurora.weather.AlertSeverity.DANGER -> Icons.Default.Warning
+                                            else -> Icons.Default.Info
+                                        },
+                                        contentDescription = null,
+                                        tint = when (alert.severity) {
+                                            com.nextcs.aurora.weather.AlertSeverity.DANGER -> Color(0xFFD32F2F)
+                                            com.nextcs.aurora.weather.AlertSeverity.WARNING -> Color(0xFFF57C00)
+                                            else -> Color(0xFF1976D2)
+                                        },
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = alert.message,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = Color(0xFF212121)
+                                        )
+                                        Text(
+                                            text = alert.recommendation,
+                                            fontSize = 11.sp,
+                                            color = Color(0xFF757575)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
         
         
@@ -589,6 +725,73 @@ fun RealNavigationScreen(
                         }
                         
                         Spacer(modifier = Modifier.height(16.dp))
+                        
+                        // Location Sharing Toggle Row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Share Location Toggle
+                            OutlinedButton(
+                                onClick = {
+                                    scope.launch {
+                                        if (isSharingLocation) {
+                                            friendService.stopSharingLocation()
+                                            isSharingLocation = false
+                                        } else {
+                                            val result = friendService.startSharingLocation(
+                                                location = currentLocation,
+                                                tripId = null,
+                                                destination = destination,
+                                                eta = eta
+                                            )
+                                            result.onSuccess {
+                                                isSharingLocation = true
+                                            }
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = if (isSharingLocation) Color(0xFFE3F2FD) else Color.Transparent
+                                )
+                            ) {
+                                Icon(
+                                    if (isSharingLocation) Icons.Default.Share else Icons.Default.Share,
+                                    contentDescription = null,
+                                    tint = if (isSharingLocation) Color(0xFF1976D2) else Color(0xFF757575),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = if (isSharingLocation) "Sharing" else "Share",
+                                    fontSize = 14.sp,
+                                    color = if (isSharingLocation) Color(0xFF1976D2) else Color(0xFF757575)
+                                )
+                            }
+                            
+                            // View Friends Button
+                            OutlinedButton(
+                                onClick = { /* Navigate to friends screen */ },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(
+                                    Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint = Color(0xFF757575),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Friends (${friendLocations.size})",
+                                    fontSize = 14.sp,
+                                    color = Color(0xFF757575)
+                                )
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(12.dp))
                         
                         // Start Navigation Button
                         Button(

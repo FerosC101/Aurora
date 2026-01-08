@@ -299,8 +299,16 @@ fun NavigationGraph(
             ProfileScreen(
                 userName = userName,
                 userEmail = userEmail,
-                onLogout = onLogout
+                onLogout = onLogout,
+                onNavigateToFriends = {
+                    navController.navigate("friends")
+                }
             )
+        }
+        
+        // Friends Screen
+        composable("friends") {
+            FriendsScreen()
         }
         
         // Navigation route using query parameters to avoid URL encoding issues

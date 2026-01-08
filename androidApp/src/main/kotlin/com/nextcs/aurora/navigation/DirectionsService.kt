@@ -40,6 +40,7 @@ class DirectionsService(private val context: Context) {
     }
     
     private val hazardDetectionService = HazardDetectionService()
+    private val vehicleProfileService = VehicleProfileService(context)
     
     private fun getApiKey(): String {
         // Read API key from local.properties or manifest
@@ -53,7 +54,8 @@ class DirectionsService(private val context: Context) {
     suspend fun getAlternativeRoutes(
         origin: LatLng,
         destination: LatLng,
-        waypoints: List<LatLng> = emptyList()
+        waypoints: List<LatLng> = emptyList(),
+        vehicleMode: String? = null
     ): Result<List<RouteAlternative>> = withContext(Dispatchers.IO) {
         try {
             val apiKey = getApiKey()
@@ -61,14 +63,17 @@ class DirectionsService(private val context: Context) {
                 return@withContext Result.failure(Exception("Google Maps API key not found"))
             }
             
+            // Use provided vehicle mode or get from user preference
+            val mode = vehicleMode ?: vehicleProfileService.getVehicleType()
+            
             val originStr = "${origin.latitude},${origin.longitude}"
             val destStr = "${destination.latitude},${destination.longitude}"
             val waypointsStr = if (waypoints.isNotEmpty()) {
                 "&waypoints=" + waypoints.joinToString("|") { "${it.latitude},${it.longitude}" }
             } else ""
             
-            // Request multiple alternative routes from Google Directions API
-            val url = "$DIRECTIONS_API_BASE?origin=$originStr&destination=$destStr$waypointsStr&mode=driving&alternatives=true&key=$apiKey"
+            // Request multiple alternative routes from Google Directions API with vehicle mode
+            val url = "$DIRECTIONS_API_BASE?origin=$originStr&destination=$destStr$waypointsStr&mode=$mode&alternatives=true&key=$apiKey"
             
             val response = URL(url).readText()
             val json = JSONObject(response)
@@ -193,7 +198,8 @@ class DirectionsService(private val context: Context) {
     suspend fun getDirections(
         origin: LatLng,
         destination: LatLng,
-        waypoints: List<LatLng> = emptyList()
+        waypoints: List<LatLng> = emptyList(),
+        vehicleMode: String? = null
     ): Result<RouteInfo> = withContext(Dispatchers.IO) {
         try {
             val apiKey = getApiKey()
@@ -201,13 +207,16 @@ class DirectionsService(private val context: Context) {
                 return@withContext Result.failure(Exception("Google Maps API key not found"))
             }
             
+            // Use provided vehicle mode or get from user preference
+            val mode = vehicleMode ?: vehicleProfileService.getVehicleType()
+            
             val originStr = "${origin.latitude},${origin.longitude}"
             val destStr = "${destination.latitude},${destination.longitude}"
             val waypointsStr = if (waypoints.isNotEmpty()) {
                 "&waypoints=" + waypoints.joinToString("|") { "${it.latitude},${it.longitude}" }
             } else ""
             
-            val url = "$DIRECTIONS_API_BASE?origin=$originStr&destination=$destStr$waypointsStr&mode=driving&key=$apiKey"
+            val url = "$DIRECTIONS_API_BASE?origin=$originStr&destination=$destStr$waypointsStr&mode=$mode&key=$apiKey"
             
             val response = URL(url).readText()
             val json = JSONObject(response)

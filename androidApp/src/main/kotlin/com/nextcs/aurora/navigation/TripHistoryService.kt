@@ -19,7 +19,12 @@ data class TripRecord(
     val timestamp: Long,        // milliseconds since epoch
     val hazardsEncountered: Int,
     val safetyScore: Int,
-    val routeType: String       // "Smart", "Chill", "Regular"
+    val routeType: String,      // "Smart", "Chill", "Regular"
+    // Driving behavior metrics
+    val harshBrakingCount: Int = 0,
+    val rapidAccelerationCount: Int = 0,
+    val speedingIncidents: Int = 0,
+    val smoothDrivingScore: Int = 100  // 0-100, 100 being perfect
 )
 
 data class Analytics(

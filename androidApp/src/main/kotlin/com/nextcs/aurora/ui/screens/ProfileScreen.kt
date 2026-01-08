@@ -14,19 +14,88 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.nextcs.aurora.navigation.VehicleProfileService
 
 @Composable
 fun ProfileScreen(
     userName: String,
     userEmail: String,
     onLogout: () -> Unit,
+    onNavigateToFriends: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val vehicleProfileService = remember { VehicleProfileService(context) }
+    
     var isDarkMode by remember { mutableStateOf(false) }
-
+    var selectedVehicle by remember { mutableStateOf(vehicleProfileService.getVehicleType()) }
+    var showVehicleDialog by remember { mutableStateOf(false) }
+    
+    // Vehicle selection dialog
+    if (showVehicleDialog) {
+        AlertDialog(
+            onDismissRequest = { showVehicleDialog = false },
+            title = { Text("Select Vehicle Type") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    VehicleOption(
+                        icon = Icons.Default.Star,
+                        label = "Car",
+                        vehicleType = VehicleProfileService.TYPE_DRIVING,
+                        isSelected = selectedVehicle == VehicleProfileService.TYPE_DRIVING,
+                        onClick = {
+                            vehicleProfileService.setVehicleType(VehicleProfileService.TYPE_DRIVING)
+                            selectedVehicle = VehicleProfileService.TYPE_DRIVING
+                            showVehicleDialog = false
+                        }
+                    )
+                    VehicleOption(
+                        icon = Icons.Default.ShoppingCart,
+                        label = "Bicycle",
+                        vehicleType = VehicleProfileService.TYPE_BICYCLING,
+                        isSelected = selectedVehicle == VehicleProfileService.TYPE_BICYCLING,
+                        onClick = {
+                            vehicleProfileService.setVehicleType(VehicleProfileService.TYPE_BICYCLING)
+                            selectedVehicle = VehicleProfileService.TYPE_BICYCLING
+                            showVehicleDialog = false
+                        }
+                    )
+                    VehicleOption(
+                        icon = Icons.Default.Person,
+                        label = "Walking",
+                        vehicleType = VehicleProfileService.TYPE_WALKING,
+                        isSelected = selectedVehicle == VehicleProfileService.TYPE_WALKING,
+                        onClick = {
+                            vehicleProfileService.setVehicleType(VehicleProfileService.TYPE_WALKING)
+                            selectedVehicle = VehicleProfileService.TYPE_WALKING
+                            showVehicleDialog = false
+                        }
+                    )
+                    VehicleOption(
+                        icon = Icons.Default.Build,
+                        label = "Transit",
+                        vehicleType = VehicleProfileService.TYPE_TRANSIT,
+                        isSelected = selectedVehicle == VehicleProfileService.TYPE_TRANSIT,
+                        onClick = {
+                            vehicleProfileService.setVehicleType(VehicleProfileService.TYPE_TRANSIT)
+                            selectedVehicle = VehicleProfileService.TYPE_TRANSIT
+                            showVehicleDialog = false
+                        }
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showVehicleDialog = false }) {
+                    Text("Close")
+                }
+            }
+        )
+    }
+    
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -100,10 +169,18 @@ fun ProfileScreen(
             ) {
                 Column {
                     SettingsItem(
+                        icon = Icons.Default.Person,
+                        title = "Friends",
+                        subtitle = "Manage friends and location sharing",
+                        onClick = onNavigateToFriends
+                    )
+                    Divider(color = Color(0xFFE0E0E0))
+                    
+                    SettingsItem(
                         icon = Icons.Default.Star,
                         title = "Vehicle Profile",
-                        subtitle = "Personal Car",
-                        onClick = { /* Vehicle selection */ }
+                        subtitle = vehicleProfileService.getVehicleDisplayName(selectedVehicle),
+                        onClick = { showVehicleDialog = true }
                     )
                     Divider(color = Color(0xFFE0E0E0))
                     
@@ -258,5 +335,56 @@ fun SettingsItem(
             contentDescription = null,
             tint = Color(0xFF9E9E9E)
         )
+    }
+}
+@Composable
+fun VehicleOption(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    vehicleType: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        color = if (isSelected) Color(0xFFE3F2FD) else Color.Transparent,
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = if (isSelected) Color(0xFF1976D2) else Color(0xFF757575),
+                    modifier = Modifier.size(24.dp)
+                )
+                Text(
+                    text = label,
+                    fontSize = 15.sp,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (isSelected) Color(0xFF1976D2) else Color(0xFF212121)
+                )
+            }
+            
+            if (isSelected) {
+                Icon(
+                    Icons.Default.Check,
+                    contentDescription = "Selected",
+                    tint = Color(0xFF1976D2),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
     }
 }

@@ -18,12 +18,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
-import com.nextcs.aurora.database.AppDatabase
-import com.nextcs.aurora.database.SavedRouteEntity
-import com.nextcs.aurora.repository.SavedRoutesRepository
+import com.nextcs.aurora.navigation.SavedRoutesService
+import com.nextcs.aurora.navigation.SavedRouteRecord
 
 data class SavedRoute(
-    val id: Long,
+    val id: String,
     val name: String,
     val origin: String,
     val destination: String,
@@ -40,12 +39,23 @@ fun ExploreScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val savedRoutesService = remember { SavedRoutesService(context) }
     
     var selectedTab by remember { mutableStateOf(0) }
+    var savedRoutes by remember { mutableStateOf<List<SavedRoute>>(emptyList()) }
+    var favoriteRoutes by remember { mutableStateOf<List<SavedRoute>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
     
-    // Database currently disabled - showing empty state
-    val savedRoutes = remember { emptyList<SavedRoute>() }
-    val favoriteRoutes = remember { emptyList<SavedRoute>() }
+    // Load routes on launch
+    LaunchedEffect(Unit) {
+        scope.launch {
+            savedRoutesService.getAllRoutes().onSuccess { routes ->
+                savedRoutes = routes.map { it.toSavedRoute() }
+                favoriteRoutes = routes.filter { it.isFavorite }.map { it.toSavedRoute() }
+                isLoading = false
+            }
+        }
+    }
 
     Column(
         modifier = modifier
@@ -113,32 +123,38 @@ fun ExploreScreen(
             0 -> SavedRoutesContent(
                 routes = savedRoutes,
                 onRouteClick = { route ->
-                    // TODO: Re-enable when KSP is working
-                    // scope.launch {
-                    //     repository.markRouteAsUsed(route.id)
-                    // }
+                    scope.launch {
+                        savedRoutesService.markRouteAsUsed(route.id)
+                    }
                     onRouteClick(route)
                 },
                 onToggleFavorite = { route ->
-                    // TODO: Re-enable when KSP is working
-                    // scope.launch {
-                    //     repository.toggleFavorite(route.id, !route.isFavorite)
-                    // }
+                    scope.launch {
+                        savedRoutesService.toggleFavorite(route.id, !route.isFavorite)
+                        // Reload routes
+                        savedRoutesService.getAllRoutes().onSuccess { routes ->
+                            savedRoutes = routes.map { it.toSavedRoute() }
+                            favoriteRoutes = routes.filter { it.isFavorite }.map { it.toSavedRoute() }
+                        }
+                    }
                 },
                 onDeleteRoute = { route ->
-                    // TODO: Re-enable when KSP is working
-                    // scope.launch {
-                    //     repository.deleteRouteById(route.id)
-                    // }
+                    scope.launch {
+                        savedRoutesService.deleteRoute(route.id)
+                        // Reload routes
+                        savedRoutesService.getAllRoutes().onSuccess { routes ->
+                            savedRoutes = routes.map { it.toSavedRoute() }
+                            favoriteRoutes = routes.filter { it.isFavorite }.map { it.toSavedRoute() }
+                        }
+                    }
                 }
             )
             1 -> FavoritesContent(
                 routes = favoriteRoutes,
                 onRouteClick = { route ->
-                    // TODO: Re-enable when KSP is working
-                    // scope.launch {
-                    //     repository.markRouteAsUsed(route.id)
-                    // }
+                    scope.launch {
+                        savedRoutesService.markRouteAsUsed(route.id)
+                    }
                     onRouteClick(route)
                 }
             )
@@ -147,7 +163,7 @@ fun ExploreScreen(
 }
 
 // Extension function to convert entity to UI model
-private fun SavedRouteEntity.toSavedRoute(): SavedRoute {
+private fun SavedRouteRecord.toSavedRoute(): SavedRoute {
     val daysSince = (System.currentTimeMillis() - lastUsed) / (1000 * 60 * 60 * 24)
     val lastUsedText = when {
         lastUsed == 0L -> "Never"

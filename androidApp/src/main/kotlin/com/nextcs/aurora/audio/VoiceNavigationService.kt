@@ -97,6 +97,18 @@ class VoiceNavigationService(private val context: Context) {
     fun announceArrival() {
         announce("You have arrived at your destination")
     }
+    
+    fun announceWeatherAlert(message: String) {
+        announceImmediate("Weather alert: $message")
+    }
+    
+    fun announceTrafficUpdate(message: String) {
+        announce("Traffic update: $message")
+    }
+    
+    fun announceReroute(reason: String) {
+        announceImmediate("Rerouting: $reason")
+    }
 
     fun shutdown() {
         tts?.stop()
