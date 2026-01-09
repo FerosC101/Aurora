@@ -58,7 +58,7 @@ fun RouteSelectionScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(0xFF1E88E5))
+                .background(Color(0xFF1976D2))
                 .padding(20.dp)
         ) {
             Row(
@@ -127,7 +127,7 @@ fun RouteSelectionScreen(
                 enabled = selectedType != null,
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF1E88E5),
+                    containerColor = Color(0xFF1976D2),
                     disabledContainerColor = Color(0xFFE5E7EB)
                 ),
                 shape = RoundedCornerShape(16.dp),
@@ -419,7 +419,7 @@ fun InteractiveRouteMap(
                 // Draw route line
                 drawPath(
                     path = path,
-                    color = Color(0xFF1E88E5),
+                    color = Color(0xFF1976D2),
                     style = Stroke(width = 4.dp.toPx() * scale)
                 )
                 
@@ -472,7 +472,7 @@ fun InteractiveRouteMap(
                 Icon(
                     Icons.Default.Add,
                     contentDescription = "Zoom in",
-                    tint = Color(0xFF1E88E5),
+                    tint = Color(0xFF1976D2),
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -490,7 +490,7 @@ fun InteractiveRouteMap(
                 Icon(
                     Icons.Default.Delete,
                     contentDescription = "Zoom out",
-                    tint = Color(0xFF1E88E5),
+                    tint = Color(0xFF1976D2),
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -512,7 +512,7 @@ fun InteractiveRouteMap(
                 Icon(
                     Icons.Default.Place,
                     contentDescription = "Reset view",
-                    tint = Color(0xFF1E88E5),
+                    tint = Color(0xFF1976D2),
                     modifier = Modifier.size(18.dp)
                 )
             }

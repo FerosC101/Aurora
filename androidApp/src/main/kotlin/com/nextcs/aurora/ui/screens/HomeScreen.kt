@@ -75,20 +75,20 @@ fun HomeScreen(
                 .fillMaxSize()
                 .background(Color(0xFFF8F9FA))
     ) {
-        // Top Header
+        // Minimalist Top Header
         Surface(
             modifier = Modifier.fillMaxWidth(),
             color = Color.White,
-            shadowElevation = 2.dp
+            shadowElevation = 3.dp
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(20.dp)
             ) {
                 Text(
                     text = "Where to?",
-                    fontSize = 24.sp,
+                    fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF212121)
                 )
@@ -148,7 +148,7 @@ fun HomeScreen(
                         Icon(
                             Icons.Default.Search,
                             contentDescription = null,
-                            tint = Color(0xFF1E88E5),
+                            tint = Color(0xFF1976D2),
                             modifier = Modifier.size(20.dp)
                         )
                     },
@@ -173,7 +173,7 @@ fun HomeScreen(
                             .fillMaxWidth()
                             .height(48.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF1E88E5)
+                            containerColor = Color(0xFF1976D2)
                         ),
                         shape = RoundedCornerShape(12.dp)
                     ) {
@@ -196,7 +196,7 @@ fun HomeScreen(
                         .fillMaxWidth()
                         .height(48.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color(0xFF1E88E5)
+                        contentColor = Color(0xFF1976D2)
                     ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
@@ -330,18 +330,20 @@ fun HomeScreen(
         }
     }
     
-    // AI Assistant FAB
+    // AI Assistant FAB - Car icon
     FloatingActionButton(
         onClick = { showAIAssistant = true },
         modifier = Modifier
             .align(Alignment.BottomEnd)
             .padding(24.dp),
-        containerColor = Color(0xFF9C27B0)
+        containerColor = Color(0xFF8B5CF6),
+        shape = RoundedCornerShape(16.dp)
     ) {
         Icon(
-            Icons.Default.Face,
+            Icons.Default.LocationOn,
             contentDescription = "AI Assistant",
-            tint = Color.White
+            tint = Color.White,
+            modifier = Modifier.size(28.dp)
         )
     }
 }
@@ -391,28 +393,29 @@ fun QuickActionCard(
 ) {
     Card(
         modifier = modifier
-            .height(80.dp)
+            .height(90.dp)
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(12.dp),
+                .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             Icon(
                 icon,
                 contentDescription = null,
-                tint = Color(0xFF1E88E5),
-                modifier = Modifier.size(28.dp)
+                tint = Color(0xFF1976D2),
+                modifier = Modifier.size(32.dp)
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = label,
-                fontSize = 12.sp,
+                fontSize = 13.sp,
                 color = Color(0xFF212121),
                 fontWeight = FontWeight.Medium
             )
@@ -436,20 +439,20 @@ fun RecentTripItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(16.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Surface(
             shape = CircleShape,
-            color = Color(0xFFF5F5F5),
-            modifier = Modifier.size(40.dp)
+            color = Color(0xFFE3F2FD),
+            modifier = Modifier.size(48.dp)
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     Icons.Default.Place,
                     contentDescription = null,
-                    tint = Color(0xFF1E88E5),
-                    modifier = Modifier.size(20.dp)
+                    tint = Color(0xFF1976D2),
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }
@@ -474,7 +477,7 @@ fun RecentTripItem(
         Icon(
             Icons.Default.KeyboardArrowRight,
             contentDescription = null,
-            tint = Color(0xFF9E9E9E)
+            tint = Color(0xFF757575)
         )
     }
 }
@@ -527,7 +530,7 @@ fun RecentDestinationItem(
         Icon(
             Icons.Default.KeyboardArrowRight,
             contentDescription = null,
-            tint = Color(0xFF9E9E9E)
+            tint = Color(0xFF757575)
         )
     }
 }

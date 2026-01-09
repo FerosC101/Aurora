@@ -58,7 +58,7 @@ fun LaneGuidanceDisplay(
                 text = "in ${laneGuidance.distance}m",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E88E5)
+                color = Color(0xFF1976D2)
             )
             
             // Lane arrows
@@ -93,7 +93,7 @@ fun LaneArrow(
     val color = if (lane.isRecommended) {
         Color(0xFF4CAF50).copy(alpha = alpha)
     } else {
-        Color(0xFFBDBDBD)
+        Color(0xFF9E9E9E)
     }
     
     val strokeWidth = if (lane.isRecommended) 3.5f else 2.5f

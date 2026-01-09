@@ -95,7 +95,7 @@ fun SimpleNavigationScreen(
         Surface(
             modifier = Modifier.fillMaxWidth(),
             color = Color.White,
-            shadowElevation = 4.dp
+            shadowElevation = 3.dp
         ) {
             Row(
                 modifier = Modifier
@@ -104,25 +104,41 @@ fun SimpleNavigationScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color.White,
+                    shadowElevation = 2.dp,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color(0xFF212121)
+                        )
+                    }
                 }
                 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = eta,
-                        fontSize = 20.sp,
+                        fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E88E5)
+                        color = Color(0xFF1976D2)
                     )
                     Text(
                         text = remainingDistance,
-                        fontSize = 14.sp,
+                        fontSize = 15.sp,
                         color = Color(0xFF757575)
                     )
                 }
                 
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color.White,
+                    shadowElevation = 2.dp,
+                    modifier = Modifier.size(40.dp)
+                ) {
                     IconButton(
                         onClick = { voiceService.setEnabled(!isVoiceEnabled) }
                     ) {
@@ -131,7 +147,7 @@ fun SimpleNavigationScreen(
                             else Icons.Default.Clear,
                             contentDescription = "Toggle voice",
                             tint = if (isVoiceEnabled && isVoiceReady) Color(0xFF4CAF50) 
-                                   else Color(0xFF9E9E9E)
+                                   else Color(0xFF757575)
                         )
                     }
                 }
@@ -154,7 +170,7 @@ fun SimpleNavigationScreen(
                     Icons.Default.Place,
                     contentDescription = null,
                     modifier = Modifier.size(64.dp),
-                    tint = Color(0xFF1E88E5)
+                    tint = Color(0xFF1976D2)
                 )
                 Text(
                     text = "Map View",
@@ -164,7 +180,7 @@ fun SimpleNavigationScreen(
                 Text(
                     text = "$origin → $destination",
                     fontSize = 14.sp,
-                    color = Color(0xFF9E9E9E)
+                    color = Color(0xFF757575)
                 )
             }
             
@@ -202,7 +218,7 @@ fun SimpleNavigationScreen(
                     // Direction Icon
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = Color(0xFF1E88E5),
+                        color = Color(0xFF1976D2),
                         modifier = Modifier.size(56.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {

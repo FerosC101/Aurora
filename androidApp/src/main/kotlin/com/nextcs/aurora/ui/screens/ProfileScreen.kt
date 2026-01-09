@@ -101,39 +101,39 @@ fun ProfileScreen(
             .fillMaxSize()
             .background(Color(0xFFF8F9FA))
     ) {
-        // Header with Profile
+        // Minimalist Header with Profile
         Surface(
             modifier = Modifier.fillMaxWidth(),
             color = Color.White,
-            shadowElevation = 2.dp
+            shadowElevation = 3.dp
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Profile Picture with Logo
                 Surface(
                     shape = CircleShape,
                     color = Color.White,
-                    modifier = Modifier.size(80.dp),
+                    modifier = Modifier.size(100.dp),
                     shadowElevation = 4.dp
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         androidx.compose.foundation.Image(
                             painter = androidx.compose.ui.res.painterResource(id = com.nextcs.aurora.R.mipmap.ic_launcher),
                             contentDescription = "Profile",
-                            modifier = Modifier.size(72.dp)
+                            modifier = Modifier.size(90.dp)
                         )
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 
                 Text(
                     text = userName,
-                    fontSize = 20.sp,
+                    fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF212121)
                 )
@@ -198,7 +198,7 @@ fun ProfileScreen(
                             Icon(
                                 Icons.Default.Settings,
                                 contentDescription = null,
-                                tint = Color(0xFF1E88E5),
+                                tint = Color(0xFF1976D2),
                                 modifier = Modifier.size(24.dp)
                             )
                             Column {
@@ -221,7 +221,7 @@ fun ProfileScreen(
                             onCheckedChange = { isDarkMode = it },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = Color.White,
-                                checkedTrackColor = Color(0xFF1E88E5)
+                                checkedTrackColor = Color(0xFF1976D2)
                             )
                         )
                     }
@@ -281,7 +281,7 @@ fun ProfileScreen(
             Text(
                 text = "Aurora v1.0.0",
                 fontSize = 12.sp,
-                color = Color(0xFF9E9E9E),
+                color = Color(0xFF757575),
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
         }
@@ -294,7 +294,7 @@ fun SettingsItem(
     title: String,
     subtitle: String,
     onClick: () -> Unit,
-    iconTint: Color = Color(0xFF1E88E5)
+    iconTint: Color = Color(0xFF1976D2)
 ) {
     Row(
         modifier = Modifier
@@ -333,7 +333,7 @@ fun SettingsItem(
         Icon(
             Icons.Default.KeyboardArrowRight,
             contentDescription = null,
-            tint = Color(0xFF9E9E9E)
+            tint = Color(0xFF757575)
         )
     }
 }

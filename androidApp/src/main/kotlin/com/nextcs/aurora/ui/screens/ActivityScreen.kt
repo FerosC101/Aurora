@@ -5,7 +5,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -15,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nextcs.aurora.navigation.TripHistoryService
@@ -50,6 +54,8 @@ fun ActivityScreen(
     var tripHistory by remember { mutableStateOf<List<TripDisplayRecord>>(emptyList()) }
     var savedRoutes by remember { mutableStateOf<List<SavedRouteRecord>>(emptyList()) }
     var monthlyCosts by remember { mutableStateOf<List<MonthlyCostSummary>>(emptyList()) }
+    var monthlyStats by remember { mutableStateOf<List<Pair<String, Int>>>(emptyList()) }
+    var isMonthlyExpanded by remember { mutableStateOf(false) }
     var weeklyDistance by remember { mutableStateOf("0.0") }
     var timeSaved by remember { mutableStateOf("0h 0m") }
     var hazardsAvoided by remember { mutableStateOf(0) }
@@ -105,6 +111,12 @@ fun ActivityScreen(
             val costsResult = costTrackingService.getMonthlySummary()
             costsResult.onSuccess { costs ->
                 monthlyCosts = costs
+            }
+            
+            // Load monthly stats
+            val statsResult = tripHistoryService.getMonthlyStats()
+            statsResult.onSuccess { stats ->
+                monthlyStats = stats
             }
             
             isLoading = false
@@ -229,91 +241,93 @@ fun ActivityScreen(
             .fillMaxSize()
             .background(Color(0xFFF8F9FA))
     ) {
-        // Header
+        // Fixed Header
         Surface(
             modifier = Modifier.fillMaxWidth(),
             color = Color.White,
             shadowElevation = 2.dp
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                Text(
-                    text = "Activity",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF212121)
-                )
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                // Stats Summary
-                if (isLoading) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                    }
-                } else {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        StatCard(
-                            icon = Icons.Default.Star,
-                            value = weeklyDistance,
-                            unit = "km",
-                            label = "Total Distance",
-                            modifier = Modifier.weight(1f)
-                        )
-                        StatCard(
-                            icon = Icons.Default.DateRange,
-                            value = timeSaved,
-                            unit = "",
-                            label = "Time Saved",
-                            modifier = Modifier.weight(1f)
-                        )
-                        StatCard(
-                            icon = Icons.Default.Build,
-                            value = hazardsAvoided.toString(),
-                            unit = "",
-                            label = "Hazards",
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    
-                    Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "Activity",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF212121),
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)
+            )
+        }
+        
+        // Scrollable Content
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Stats Summary
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                }
+            } else {
+                // Stats Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    StatCard(
+                        icon = Icons.Default.Star,
+                        value = weeklyDistance,
+                        unit = "km",
+                        label = "Distance",
+                        modifier = Modifier.weight(1f)
+                    )
+                    StatCard(
+                        icon = Icons.Default.DateRange,
+                        value = timeSaved,
+                        unit = "",
+                        label = "Saved",
+                        modifier = Modifier.weight(1f)
+                    )
+                    StatCard(
+                        icon = Icons.Default.Build,
+                        value = hazardsAvoided.toString(),
+                        unit = "",
+                        label = "Hazards",
+                        modifier = Modifier.weight(1f)
+                    )
+                }
                     
                     // Driving Score Card
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
-                        shape = RoundedCornerShape(12.dp)
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(12.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             // Driving score badge
                             Surface(
                                 shape = androidx.compose.foundation.shape.CircleShape,
                                 color = when {
-                                    tripHistory.isEmpty() -> Color(0xFFE0E0E0)
+                                    tripHistory.isEmpty() -> Color(0xFF9E9E9E)
                                     else -> {
-                                        // Calculate average from real driving behavior data
                                         val avgScore = tripHistory.mapNotNull { trip ->
                                             try {
-                                                // Parse trip ID to get actual trip data
                                                 val parts = trip.id.split("_")
                                                 if (parts.size >= 2) {
-                                                    // Calculate score from driving behavior
-                                                    val harshBraking = trip.hazardsAvoided // Using hazards as proxy
+                                                    val harshBraking = trip.hazardsAvoided
                                                     100 - (harshBraking * 5).coerceAtMost(30)
                                                 } else {
                                                     85
@@ -330,7 +344,7 @@ fun ActivityScreen(
                                         }
                                     }
                                 },
-                                modifier = Modifier.size(60.dp)
+                                modifier = Modifier.size(64.dp)
                             ) {
                                 Column(
                                     modifier = Modifier.fillMaxSize(),
@@ -354,14 +368,14 @@ fun ActivityScreen(
                                             }.average().toInt()
                                             avgScore.toString()
                                         },
-                                        fontSize = 20.sp,
+                                        fontSize = 24.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = Color.White
                                     )
                                     Text(
                                         text = "Score",
-                                        fontSize = 10.sp,
-                                        color = Color.White
+                                        fontSize = 11.sp,
+                                        color = Color.White.copy(alpha = 0.9f)
                                     )
                                 }
                             }
@@ -369,10 +383,11 @@ fun ActivityScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = "Driving Score",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
                                     color = Color(0xFF212121)
                                 )
+                                Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = if (tripHistory.isEmpty()) "No trips yet" else {
                                         val avgScore = tripHistory.mapNotNull { trip ->
@@ -395,7 +410,7 @@ fun ActivityScreen(
                                             else -> "Drive more carefully"
                                         }
                                     },
-                                    fontSize = 12.sp,
+                                    fontSize = 13.sp,
                                     color = Color(0xFF757575)
                                 )
                             }
@@ -403,70 +418,59 @@ fun ActivityScreen(
                             Icon(
                                 Icons.Default.Star,
                                 contentDescription = null,
-                                tint = Color(0xFF1E88E5),
-                                modifier = Modifier.size(24.dp)
+                                tint = Color(0xFFFFC107),
+                                modifier = Modifier.size(28.dp)
                             )
                         }
                     }
                     
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    // Monthly Cost Summary Card - Always visible
+                    // Monthly Cost Summary Card
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { showAddCostDialog = true },
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8E1)),
-                        shape = RoundedCornerShape(12.dp)
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(12.dp)
+                                .padding(16.dp)
                         ) {
                             if (monthlyCosts.isNotEmpty()) {
-                                // Show actual cost data
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            Icons.Default.AccountBox,
-                                            contentDescription = null,
-                                            tint = Color(0xFFF57C00),
-                                            modifier = Modifier.size(20.dp)
+                                    Column {
+                                        Text(
+                                            text = "Monthly Costs",
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF212121)
                                         )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Column {
-                                            Text(
-                                                text = "Monthly Costs",
-                                                fontSize = 14.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = Color(0xFF212121)
-                                            )
-                                            Text(
-                                                text = monthlyCosts.first().month,
-                                                fontSize = 12.sp,
-                                                color = Color(0xFF757575)
-                                            )
-                                        }
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = monthlyCosts.first().month,
+                                            fontSize = 13.sp,
+                                            color = Color(0xFF757575)
+                                        )
                                     }
                                     
                                     Text(
                                         text = "$${String.format("%.2f", monthlyCosts.first().totalTripCost)}",
-                                        fontSize = 18.sp,
+                                        fontSize = 24.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color(0xFFF57C00)
+                                        color = Color(0xFF1976D2)
                                     )
                                 }
                                 
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Divider(color = Color(0xFFE0E0E0))
-                                Spacer(modifier = Modifier.height(8.dp))
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Divider(color = Color(0xFFE0E0E0), thickness = 1.dp)
+                                Spacer(modifier = Modifier.height(16.dp))
                                 
-                                // Cost breakdown
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
@@ -485,382 +489,242 @@ fun ActivityScreen(
                                     )
                                 }
                                 
-                                Spacer(modifier = Modifier.height(8.dp))
+                                Spacer(modifier = Modifier.height(12.dp))
                                 
                                 Text(
                                     text = "${monthlyCosts.first().totalTrips} trips • Avg: $${String.format("%.2f", monthlyCosts.first().averageCostPerTrip)}/trip",
-                                    fontSize = 11.sp,
+                                    fontSize = 12.sp,
                                     color = Color(0xFF757575)
                                 )
                             } else {
-                                // Show empty state with demo data
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            Icons.Default.AccountBox,
-                                            contentDescription = null,
-                                            tint = Color(0xFFF57C00),
-                                            modifier = Modifier.size(20.dp)
+                                    Column {
+                                        Text(
+                                            text = "Monthly Costs",
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF212121)
                                         )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Column {
-                                            Text(
-                                                text = "Monthly Costs",
-                                                fontSize = 14.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = Color(0xFF212121)
-                                            )
-                                            Text(
-                                                text = "No cost data yet",
-                                                fontSize = 12.sp,
-                                                color = Color(0xFF757575)
-                                            )
-                                        }
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "No cost data yet",
+                                            fontSize = 13.sp,
+                                            color = Color(0xFF757575)
+                                        )
                                     }
                                     
                                     Text(
                                         text = "$0.00",
-                                        fontSize = 18.sp,
+                                        fontSize = 24.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF757575)
+                                        color = Color(0xFF9E9E9E)
                                     )
                                 }
                                 
-                                Spacer(modifier = Modifier.height(8.dp))
+                                Spacer(modifier = Modifier.height(12.dp))
                                 
                                 Text(
-                                    text = "Complete trips to track toll, parking, and fuel costs automatically",
-                                    fontSize = 12.sp,
-                                    color = Color(0xFF757575),
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Monthly Reports Section
-        var monthlyStats by remember { mutableStateOf<List<Pair<String, Int>>>(emptyList()) }
-        var isMonthlyExpanded by remember { mutableStateOf(false) }
-        
-        LaunchedEffect(Unit) {
-            scope.launch {
-                val result = tripHistoryService.getMonthlyStats()
-                result.onSuccess { stats ->
-                    monthlyStats = stats
-                }
-            }
-        }
-        
-        if (monthlyStats.isNotEmpty()) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .padding(top = 16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.DateRange,
-                                contentDescription = null,
-                                tint = Color(0xFF1976D2),
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Monthly Reports",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF212121)
-                            )
-                        }
-                        IconButton(onClick = { isMonthlyExpanded = !isMonthlyExpanded }) {
-                            Icon(
-                                if (isMonthlyExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                contentDescription = if (isMonthlyExpanded) "Collapse" else "Expand",
-                                tint = Color(0xFF757575)
-                            )
-                        }
-                    }
-                    
-                    if (isMonthlyExpanded) {
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
-                        // Monthly breakdown
-                        monthlyStats.takeLast(6).forEach { (month, tripCount) ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = month,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = Color(0xFF424242),
-                                    modifier = Modifier.width(80.dp)
-                                )
-                                
-                                // Visual bar chart
-                                val maxTrips = monthlyStats.maxOfOrNull { it.second } ?: 1
-                                val barWidth = (tripCount.toFloat() / maxTrips) * 0.7f
-                                
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(24.dp)
-                                        .padding(end = 8.dp)
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth(barWidth)
-                                            .fillMaxHeight()
-                                            .background(
-                                                Color(0xFF1976D2),
-                                                RoundedCornerShape(4.dp)
-                                            )
-                                    )
-                                }
-                                
-                                Text(
-                                    text = "$tripCount trips",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = Color(0xFF757575),
-                                    modifier = Modifier.width(60.dp)
-                                )
-                            }
-                        }
-                        
-                        Spacer(modifier = Modifier.height(8.dp))
-                        
-                        // Summary
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            color = Color(0xFFF5F5F5),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(12.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(
-                                    text = "Total trips: ${monthlyStats.sumOf { it.second }}",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = Color(0xFF424242)
-                                )
-                                Text(
-                                    text = "Last ${monthlyStats.size} months",
+                                    text = "Complete trips to track costs automatically",
                                     fontSize = 13.sp,
                                     color = Color(0xFF757575)
                                 )
                             }
                         }
                     }
-                }
-            }
-        }
-        
-        // Tab selector for Trips vs Saved Routes
-        TabRow(
-            selectedTabIndex = selectedTab,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            containerColor = Color.Transparent,
-            contentColor = Color(0xFF1976D2)
-        ) {
-            Tab(
-                selected = selectedTab == 0,
-                onClick = { selectedTab = 0 },
-                text = { Text("Recent Trips") }
-            )
-            Tab(
-                selected = selectedTab == 1,
-                onClick = { selectedTab = 1 },
-                text = { Text("Saved Routes") }
-            )
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Content based on selected tab
-        if (selectedTab == 0) {
-            // Trip History
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Recent Trips",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF212121)
-                    )
                 
-                if (tripHistory.isNotEmpty()) {
-                    TextButton(
-                        onClick = { showDeleteDialog = true },
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = Color(0xFFD32F2F)
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Clear all trips",
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Clear All", fontSize = 14.sp)
-                    }
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            if (isLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            } else if (tripHistory.isEmpty()) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            Icons.Default.Place,
-                            contentDescription = null,
-                            tint = Color(0xFF9E9E9E),
-                            modifier = Modifier.size(48.dp)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "No trips yet",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Color(0xFF212121)
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Start navigating to see your trip history",
-                            fontSize = 14.sp,
-                            color = Color(0xFF757575)
-                        )
-                    }
-                }
-            } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(tripHistory) { trip ->
-                        TripCard(trip)
-                    }
-                }
-            }
-        }
-        } else {
-            // Saved Routes Tab
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-            ) {
-                if (savedRoutes.isEmpty()) {
+                // Monthly Reports Card
+                if (monthlyStats.isNotEmpty()) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(32.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                                .padding(16.dp)
                         ) {
-                            Icon(
-                                Icons.Default.Star,
-                                contentDescription = null,
-                                tint = Color(0xFF9E9E9E),
-                                modifier = Modifier.size(48.dp)
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "No Saved Routes",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = Color(0xFF424242)
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "Save routes during navigation to access them quickly here",
-                                fontSize = 14.sp,
-                                color = Color(0xFF757575),
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                            )
-                        }
-                    }
-                } else {
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(savedRoutes) { route ->
-                            SavedRouteCard(
-                                route = route,
-                                onToggleFavorite = {
-                                    scope.launch {
-                                        savedRoutesService.toggleFavorite(route.id, !route.isFavorite)
-                                        val result = savedRoutesService.getAllRoutes()
-                                        result.onSuccess { routes -> savedRoutes = routes }
-                                    }
-                                },
-                                onDelete = {
-                                    scope.launch {
-                                        savedRoutesService.deleteRoute(route.id)
-                                        val result = savedRoutesService.getAllRoutes()
-                                        result.onSuccess { routes -> savedRoutes = routes }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Monthly Reports",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF212121)
+                                )
+                                IconButton(onClick = { isMonthlyExpanded = !isMonthlyExpanded }) {
+                                    Icon(
+                                        if (isMonthlyExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                        contentDescription = null,
+                                        tint = Color(0xFF757575)
+                                    )
+                                }
+                            }
+                            
+                            AnimatedVisibility(visible = isMonthlyExpanded) {
+                                Column(modifier = Modifier.padding(top = 12.dp)) {
+                                    monthlyStats.forEach { (month, tripCount) ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 8.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = month,
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = Color(0xFF212121),
+                                                modifier = Modifier.width(70.dp)
+                                            )
+                                            
+                                            Box(modifier = Modifier.weight(1f)) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth(tripCount / monthlyStats.maxOf { it.second }.toFloat())
+                                                        .height(28.dp)
+                                                        .background(
+                                                            Color(0xFF1976D2).copy(alpha = 0.15f),
+                                                            RoundedCornerShape(6.dp)
+                                                        )
+                                                )
+                                            }
+                                            
+                                            Text(
+                                                text = "$tripCount",
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = Color(0xFF1976D2),
+                                                modifier = Modifier.width(40.dp),
+                                                textAlign = TextAlign.End
+                                            )
+                                        }
                                     }
                                 }
+                            }
+                        }
+                    }
+                }
+                
+                // Trip History Section with Tabs
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        TabRow(
+                            selectedTabIndex = selectedTab,
+                            containerColor = Color.Transparent,
+                            contentColor = Color(0xFF1976D2)
+                        ) {
+                            Tab(
+                                selected = selectedTab == 0,
+                                onClick = { selectedTab = 0 },
+                                text = {
+                                    Text(
+                                        "Recent Trips",
+                                        fontSize = 15.sp,
+                                        fontWeight = if (selectedTab == 0) FontWeight.SemiBold else FontWeight.Normal,
+                                        color = if (selectedTab == 0) Color(0xFF1976D2) else Color(0xFF757575)
+                                    )
+                                }
                             )
+                            Tab(
+                                selected = selectedTab == 1,
+                                onClick = { selectedTab = 1 },
+                                text = {
+                                    Text(
+                                        "Saved",
+                                        fontSize = 15.sp,
+                                        fontWeight = if (selectedTab == 1) FontWeight.SemiBold else FontWeight.Normal,
+                                        color = if (selectedTab == 1) Color(0xFF1976D2) else Color(0xFF757575)
+                                    )
+                                }
+                            )
+                        }
+                        
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            if (selectedTab == 0) {
+                                if (tripHistory.isEmpty()) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 32.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Place,
+                                            contentDescription = null,
+                                            tint = Color(0xFF9E9E9E),
+                                            modifier = Modifier.size(48.dp)
+                                        )
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        Text(
+                                            text = "No trips yet",
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = Color(0xFF757575)
+                                        )
+                                    }
+                                } else {
+                                    tripHistory.forEach { trip ->
+                                        TripCard(trip)
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                    }
+                                }
+                            } else {
+                                if (savedRoutes.isEmpty()) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 32.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Star,
+                                            contentDescription = null,
+                                            tint = Color(0xFF9E9E9E),
+                                            modifier = Modifier.size(48.dp)
+                                        )
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        Text(
+                                            text = "No saved routes",
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = Color(0xFF757575)
+                                        )
+                                    }
+                                } else {
+                                    savedRoutes.forEach { route ->
+                                        SavedRouteCard(
+                                            route = route,
+                                            onToggleFavorite = {
+                                                // Toggle favorite logic
+                                            },
+                                            onDelete = {
+                                                scope.launch {
+                                                    savedRoutesService.deleteRoute(route.id)
+                                                        .onSuccess {
+                                                            savedRoutes = savedRoutes.filter { it.id != route.id }
+                                                        }
+                                                }
+                                            }
+                                        )
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -878,45 +742,48 @@ fun StatCard(
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
-        shape = RoundedCornerShape(12.dp)
+        modifier = modifier.height(100.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxSize()
                 .padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             Icon(
                 icon,
                 contentDescription = null,
-                tint = Color(0xFF1E88E5),
+                tint = Color(0xFF1976D2),
                 modifier = Modifier.size(24.dp)
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             Row(
                 verticalAlignment = Alignment.Bottom,
                 horizontalArrangement = Arrangement.Center
             ) {
                 Text(
                     text = value,
-                    fontSize = 18.sp,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF212121)
                 )
                 if (unit.isNotEmpty()) {
-                    Spacer(modifier = Modifier.width(2.dp))
+                    Spacer(modifier = Modifier.width(3.dp))
                     Text(
                         text = unit,
-                        fontSize = 12.sp,
+                        fontSize = 13.sp,
                         color = Color(0xFF757575)
                     )
                 }
             }
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = label,
-                fontSize = 11.sp,
+                fontSize = 12.sp,
                 color = Color(0xFF757575)
             )
         }
@@ -928,7 +795,7 @@ fun TripCard(trip: TripDisplayRecord) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(16.dp)
     ) {
         Column(
             modifier = Modifier
@@ -950,7 +817,7 @@ fun TripCard(trip: TripDisplayRecord) {
                     Text(
                         text = trip.date,
                         fontSize = 12.sp,
-                        color = Color(0xFF9E9E9E)
+                        color = Color(0xFF757575)
                     )
                 }
                 

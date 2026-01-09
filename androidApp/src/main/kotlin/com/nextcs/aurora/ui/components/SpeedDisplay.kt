@@ -145,7 +145,7 @@ fun CompactSpeedDisplay(
             Text(
                 text = "/",
                 fontSize = 16.sp,
-                color = if (isExceeding) Color.White.copy(alpha = 0.7f) else Color(0xFF9E9E9E)
+                color = if (isExceeding) Color.White.copy(alpha = 0.7f) else Color(0xFF757575)
             )
 
             // Speed Limit
@@ -160,7 +160,7 @@ fun CompactSpeedDisplay(
         Text(
             text = "km/h",
             fontSize = 12.sp,
-            color = if (isExceeding) Color.White.copy(alpha = 0.8f) else Color(0xFF9E9E9E)
+            color = if (isExceeding) Color.White.copy(alpha = 0.8f) else Color(0xFF757575)
         )
     }
 }

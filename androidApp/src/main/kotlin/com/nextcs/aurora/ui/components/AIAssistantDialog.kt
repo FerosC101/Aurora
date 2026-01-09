@@ -47,10 +47,10 @@ fun AIAssistantDialog(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        Icons.Default.Face,
+                        Icons.Default.LocationOn,
                         contentDescription = null,
-                        tint = Color(0xFF9C27B0),
-                        modifier = Modifier.size(24.dp)
+                        tint = Color(0xFF8B5CF6),
+                        modifier = Modifier.size(28.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("AI Route Assistant", fontSize = 18.sp, fontWeight = FontWeight.Bold)
@@ -79,10 +79,10 @@ fun AIAssistantDialog(
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     Icon(
-                                        Icons.Default.Face,
+                                        Icons.Default.LocationOn,
                                         contentDescription = null,
-                                        tint = Color(0xFF9C27B0),
-                                        modifier = Modifier.size(48.dp)
+                                        tint = Color(0xFF8B5CF6),
+                                        modifier = Modifier.size(56.dp)
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Text(
@@ -105,7 +105,7 @@ fun AIAssistantDialog(
                                 "Try asking:",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium,
-                                color = Color(0xFF9E9E9E)
+                                color = Color(0xFF757575)
                             )
                             
                             listOf(

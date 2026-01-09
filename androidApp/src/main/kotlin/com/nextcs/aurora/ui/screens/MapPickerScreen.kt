@@ -62,7 +62,7 @@ fun MapPickerScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF1E88E5),
+                    containerColor = Color(0xFF1976D2),
                     titleContentColor = Color.White,
                     navigationIconContentColor = Color.White
                 )
@@ -87,7 +87,7 @@ fun MapPickerScreen(
                         }
                     },
                     containerColor = Color.White,
-                    contentColor = Color(0xFF1E88E5)
+                    contentColor = Color(0xFF1976D2)
                 ) {
                     Icon(Icons.Default.LocationOn, contentDescription = "My Location")
                 }
@@ -108,7 +108,7 @@ fun MapPickerScreen(
                             }
                         }
                     },
-                    containerColor = Color(0xFF1E88E5),
+                    containerColor = Color(0xFF1976D2),
                     contentColor = Color.White
                 ) {
                     Icon(Icons.Default.Check, contentDescription = "Confirm")
@@ -156,7 +156,7 @@ fun MapPickerScreen(
                 modifier = Modifier
                     .align(Alignment.Center)
                     .size(4.dp)
-                    .background(Color(0xFF1E88E5), shape = androidx.compose.foundation.shape.CircleShape)
+                    .background(Color(0xFF1976D2), shape = androidx.compose.foundation.shape.CircleShape)
             )
             
             // Location Info Card
@@ -192,7 +192,7 @@ fun MapPickerScreen(
                     Text(
                         text = "Move the map to adjust the pin location",
                         fontSize = 12.sp,
-                        color = Color(0xFF9E9E9E)
+                        color = Color(0xFF757575)
                     )
                 }
             }

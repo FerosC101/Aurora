@@ -493,7 +493,7 @@ fun HomeScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF1E88E5))
+                    .background(Color(0xFF1976D2))
                     .padding(horizontal = 24.dp, vertical = 32.dp)
             ) {
                 Row(
@@ -546,7 +546,7 @@ fun HomeScreen(
                 QuickAccessIcon(
                     icon = Icons.Default.Place,
                     label = "Routes",
-                    color = Color(0xFF1E88E5),
+                    color = Color(0xFF1976D2),
                     onClick = { }
                 )
                 QuickAccessIcon(
@@ -640,13 +640,13 @@ fun HomeScreen(
                         Box(
                             modifier = Modifier
                                 .size(40.dp)
-                                .background(Color(0xFF1E88E5).copy(alpha = 0.1f), RoundedCornerShape(10.dp)),
+                                .background(Color(0xFF1976D2).copy(alpha = 0.1f), RoundedCornerShape(10.dp)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 Icons.Default.Place,
                                 contentDescription = null,
-                                tint = Color(0xFF1E88E5),
+                                tint = Color(0xFF1976D2),
                                 modifier = Modifier.size(22.dp)
                             )
                         }
@@ -668,18 +668,18 @@ fun HomeScreen(
                             Icon(
                                 Icons.Default.LocationOn,
                                 contentDescription = null,
-                                tint = Color(0xFF1E88E5)
+                                tint = Color(0xFF1976D2)
                             )
                         },
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color(0xFF1F2937),
                             unfocusedTextColor = Color(0xFF1F2937),
-                            focusedBorderColor = Color(0xFF1E88E5),
+                            focusedBorderColor = Color(0xFF1976D2),
                             unfocusedBorderColor = Color(0xFFE5E7EB),
-                            focusedLabelColor = Color(0xFF1E88E5),
+                            focusedLabelColor = Color(0xFF1976D2),
                             unfocusedLabelColor = Color(0xFF6B7280),
-                            cursorColor = Color(0xFF1E88E5),
+                            cursorColor = Color(0xFF1976D2),
                             focusedContainerColor = Color(0xFFF9FAFB),
                             unfocusedContainerColor = Color(0xFFF9FAFB)
                         ),
@@ -703,11 +703,11 @@ fun HomeScreen(
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color(0xFF1F2937),
                             unfocusedTextColor = Color(0xFF1F2937),
-                            focusedBorderColor = Color(0xFF1E88E5),
+                            focusedBorderColor = Color(0xFF1976D2),
                             unfocusedBorderColor = Color(0xFFE5E7EB),
-                            focusedLabelColor = Color(0xFF1E88E5),
+                            focusedLabelColor = Color(0xFF1976D2),
                             unfocusedLabelColor = Color(0xFF6B7280),
-                            cursorColor = Color(0xFF1E88E5),
+                            cursorColor = Color(0xFF1976D2),
                             focusedContainerColor = Color(0xFFF9FAFB),
                             unfocusedContainerColor = Color(0xFFF9FAFB)
                         ),
@@ -752,7 +752,7 @@ fun HomeScreen(
                         enabled = !isLoadingRoutes && origin.isNotBlank() && destination.isNotBlank(),
                         modifier = Modifier.fillMaxWidth().height(50.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF1E88E5),
+                            containerColor = Color(0xFF1976D2),
                             disabledContainerColor = Color(0xFFE5E7EB),
                             disabledContentColor = Color(0xFF9CA3AF)
                         ),
@@ -795,7 +795,7 @@ fun HomeScreen(
                     icon = Icons.Default.Person,
                     title = "Smart Routes",
                     subtitle = "AI-powered route optimization",
-                    color = Color(0xFF1E88E5),
+                    color = Color(0xFF1976D2),
                     onClick = { }
                 )
                 FeatureCard(
@@ -826,7 +826,7 @@ fun HomeScreen(
                 StatBadge(
                     value = "248",
                     label = "Trips",
-                    color = Color(0xFF1E88E5)
+                    color = Color(0xFF1976D2)
                 )
                 StatBadge(
                     value = "95%",
@@ -973,7 +973,7 @@ fun CleanModeChip(
         modifier = modifier.height(48.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) 
-                Color(0xFF1E88E5) 
+                Color(0xFF1976D2) 
             else 
                 Color.White
         ),

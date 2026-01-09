@@ -536,7 +536,7 @@ fun RealNavigationScreen(
                 if (polylinePoints.isNotEmpty()) {
                     Polyline(
                         points = polylinePoints,
-                        color = Color(0xFF1E88E5),
+                        color = Color(0xFF1976D2),
                         width = 10f
                     )
                 }
@@ -641,7 +641,7 @@ fun RealNavigationScreen(
                         Text(
                             text = "·",
                             fontSize = 14.sp,
-                            color = Color(0xFFBDBDBD)
+                            color = Color(0xFF9E9E9E)
                         )
                         Text(
                             text = remainingDistance,
@@ -917,7 +917,7 @@ fun RealNavigationScreen(
                             Text(
                                 text = "\u00b7",
                                 fontSize = 14.sp,
-                                color = Color(0xFFBDBDBD)
+                                color = Color(0xFF9E9E9E)
                             )
                             Text(
                                 text = "${routeInfo?.duration?.div(60)?.toInt() ?: 0} min",
@@ -1022,7 +1022,7 @@ fun RealNavigationScreen(
                                 Text(
                                     text = "Then:",
                                     fontSize = 12.sp,
-                                    color = Color(0xFF9E9E9E)
+                                    color = Color(0xFF757575)
                                 )
                                 Text(
                                     text = nextInstruction!!,

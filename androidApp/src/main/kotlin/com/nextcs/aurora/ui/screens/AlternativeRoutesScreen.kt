@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -95,7 +96,7 @@ fun AlternativeRoutesScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                CircularProgressIndicator(color = Color(0xFF1E88E5))
+                CircularProgressIndicator(color = Color(0xFF1976D2))
                 Text("Calculating routes...", color = Color(0xFF757575))
             }
         }
@@ -127,28 +128,37 @@ fun AlternativeRoutesScreen(
                 .fillMaxSize()
                 .background(Color(0xFFF8F9FA))
         ) {
-            // Header
+            // Minimalist Header
             Surface(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp),
+                    .fillMaxWidth(),
                 color = Color.White,
-                shadowElevation = 4.dp
+                shadowElevation = 3.dp
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    Surface(
+                        modifier = Modifier.size(40.dp),
+                        shape = CircleShape,
+                        color = Color(0xFFF5F5F5)
+                    ) {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                Icons.Default.ArrowBack,
+                                contentDescription = "Back",
+                                tint = Color(0xFF212121)
+                            )
+                        }
                     }
                     Text(
-                        text = "Choose Route",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
+                        text = "Route Options",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.SemiBold,
                         color = Color(0xFF212121)
                     )
                     Spacer(modifier = Modifier.width(40.dp))
@@ -167,22 +177,25 @@ fun AlternativeRoutesScreen(
                 if (aiAnalysis != null && !isAnalyzing) {
                     AiRecommendationCard(analysis = aiAnalysis!!)
                 } else if (isAnalyzing) {
-                    Box(
+                    Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp)
-                            .background(Color(0xFFF3E5F5), RoundedCornerShape(12.dp))
-                            .padding(16.dp),
-                        contentAlignment = Alignment.Center
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF3E5F5)),
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp,
-                                color = Color(0xFF7C3AED)
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.5.dp,
+                                color = Color(0xFF8B5CF6)
                             )
                             Text(
                                 "AI analyzing routes...",
@@ -384,7 +397,7 @@ private fun RouteCard(
                 
                 if (isRecommended) {
                     Surface(
-                        color = Color(0xFF7C3AED),
+                        color = Color(0xFF8B5CF6),
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Text(
@@ -462,7 +475,7 @@ private fun RouteCard(
                     .fillMaxWidth()
                     .height(48.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isRecommended) Color(0xFF7C3AED) else Color(0xFF1E88E5)
+                    containerColor = if (isRecommended) Color(0xFF7C3AED) else Color(0xFF1976D2)
                 ),
                 shape = RoundedCornerShape(12.dp)
             ) {
@@ -485,13 +498,13 @@ private fun RouteStatItem(icon: androidx.compose.ui.graphics.vector.ImageVector,
         Icon(
             imageVector = icon,
             contentDescription = label,
-            tint = Color(0xFF1E88E5),
+            tint = Color(0xFF1976D2),
             modifier = Modifier.size(20.dp)
         )
         Text(
             text = label,
             fontSize = 10.sp,
-            color = Color(0xFF9E9E9E)
+            color = Color(0xFF757575)
         )
         Text(
             text = value,

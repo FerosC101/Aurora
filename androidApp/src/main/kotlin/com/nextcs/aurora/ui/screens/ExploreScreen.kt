@@ -62,35 +62,36 @@ fun ExploreScreen(
             .fillMaxSize()
             .background(Color(0xFFF8F9FA))
     ) {
-        // Header
+        // Minimalist Header
         Surface(
             modifier = Modifier.fillMaxWidth(),
             color = Color.White,
-            shadowElevation = 2.dp
+            shadowElevation = 3.dp
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(20.dp)
             ) {
                 Text(
                     text = "Explore",
-                    fontSize = 24.sp,
+                    fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF212121)
                 )
                 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(18.dp))
                 
-                // Tab Row
+                // Compact Tab Row
                 TabRow(
                     selectedTabIndex = selectedTab,
                     containerColor = Color.Transparent,
-                    contentColor = Color(0xFF1E88E5),
+                    contentColor = Color(0xFF1976D2),
                     indicator = { tabPositions ->
                         TabRowDefaults.SecondaryIndicator(
                             Modifier.fillMaxWidth(),
-                            color = Color(0xFF1E88E5)
+                            height = 3.dp,
+                            color = Color(0xFF1976D2)
                         )
                     }
                 ) {
@@ -99,7 +100,8 @@ fun ExploreScreen(
                         onClick = { selectedTab = 0 },
                         text = {
                             Text(
-                                "Saved Routes",
+                                "Saved",
+                                fontSize = 15.sp,
                                 fontWeight = if (selectedTab == 0) FontWeight.SemiBold else FontWeight.Normal
                             )
                         }
@@ -110,6 +112,7 @@ fun ExploreScreen(
                         text = {
                             Text(
                                 "Favorites",
+                                fontSize = 15.sp,
                                 fontWeight = if (selectedTab == 1) FontWeight.SemiBold else FontWeight.Normal
                             )
                         }
@@ -202,7 +205,7 @@ fun SavedRoutesContent(
                     Icons.Default.Place,
                     contentDescription = null,
                     modifier = Modifier.size(64.dp),
-                    tint = Color(0xFFBDBDBD)
+                    tint = Color(0xFF9E9E9E)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
@@ -245,7 +248,7 @@ fun FavoritesContent(
                     Icons.Default.FavoriteBorder,
                     contentDescription = null,
                     modifier = Modifier.size(64.dp),
-                    tint = Color(0xFFBDBDBD)
+                    tint = Color(0xFF9E9E9E)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
@@ -256,7 +259,7 @@ fun FavoritesContent(
                 Text(
                     text = "Mark routes as favorite to see them here",
                     fontSize = 14.sp,
-                    color = Color(0xFF9E9E9E)
+                    color = Color(0xFF757575)
                 )
             }
         }
@@ -341,7 +344,7 @@ fun SavedRouteCard(
                             Icon(
                                 if (route.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                                 contentDescription = "Toggle favorite",
-                                tint = if (route.isFavorite) Color(0xFFE91E63) else Color(0xFF9E9E9E)
+                                tint = if (route.isFavorite) Color(0xFFE91E63) else Color(0xFF757575)
                             )
                         }
                     }
@@ -351,7 +354,7 @@ fun SavedRouteCard(
                             Icon(
                                 Icons.Default.Delete,
                                 contentDescription = "Delete route",
-                                tint = Color(0xFF9E9E9E)
+                                tint = Color(0xFF757575)
                             )
                         }
                     }
@@ -371,7 +374,7 @@ fun SavedRouteCard(
                 Text(
                     text = route.origin,
                     fontSize = 14.sp,
-                    color = Color(0xFF757575)
+                    color = Color(0xFF616161)
                 )
             }
             
@@ -415,7 +418,7 @@ fun RouteInfoChip(icon: androidx.compose.ui.graphics.vector.ImageVector, text: S
         Icon(
             icon,
             contentDescription = null,
-            tint = Color(0xFF1E88E5),
+            tint = Color(0xFF1976D2),
             modifier = Modifier.size(14.dp)
         )
         Text(

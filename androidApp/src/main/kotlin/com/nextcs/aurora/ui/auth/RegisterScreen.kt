@@ -66,26 +66,26 @@ fun RegisterScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 32.dp, start = 24.dp, end = 24.dp, bottom = 16.dp),
+                        .padding(top = 40.dp, start = 24.dp, end = 24.dp, bottom = 20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     androidx.compose.foundation.Image(
                         painter = androidx.compose.ui.res.painterResource(id = com.nextcs.aurora.R.mipmap.ic_launcher),
                         contentDescription = "Aurora Logo",
-                        modifier = Modifier.size(64.dp)
+                        modifier = Modifier.size(72.dp)
                     )
 
                     Text(
                         text = "Aurora",
-                        fontSize = 28.sp,
+                        fontSize = 32.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF212121)
                     )
 
                     Text(
                         text = "Smart Navigation Platform",
-                        fontSize = 14.sp,
+                        fontSize = 15.sp,
                         color = Color(0xFF757575)
                     )
                 }
@@ -123,7 +123,7 @@ fun RegisterScreen(
                             .weight(1f)
                             .height(44.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (selectedTab == 1) Color(0xFF06B6D4) else Color.Transparent,
+                            containerColor = if (selectedTab == 1) Color(0xFF1976D2) else Color.Transparent,
                             contentColor = if (selectedTab == 1) Color.White else Color(0xFF757575)
                         ),
                         shape = RoundedCornerShape(8.dp),
@@ -173,15 +173,15 @@ fun RegisterScreen(
                             Icon(
                                 Icons.Default.Person,
                                 contentDescription = null,
-                                tint = Color(0xFF1E88E5)
+                                tint = Color(0xFF1976D2)
                             )
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF1E88E5),
+                            focusedBorderColor = Color(0xFF1976D2),
                             unfocusedBorderColor = Color(0xFFE0E0E0),
-                            cursorColor = Color(0xFF1E88E5),
+                            cursorColor = Color(0xFF1976D2),
                             focusedTextColor = Color(0xFF212121),
                             unfocusedTextColor = Color(0xFF212121)
                         ),
@@ -200,15 +200,15 @@ fun RegisterScreen(
                             Icon(
                                 Icons.Default.Email,
                                 contentDescription = null,
-                                tint = Color(0xFF1E88E5)
+                                tint = Color(0xFF1976D2)
                             )
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF1E88E5),
+                            focusedBorderColor = Color(0xFF1976D2),
                             unfocusedBorderColor = Color(0xFFE0E0E0),
-                            cursorColor = Color(0xFF1E88E5),
+                            cursorColor = Color(0xFF1976D2),
                             focusedTextColor = Color(0xFF212121),
                             unfocusedTextColor = Color(0xFF212121)
                         ),
@@ -228,7 +228,7 @@ fun RegisterScreen(
                             Icon(
                                 Icons.Default.Lock,
                                 contentDescription = null,
-                                tint = Color(0xFF1E88E5)
+                                tint = Color(0xFF1976D2)
                             )
                         },
                         trailingIcon = {
@@ -244,9 +244,9 @@ fun RegisterScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF1E88E5),
+                            focusedBorderColor = Color(0xFF1976D2),
                             unfocusedBorderColor = Color(0xFFE0E0E0),
-                            cursorColor = Color(0xFF1E88E5),
+                            cursorColor = Color(0xFF1976D2),
                             focusedTextColor = Color(0xFF212121),
                             unfocusedTextColor = Color(0xFF212121)
                         ),
@@ -266,7 +266,7 @@ fun RegisterScreen(
                             Icon(
                                 Icons.Default.Lock,
                                 contentDescription = null,
-                                tint = Color(0xFF1E88E5)
+                                tint = Color(0xFF1976D2)
                             )
                         },
                         trailingIcon = {
@@ -282,9 +282,9 @@ fun RegisterScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF1E88E5),
+                            focusedBorderColor = Color(0xFF1976D2),
                             unfocusedBorderColor = Color(0xFFE0E0E0),
-                            cursorColor = Color(0xFF1E88E5),
+                            cursorColor = Color(0xFF1976D2),
                             focusedTextColor = Color(0xFF212121),
                             unfocusedTextColor = Color(0xFF212121)
                         ),
@@ -398,7 +398,7 @@ fun RegisterScreen(
                             .fillMaxWidth()
                             .height(50.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF1E88E5),
+                            containerColor = Color(0xFF1976D2),
                             contentColor = Color.White
                         ),
                         shape = RoundedCornerShape(8.dp),
@@ -433,13 +433,13 @@ fun PasswordRequirement(text: String, met: Boolean) {
         Icon(
             imageVector = if (met) Icons.Default.Check else Icons.Default.Close,
             contentDescription = null,
-            tint = if (met) Color(0xFF4CAF50) else Color(0xFF9E9E9E),
+            tint = if (met) Color(0xFF4CAF50) else Color(0xFF757575),
             modifier = Modifier.size(14.dp)
         )
         Text(
             text = text,
             fontSize = 12.sp,
-            color = if (met) Color(0xFF4CAF50) else Color(0xFF9E9E9E)
+            color = if (met) Color(0xFF4CAF50) else Color(0xFF757575)
         )
     }
 }

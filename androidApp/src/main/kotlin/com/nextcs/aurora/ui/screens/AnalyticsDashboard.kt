@@ -70,7 +70,7 @@ fun AnalyticsDashboard(
                 MetricCard(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Default.Place,
-                    iconColor = Color(0xFF1E88E5),
+                    iconColor = Color(0xFF1976D2),
                     label = "Total Trips",
                     value = analytics.totalTrips.toString(),
                     backgroundColor = Color(0xFFE3F2FD)
@@ -151,7 +151,7 @@ fun AnalyticsDashboard(
                         icon = Icons.Default.Info,
                         title = "Total Time Saved",
                         value = String.format("%.1f h", analytics.totalTimeSaved),
-                        color = Color(0xFF1E88E5)
+                        color = Color(0xFF1976D2)
                     )
                 }
             }
@@ -236,7 +236,7 @@ fun AnalyticsDashboard(
                         text = "💡 Pro Tips",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E88E5)
+                        color = Color(0xFF1976D2)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
@@ -328,7 +328,7 @@ fun HighlightRow(
                 Text(
                     text = "Performance metric",
                     fontSize = 11.sp,
-                    color = Color(0xFF9E9E9E)
+                    color = Color(0xFF757575)
                 )
             }
         }

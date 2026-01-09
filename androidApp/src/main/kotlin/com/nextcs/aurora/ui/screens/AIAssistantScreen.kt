@@ -71,7 +71,7 @@ fun AIAssistantScreen(
                             modifier = Modifier
                                 .size(40.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFF1E88E5)),
+                                .background(Color(0xFF1976D2)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -202,11 +202,11 @@ fun AIAssistantScreen(
                         placeholder = { Text("Ask Aurora anything...", color = Color(0xFF757575)) },
                         shape = RoundedCornerShape(24.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF1E88E5),
+                            focusedBorderColor = Color(0xFF1976D2),
                             unfocusedBorderColor = Color.LightGray,
                             focusedTextColor = Color(0xFF212121),
                             unfocusedTextColor = Color(0xFF212121),
-                            cursorColor = Color(0xFF1E88E5)
+                            cursorColor = Color(0xFF1976D2)
                         ),
                         maxLines = 4
                     )
@@ -225,7 +225,7 @@ fun AIAssistantScreen(
                                 }
                             }
                         },
-                        containerColor = Color(0xFF1E88E5),
+                        containerColor = Color(0xFF1976D2),
                         modifier = Modifier.size(56.dp)
                     ) {
                         Icon(
@@ -258,7 +258,7 @@ fun ChatBubble(
                 bottomEnd = if (message.isUser) 4.dp else 16.dp
             ),
             colors = CardDefaults.cardColors(
-                containerColor = if (message.isUser) Color(0xFF1E88E5) else Color.White
+                containerColor = if (message.isUser) Color(0xFF1976D2) else Color.White
             ),
             modifier = Modifier.widthIn(max = 280.dp)
         ) {

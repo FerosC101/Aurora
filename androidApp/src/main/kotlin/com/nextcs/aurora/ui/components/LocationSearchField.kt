@@ -107,7 +107,7 @@ fun LocationSearchField(
                                 .size(20.dp)
                                 .padding(end = 4.dp),
                             strokeWidth = 2.dp,
-                            color = Color(0xFF1E88E5)
+                            color = Color(0xFF1976D2)
                         )
                     }
                     
@@ -125,7 +125,7 @@ fun LocationSearchField(
                             Icon(
                                 Icons.Default.Close,
                                 contentDescription = "Clear",
-                                tint = Color(0xFF9E9E9E),
+                                tint = Color(0xFF757575),
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -142,7 +142,7 @@ fun LocationSearchField(
                             Icon(
                                 Icons.Default.Place,
                                 contentDescription = "Location Options",
-                                tint = Color(0xFF1E88E5),
+                                tint = Color(0xFF1976D2),
                                 modifier = Modifier.size(22.dp)
                             )
                         }
@@ -177,7 +177,7 @@ fun LocationSearchField(
                                         Icon(
                                             Icons.Default.Place,
                                             contentDescription = null,
-                                            tint = Color(0xFF1E88E5)
+                                            tint = Color(0xFF1976D2)
                                         )
                                     },
                                     onClick = {
@@ -193,7 +193,7 @@ fun LocationSearchField(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color(0xFF1E88E5),
+                focusedBorderColor = Color(0xFF1976D2),
                 unfocusedBorderColor = Color(0xFFE0E0E0),
                 unfocusedContainerColor = Color.White,
                 focusedContainerColor = Color.White,
@@ -260,7 +260,7 @@ private fun PredictionItem(
         Icon(
             Icons.Default.LocationOn,
             contentDescription = null,
-            tint = Color(0xFF9E9E9E),
+            tint = Color(0xFF757575),
             modifier = Modifier.size(24.dp)
         )
         

@@ -45,21 +45,32 @@ fun RouteComparisonScreen(
                 .fillMaxWidth()
                 .padding(bottom = 16.dp),
             color = Color.White,
-            shadowElevation = 4.dp
+            shadowElevation = 3.dp
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(20.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color.White,
+                    shadowElevation = 2.dp,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color(0xFF212121)
+                        )
+                    }
                 }
                 Text(
-                    text = "Choose Route",
-                    fontSize = 18.sp,
+                    text = "Routes",
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF212121)
                 )
@@ -104,8 +115,8 @@ fun RouteComparisonScreen(
                 .height(48.dp),
             enabled = selectedRoute != null,
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF1E88E5),
-                disabledContainerColor = Color(0xFF9E9E9E)
+                containerColor = Color(0xFF1976D2),
+                disabledContainerColor = Color(0xFF757575)
             )
         ) {
             Text(
@@ -133,7 +144,7 @@ fun RouteComparisonCard(
                 if (isSelected) {
                     Modifier.border(
                         2.dp,
-                        Color(0xFF1E88E5),
+                        Color(0xFF1976D2),
                         RoundedCornerShape(12.dp)
                     )
                 } else if (isAiRecommended) {
@@ -258,7 +269,7 @@ fun StatItem(
         Icon(
             icon,
             contentDescription = null,
-            tint = Color(0xFF1E88E5),
+            tint = Color(0xFF1976D2),
             modifier = Modifier.size(20.dp)
         )
         Text(
@@ -270,7 +281,7 @@ fun StatItem(
         Text(
             text = label,
             fontSize = 11.sp,
-            color = Color(0xFF9E9E9E)
+            color = Color(0xFF757575)
         )
     }
 }
@@ -315,7 +326,7 @@ fun HazardListCard(hazards: List<DetectedHazard>) {
                 Text(
                     text = "and ${hazards.size - 5} more...",
                     fontSize = 12.sp,
-                    color = Color(0xFF9E9E9E),
+                    color = Color(0xFF757575),
                     modifier = Modifier.padding(top = 8.dp)
                 )
             }
@@ -357,7 +368,7 @@ fun HazardItem(hazard: DetectedHazard) {
             Text(
                 text = "In ${formatDistance(hazard.distanceFromStart)}",
                 fontSize = 10.sp,
-                color = Color(0xFF9E9E9E)
+                color = Color(0xFF757575)
             )
         }
         Surface(
@@ -386,10 +397,10 @@ private fun parseColorString(hexColor: String): Color {
 
 private fun getRouteColor(routeName: String): Color {
     return when (routeName) {
-        "Smart Route" -> Color(0xFF1E88E5)
+        "Smart Route" -> Color(0xFF1976D2)
         "Chill Route" -> Color(0xFF4CAF50)
-        "Regular Route" -> Color(0xFF9E9E9E)
-        else -> Color(0xFF1E88E5)
+        "Regular Route" -> Color(0xFF757575)
+        else -> Color(0xFF1976D2)
     }
 }
 

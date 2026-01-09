@@ -59,7 +59,7 @@ fun LiveNavigationScreen(
             // Header card
             Card(
                 colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFF1E88E5)
+                    containerColor = Color(0xFF1976D2)
                 ),
                 shape = RoundedCornerShape(16.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -197,7 +197,7 @@ fun LiveNavigationScreen(
                     icon = Icons.Default.Person,
                     label = "Distance",
                     value = "${((navState.selectedRoute?.distance?.toDouble() ?: 0.0) / 1000.0).toInt()} km",
-                    color = Color(0xFF1E88E5),
+                    color = Color(0xFF1976D2),
                     modifier = Modifier.weight(1f)
                 )
                 MetricCard(
@@ -243,7 +243,7 @@ fun LiveNavigationScreen(
                             Icon(
                                 Icons.Default.Warning,
                                 contentDescription = null,
-                                tint = Color(0xFF1E88E5),
+                                tint = Color(0xFF1976D2),
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -319,7 +319,7 @@ fun LiveNavigationScreen(
                         .weight(1f)
                         .height(48.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color(0xFF1E88E5)
+                        contentColor = Color(0xFF1976D2)
                     ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
@@ -338,7 +338,7 @@ fun LiveNavigationScreen(
                         .weight(1f)
                         .height(48.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF1E88E5)
+                        containerColor = Color(0xFF1976D2)
                     ),
                     shape = RoundedCornerShape(12.dp),
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)

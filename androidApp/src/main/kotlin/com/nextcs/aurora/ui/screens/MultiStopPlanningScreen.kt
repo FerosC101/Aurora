@@ -225,7 +225,7 @@ fun MultiStopPlanningScreen(
                         Icons.Default.Add,
                         contentDescription = null,
                         modifier = Modifier.size(48.dp),
-                        tint = Color(0xFFBDBDBD)
+                        tint = Color(0xFF9E9E9E)
                     )
                     Text(
                         text = "No stops added yet",
@@ -235,7 +235,7 @@ fun MultiStopPlanningScreen(
                     Text(
                         text = "Add stops between origin and destination",
                         fontSize = 14.sp,
-                        color = Color(0xFF9E9E9E)
+                        color = Color(0xFF757575)
                     )
                 }
             }
@@ -256,7 +256,7 @@ fun MultiStopPlanningScreen(
                     onClick = { showAddDialog = true },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF1E88E5)
+                        containerColor = Color(0xFF1976D2)
                     ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
@@ -354,7 +354,7 @@ fun MultiStopPlanningScreen(
                             Icon(
                                 Icons.Default.Search,
                                 contentDescription = null,
-                                tint = Color(0xFF1E88E5),
+                                tint = Color(0xFF1976D2),
                                 modifier = Modifier.size(20.dp)
                             )
                         },
@@ -386,8 +386,8 @@ fun MultiStopPlanningScreen(
                         valueRange = 0f..60f,
                         steps = 11,
                         colors = SliderDefaults.colors(
-                            thumbColor = Color(0xFF1E88E5),
-                            activeTrackColor = Color(0xFF1E88E5)
+                            thumbColor = Color(0xFF1976D2),
+                            activeTrackColor = Color(0xFF1976D2)
                         )
                     )
                 }
@@ -414,7 +414,7 @@ fun MultiStopPlanningScreen(
                     },
                     enabled = newStopName.isNotEmpty() && stopLocation != null,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF1E88E5)
+                        containerColor = Color(0xFF1976D2)
                     )
                 ) {
                     Text("Add Stop")
@@ -456,7 +456,7 @@ fun WaypointCard(
             // Order badge
             Surface(
                 shape = CircleShape,
-                color = Color(0xFF1E88E5),
+                color = Color(0xFF1976D2),
                 modifier = Modifier.size(32.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
