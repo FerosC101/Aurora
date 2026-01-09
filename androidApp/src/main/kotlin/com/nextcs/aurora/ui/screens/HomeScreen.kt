@@ -37,7 +37,7 @@ fun HomeScreen(
     initialOriginLocation: LatLng? = null,
     initialDestinationLocation: LatLng? = null,
     onStateChange: (String, String, LatLng?, LatLng?) -> Unit = { _, _, _, _ -> },
-    onStartNavigation: (String, String) -> Unit,
+    onStartNavigation: (String, String, LatLng?, LatLng?) -> Unit,
     onMultiStopNavigation: () -> Unit = {},
     onMapPicker: (String, LatLng?, (LatLng, String) -> Unit) -> Unit = { _, _, _ -> },
     modifier: Modifier = Modifier
@@ -46,6 +46,7 @@ fun HomeScreen(
     val locationService = remember { LocationService(context) }
     val reminderService = remember { com.nextcs.aurora.reminder.DepartureReminderService(context) }
     val tripHistoryService = remember { TripHistoryService(context) }
+    val placesService = remember { com.nextcs.aurora.location.PlacesAutocompleteService(context) }
     val scope = rememberCoroutineScope()
     
     var origin by remember { mutableStateOf(initialOrigin) }
@@ -183,7 +184,7 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     Button(
-                        onClick = { onStartNavigation(origin.ifEmpty { "Current location" }, destination) },
+                        onClick = { onStartNavigation(origin.ifEmpty { "Current location" }, destination, originLocation, destinationLocation) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp),
@@ -390,10 +391,71 @@ fun HomeScreen(
     if (showAIAssistant) {
         AIAssistantDialog(
             onDismiss = { showAIAssistant = false },
-            onRouteSelected = { fromAI, toAI ->
-                origin = fromAI
-                destination = toAI
+            onRouteSelected = { fromAI, toAI, waypointsAI ->
                 showAIAssistant = false
+                
+                // Handle multi-stop routes (waypoints provided)
+                if (waypointsAI.isNotEmpty()) {
+                    Log.d("HomeScreen", "Multi-stop route selected - Origin: '$fromAI', Dest: '$toAI', Waypoints: $waypointsAI")
+                    // For multi-stop, navigate to multi-stop planner
+                    destination = toAI
+                    onMultiStopNavigation()
+                } else {
+                    // Single route - geocode addresses first, then start navigation
+                    scope.launch {
+                        try {
+                            Log.d("HomeScreen", "AI Route Selected - Origin: '$fromAI', Dest: '$toAI'")
+                            
+                            // Handle origin - get actual current location if needed
+                            val origCoords = if (fromAI.isNotEmpty() && fromAI != "Current location") {
+                                Log.d("HomeScreen", "Geocoding origin: $fromAI")
+                                val result = placesService.searchAndGetCoordinates(fromAI)
+                                Log.d("HomeScreen", "Origin geocoded: ${result?.first}")
+                                result
+                            } else {
+                                Log.d("HomeScreen", "Getting current location for origin")
+                                val currentLoc = locationService.getLastKnownLocation()
+                                Log.d("HomeScreen", "Current location: $currentLoc")
+                                if (currentLoc != null) {
+                                    Pair(currentLoc, "Current location")
+                                } else {
+                                    // Use default Manila location as fallback
+                                    Log.w("HomeScreen", "Using default location as fallback")
+                                    Pair(LatLng(14.5995, 120.9842), "Current location")
+                                }
+                            }
+                            
+                            // Handle destination
+                            Log.d("HomeScreen", "Geocoding destination: $toAI")
+                            val destCoords = placesService.searchAndGetCoordinates(toAI)
+                            Log.d("HomeScreen", "Destination geocoded: ${destCoords?.first}")
+                            
+                            if (destCoords != null && origCoords != null) {
+                                // Update state with coordinates
+                                origin = fromAI.ifEmpty { "Current location" }
+                                destination = toAI
+                                originLocation = origCoords.first
+                                destinationLocation = destCoords.first
+                                
+                                Log.d("HomeScreen", "✓ Both coordinates ready - Origin: ${origCoords.first}, Dest: ${destCoords.first}")
+                                Log.d("HomeScreen", "Calling onStateChange with: origin=$origin, dest=$destination, origLoc=$originLocation, destLoc=$destinationLocation")
+                                
+                                // Notify parent of state change
+                                onStateChange(origin, destination, originLocation, destinationLocation)
+                                
+                                Log.d("HomeScreen", "Calling onStartNavigation with: origin=$origin, dest=$destination, origLoc=$originLocation, destLoc=$destinationLocation")
+                                
+                                // Start navigation with coordinates
+                                onStartNavigation(origin, destination, originLocation, destinationLocation)
+                            } else {
+                                Log.e("HomeScreen", "Failed to get coordinates - Origin: ${origCoords?.first}, Dest: ${destCoords?.first}")
+                            }
+                        } catch (e: Exception) {
+                            Log.e("HomeScreen", "Error geocoding addresses", e)
+                            e.printStackTrace()
+                        }
+                    }
+                }
             }
         )
     }

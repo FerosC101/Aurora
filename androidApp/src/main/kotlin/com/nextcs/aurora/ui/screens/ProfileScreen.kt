@@ -25,7 +25,6 @@ fun ProfileScreen(
     userName: String,
     userEmail: String,
     onLogout: () -> Unit,
-    onNavigateToFriends: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -182,14 +181,6 @@ fun ProfileScreen(
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Column {
-                    SettingsItem(
-                        icon = Icons.Default.Person,
-                        title = "Friends",
-                        subtitle = "Manage friends and location sharing",
-                        onClick = onNavigateToFriends
-                    )
-                    Divider(color = Color(0xFFE0E0E0))
-                    
                     SettingsItem(
                         icon = Icons.Default.Settings,
                         title = "Vehicle Profile",

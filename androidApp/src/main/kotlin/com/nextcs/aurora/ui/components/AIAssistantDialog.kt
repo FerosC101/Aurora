@@ -26,7 +26,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun AIAssistantDialog(
     onDismiss: () -> Unit,
-    onRouteSelected: (origin: String, destination: String) -> Unit
+    onRouteSelected: (origin: String, destination: String, waypoints: List<String>) -> Unit
 ) {
     val context = LocalContext.current
     val routeAssistant = remember { RouteAssistantService(context) }
@@ -36,6 +36,13 @@ fun AIAssistantDialog(
     var messages by remember { mutableStateOf(routeAssistant.getConversationHistory()) }
     var isLoading by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
+    
+    // Auto-scroll to bottom when dialog opens or new messages arrive
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) {
+            listState.animateScrollToItem(messages.size - 1)
+        }
+    }
     
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -148,7 +155,11 @@ fun AIAssistantDialog(
                         }
                     } else {
                         items(messages) { message ->
-                            ChatMessageBubble(message)
+                            ChatMessageBubble(
+                                message = message,
+                                onDismiss = onDismiss,
+                                onRouteSelected = onRouteSelected
+                            )
                         }
                         
                         if (isLoading) {
@@ -227,12 +238,6 @@ fun AIAssistantDialog(
                                         
                                         // Auto-scroll to bottom
                                         listState.animateScrollToItem(messages.size - 1)
-                                        
-                                        // Check if response contains route request
-                                        response.routeRequest?.let { request ->
-                                            onDismiss()
-                                            onRouteSelected(request.origin, request.destination)
-                                        }
                                     } catch (e: Exception) {
                                         // Show error
                                     } finally {
@@ -266,7 +271,11 @@ fun AIAssistantDialog(
 }
 
 @Composable
-fun ChatMessageBubble(message: ChatMessage) {
+fun ChatMessageBubble(
+    message: ChatMessage,
+    onDismiss: () -> Unit,
+    onRouteSelected: (origin: String, destination: String, waypoints: List<String>) -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -309,7 +318,7 @@ fun ChatMessageBubble(message: ChatMessage) {
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             Text(
-                                "\ud83d\udccd Route Request",
+                                "📍 Route Request",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = if (message.isUser) Color.White else Color(0xFF007AFF),
@@ -326,6 +335,34 @@ fun ChatMessageBubble(message: ChatMessage) {
                                 fontSize = 13.sp,
                                 color = if (message.isUser) Color.White.copy(alpha = 0.9f) else Color(0xFF8E8E93)
                             )
+                            
+                            if (!message.isUser) {
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Button(
+                                    onClick = {
+                                        onDismiss()
+                                        onRouteSelected(request.origin, request.destination, request.waypoints)
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFF007AFF)
+                                    ),
+                                    shape = RoundedCornerShape(10.dp),
+                                    contentPadding = PaddingValues(vertical = 10.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Place,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        "Start Navigation",
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            }
                         }
                     }
                 }

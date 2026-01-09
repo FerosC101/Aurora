@@ -78,6 +78,7 @@ fun RealNavigationScreen(
     val trafficService = remember { TrafficAwareNavigationService(context) }
     val behaviorAnalyzer = remember { DrivingBehaviorAnalyzer() }
     val routeAlertService = remember { RouteChangeAlertService(context) }
+    val placesService = remember { com.nextcs.aurora.location.PlacesAutocompleteService(context) }
     val scope = rememberCoroutineScope()
     
     val speedData by speedMonitor.speedData.collectAsState()
@@ -114,6 +115,10 @@ fun RealNavigationScreen(
     var isNavigating by remember { mutableStateOf(false) }
     var hasArrived by remember { mutableStateOf(false) }
     var showFinishDialog by remember { mutableStateOf(false) }
+    
+    // Resolved locations (geocoded if needed) - these will be updated by LaunchedEffect
+    var resolvedOriginLocation by remember { mutableStateOf<LatLng?>(null) }
+    var resolvedDestinationLocation by remember { mutableStateOf<LatLng?>(null) }
     
     // Save route dialog
     if (showSaveDialog) {
@@ -430,7 +435,7 @@ fun RealNavigationScreen(
                         voiceService.announce("Recalculating route")
                         // Auto-reroute
                         scope.launch {
-                            destinationLocation?.let { dest ->
+                            resolvedDestinationLocation?.let { dest ->
                                 trafficService.autoReroute(location, dest).onSuccess { newRoute ->
                                     routeInfo = newRoute
                                     isOffRoute = false
@@ -475,20 +480,112 @@ fun RealNavigationScreen(
         }
     }
     
+    // Resolve locations - use provided coordinates or geocode addresses
+    LaunchedEffect(originLocation, destinationLocation, origin, destination) {
+        android.util.Log.d("RealNavigation", "=== RESOLVE LOCATIONS ===")
+        android.util.Log.d("RealNavigation", "Input - Origin: '$origin' (${originLocation}), Dest: '$destination' (${destinationLocation})")
+        
+        // Resolve origin
+        if (originLocation != null) {
+            android.util.Log.d("RealNavigation", "Using provided origin location: $originLocation")
+            resolvedOriginLocation = originLocation
+        } else if (origin.isNotEmpty() && origin != "Current location") {
+            android.util.Log.d("RealNavigation", "Geocoding origin: $origin")
+            try {
+                val result = placesService.searchAndGetCoordinates(origin)
+                if (result != null) {
+                    android.util.Log.d("RealNavigation", "✓ Origin geocoded to: ${result.first}")
+                    resolvedOriginLocation = result.first
+                } else {
+                    android.util.Log.e("RealNavigation", "✗ Failed to geocode origin: $origin")
+                    resolvedOriginLocation = null
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("RealNavigation", "✗ Exception geocoding origin", e)
+                resolvedOriginLocation = null
+            }
+        } else {
+            // Use current location
+            android.util.Log.d("RealNavigation", "Using current location for origin")
+            val currentLoc = locationService.getLastKnownLocation()
+            resolvedOriginLocation = if (currentLoc != null) {
+                android.util.Log.d("RealNavigation", "Got current location: $currentLoc")
+                currentLoc
+            } else {
+                // Fallback to default Manila location
+                android.util.Log.w("RealNavigation", "Using default Manila location as fallback")
+                LatLng(14.5995, 120.9842)
+            }
+        }
+        
+        // Resolve destination
+        if (destinationLocation != null) {
+            android.util.Log.d("RealNavigation", "Using provided destination location: $destinationLocation")
+            resolvedDestinationLocation = destinationLocation
+        } else if (destination.isNotEmpty()) {
+            android.util.Log.d("RealNavigation", "Geocoding destination: $destination")
+            try {
+                val result = placesService.searchAndGetCoordinates(destination)
+                if (result != null) {
+                    android.util.Log.d("RealNavigation", "✓ Destination geocoded to: ${result.first}")
+                    resolvedDestinationLocation = result.first
+                } else {
+                    android.util.Log.e("RealNavigation", "✗ Failed to geocode destination: $destination")
+                    resolvedDestinationLocation = null
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("RealNavigation", "✗ Exception geocoding destination", e)
+                resolvedDestinationLocation = null
+            }
+        } else {
+            android.util.Log.e("RealNavigation", "✗ No destination provided")
+            resolvedDestinationLocation = null
+        }
+        
+        android.util.Log.d("RealNavigation", "Resolved - Origin: $resolvedOriginLocation, Dest: $resolvedDestinationLocation")
+        android.util.Log.d("RealNavigation", "=== END RESOLVE ===")
+    }
+    
     // Fetch route from Directions API
-    LaunchedEffect(originLocation, destinationLocation, selectedRoute) {
-        if (originLocation != null && destinationLocation != null) {
+    LaunchedEffect(resolvedOriginLocation, resolvedDestinationLocation, selectedRoute) {
+        android.util.Log.d("RealNavigation", "=== FETCH ROUTE ===")
+        android.util.Log.d("RealNavigation", "Resolved Origin: $resolvedOriginLocation")
+        android.util.Log.d("RealNavigation", "Resolved Dest: $resolvedDestinationLocation")
+        
+        if (resolvedOriginLocation != null && resolvedDestinationLocation != null) {
             isLoadingRoute = true
+            currentInstruction = "Calculating route..."
+            android.util.Log.d("RealNavigation", "Starting route calculation...")
             
             // Use selected route if available, otherwise fetch from API
             val route = if (selectedRoute != null) {
+                android.util.Log.d("RealNavigation", "Using preselected route")
                 selectedRoute.routeInfo
             } else {
-                val result = directionsService.getDirections(originLocation, destinationLocation, waypoints)
-                result.getOrNull()
+                android.util.Log.d("RealNavigation", "Calling DirectionsService.getDirections")
+                val origLoc = resolvedOriginLocation
+                val destLoc = resolvedDestinationLocation
+                android.util.Log.d("RealNavigation", "About to call directions with: origin=$origLoc, dest=$destLoc")
+                if (origLoc != null && destLoc != null) {
+                    try {
+                        val result = directionsService.getDirections(origLoc, destLoc, waypoints)
+                        android.util.Log.d("RealNavigation", "DirectionsService result: ${if (result.isSuccess) "SUCCESS" else "FAILURE - ${result.exceptionOrNull()?.message}"}")
+                        if (result.isFailure) {
+                            android.util.Log.e("RealNavigation", "Full error:", result.exceptionOrNull())
+                        }
+                        result.getOrNull()
+                    } catch (e: Exception) {
+                        android.util.Log.e("RealNavigation", "Exception calling DirectionsService", e)
+                        null
+                    }
+                } else {
+                    android.util.Log.e("RealNavigation", "Cannot call directions: origLoc=$origLoc, destLoc=$destLoc")
+                    null
+                }
             }
             
             route?.let {
+                android.util.Log.d("RealNavigation", "Route received with ${it.steps.size} steps, distance: ${it.distance}m")
                 routeInfo = it
                 eta = directionsService.formatDuration(it.duration)
                 remainingDistance = directionsService.formatDistance(it.distance)
@@ -519,9 +616,12 @@ fun RealNavigationScreen(
                     // Don't auto-announce, wait for Start Navigation button
                 }
             } ?: run {
+                android.util.Log.e("RealNavigation", "Failed to get route!")
                 currentInstruction = "Unable to calculate route"
             }
             isLoadingRoute = false
+        } else {
+            android.util.Log.w("RealNavigation", "Skipping route calculation - missing coordinates. Resolved Origin: $resolvedOriginLocation, Resolved Dest: $resolvedDestinationLocation")
         }
         
         speedMonitor.setSpeedLimit(60)

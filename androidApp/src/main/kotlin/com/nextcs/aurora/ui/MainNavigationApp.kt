@@ -42,7 +42,7 @@ fun MainNavigationApp(
         navController.currentBackStackEntryFlow.collect { backStackEntry ->
         showBottomBar = backStackEntry.destination.route in listOf(
                 BottomNavItem.Home.route,
-                BottomNavItem.Assistant.route,
+                BottomNavItem.Social.route,
                 BottomNavItem.Activity.route,
                 BottomNavItem.Profile.route
             )
@@ -71,7 +71,7 @@ fun MainNavigationApp(
 fun BottomNavigationBar(navController: NavHostController) {
     val items = listOf(
         BottomNavItem.Home,
-        BottomNavItem.Assistant,
+        BottomNavItem.Social,
         BottomNavItem.Activity,
         BottomNavItem.Profile
     )
@@ -167,20 +167,28 @@ fun NavigationGraph(
                     selectedOriginLocation = newOrigLoc
                     selectedDestinationLocation = newDestLoc
                 },
-                onStartNavigation = { orig, dest ->
+                onStartNavigation = { orig, dest, origLoc, destLoc ->
                     // Clear selected route before starting new navigation
                     selectedRoute = null
                     selectedWaypoints = emptyList()
+                    
+                    // Update shared state
+                    selectedOrigin = orig
+                    selectedDestination = dest
+                    selectedOriginLocation = origLoc
+                    selectedDestinationLocation = destLoc
                     
                     // Encode text addresses
                     val encodedOrigin = URLEncoder.encode(orig, StandardCharsets.UTF_8.toString())
                     val encodedDest = URLEncoder.encode(dest, StandardCharsets.UTF_8.toString())
                     
-                    // Get coordinates
-                    val origLat = selectedOriginLocation?.latitude?.toString() ?: ""
-                    val origLng = selectedOriginLocation?.longitude?.toString() ?: ""
-                    val destLat = selectedDestinationLocation?.latitude?.toString() ?: ""
-                    val destLng = selectedDestinationLocation?.longitude?.toString() ?: ""
+                    // Get coordinates - use passed coordinates directly
+                    val origLat = origLoc?.latitude?.toString() ?: ""
+                    val origLng = origLoc?.longitude?.toString() ?: ""
+                    val destLat = destLoc?.latitude?.toString() ?: ""
+                    val destLng = destLoc?.longitude?.toString() ?: ""
+                    
+                    Log.d("MainNavApp", "Starting navigation: $orig -> $dest, Coords: ($origLat,$origLng) -> ($destLat,$destLng)")
                     
                     navController.navigate(
                         "navigation?origLat=$origLat&origLng=$origLng&destLat=$destLat&destLng=$destLng&origin=$encodedOrigin&dest=$encodedDest&waypoints="
@@ -209,92 +217,29 @@ fun NavigationGraph(
             )
         }
         
-        composable(BottomNavItem.Assistant.route) {
-            AIAssistantScreen(
-                onNavigateToRoute = { origin, destination, waypoints ->
+        composable(BottomNavItem.Social.route) {
+            SocialScreen(
+                userName = userName,
+                userEmail = userEmail,
+                onNavigateToFriend = { friendLocation ->
+                    // Navigate to friend's location
+                    val encodedOrigin = URLEncoder.encode("Current Location", StandardCharsets.UTF_8.toString())
+                    val encodedDest = URLEncoder.encode(friendLocation.displayName, StandardCharsets.UTF_8.toString())
+                    
                     scope.launch {
-                        try {
-                            Log.d("MainNavApp", "AI Navigation request - Origin: $origin, Destination: $destination, Waypoints: $waypoints")
-                            
-                            // Resolve origin location
-                            val originResult = if (origin.equals("current location", ignoreCase = true) || 
-                                                    origin.equals("current", ignoreCase = true) ||
-                                                    origin.equals("my location", ignoreCase = true)) {
-                                // Get current location
-                                val currentLoc = locationService.getLastKnownLocation()
-                                if (currentLoc != null) {
-                                    // Reverse geocode to get address name
-                                    val addressName = placesService.reverseGeocode(currentLoc) ?: "Current Location"
-                                    Pair(currentLoc, addressName)
-                                } else null
-                            } else {
-                                // Geocode origin address
-                                placesService.searchAndGetCoordinates(origin)
-                            }
-                            
-                            // Geocode destination address
-                            val destinationResult = placesService.searchAndGetCoordinates(destination)
-                            
-                            if (originResult == null || destinationResult == null) {
-                                Log.e("MainNavApp", "Failed to geocode locations - Origin: $originResult, Dest: $destinationResult")
-                                return@launch
-                            }
-                            
-                            val (originLocation, originAddress) = originResult
-                            val (destinationLocation, destinationAddress) = destinationResult
-                            
-                            // Handle multi-stop routes with waypoints
-                            if (waypoints.isNotEmpty()) {
-                                Log.d("MainNavApp", "Multi-stop route with ${waypoints.size} waypoints")
-                                
-                                // Geocode all waypoints
-                                val geocodedWaypoints = mutableListOf<LatLng>()
-                                for (waypointName in waypoints) {
-                                    val waypointResult = placesService.searchAndGetCoordinates(waypointName)
-                                    if (waypointResult != null) {
-                                        geocodedWaypoints.add(waypointResult.first)
-                                        Log.d("MainNavApp", "Geocoded waypoint: $waypointName -> ${waypointResult.first}")
-                                    } else {
-                                        Log.w("MainNavApp", "Failed to geocode waypoint: $waypointName")
-                                    }
-                                }
-                                
-                                // Navigate with all coordinates and waypoints using query params for addresses
-                                val encodedOrigin = URLEncoder.encode(originAddress, StandardCharsets.UTF_8.toString())
-                                val encodedDestination = URLEncoder.encode(destinationAddress, StandardCharsets.UTF_8.toString())
-                                val origLat = originLocation.latitude.toString()
-                                val origLng = originLocation.longitude.toString()
-                                val destLat = destinationLocation.latitude.toString()
-                                val destLng = destinationLocation.longitude.toString()
-                                
-                                // Build waypoints string: lat1,lng1|lat2,lng2|...
-                                val waypointsString = geocodedWaypoints.joinToString("|") { "${it.latitude},${it.longitude}" }
-                                
-                                navController.navigate(
-                                    "navigation?origLat=$origLat&origLng=$origLng&destLat=$destLat&destLng=$destLng&origin=$encodedOrigin&dest=$encodedDestination&waypoints=$waypointsString"
-                                )
-                                return@launch
-                            }
-                            
-                            Log.d("MainNavApp", "Single route without waypoints")
-                            
-                            // Navigate with coordinates using query params for addresses
-                            val encodedOrigin = URLEncoder.encode(originAddress, StandardCharsets.UTF_8.toString())
-                            val encodedDestination = URLEncoder.encode(destinationAddress, StandardCharsets.UTF_8.toString())
-                            val origLat = originLocation.latitude.toString()
-                            val origLng = originLocation.longitude.toString()
-                            val destLat = destinationLocation.latitude.toString()
-                            val destLng = destinationLocation.longitude.toString()
+                        val currentLoc = locationService.getLastKnownLocation()
+                        if (currentLoc != null) {
+                            val origLat = currentLoc.latitude.toString()
+                            val origLng = currentLoc.longitude.toString()
+                            val destLat = friendLocation.latitude.toString()
+                            val destLng = friendLocation.longitude.toString()
                             
                             navController.navigate(
-                                "navigation?origLat=$origLat&origLng=$origLng&destLat=$destLat&destLng=$destLng&origin=$encodedOrigin&dest=$encodedDestination"
+                                "navigation?origLat=$origLat&origLng=$origLng&destLat=$destLat&destLng=$destLng&origin=$encodedOrigin&dest=$encodedDest&waypoints="
                             )
-                        } catch (e: Exception) {
-                            Log.e("MainNavApp", "Error resolving AI navigation", e)
                         }
                     }
-                },
-                onBack = { navController.navigateUp() }
+                }
             )
         }
         
@@ -306,14 +251,11 @@ fun NavigationGraph(
             ProfileScreen(
                 userName = userName,
                 userEmail = userEmail,
-                onLogout = onLogout,
-                onNavigateToFriends = {
-                    navController.navigate("friends")
-                }
+                onLogout = onLogout
             )
         }
         
-        // Friends Screen
+        // Friends Screen - deprecated, now in Social tab
         composable("friends") {
             FriendsScreen()
         }
