@@ -39,7 +39,14 @@ fun ProfileScreen(
     if (showVehicleDialog) {
         AlertDialog(
             onDismissRequest = { showVehicleDialog = false },
-            title = { Text("Select Vehicle Type") },
+            title = { 
+                Text(
+                    "Select Vehicle Type",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF1C1C1E)
+                ) 
+            },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     VehicleOption(
@@ -90,9 +97,16 @@ fun ProfileScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showVehicleDialog = false }) {
-                    Text("Close")
+                    Text(
+                        "Close",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF007AFF)
+                    )
                 }
-            }
+            },
+            shape = RoundedCornerShape(14.dp),
+            containerColor = Color.White
         )
     }
     

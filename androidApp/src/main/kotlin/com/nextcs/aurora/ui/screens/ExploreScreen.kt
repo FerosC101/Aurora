@@ -293,8 +293,21 @@ fun SavedRouteCard(
     if (showDeleteDialog && onDeleteRoute != null) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Route") },
-            text = { Text("Are you sure you want to delete '${route.name}'?") },
+            title = { 
+                Text(
+                    "Delete Route",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF1C1C1E)
+                ) 
+            },
+            text = { 
+                Text(
+                    "Are you sure you want to delete '${route.name}'?",
+                    fontSize = 15.sp,
+                    color = Color(0xFF8E8E93)
+                ) 
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -302,14 +315,26 @@ fun SavedRouteCard(
                         showDeleteDialog = false
                     }
                 ) {
-                    Text("Delete", color = Color(0xFFE91E63))
+                    Text(
+                        "Delete",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFFFF3B30)
+                    )
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel")
+                    Text(
+                        "Cancel",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF007AFF)
+                    )
                 }
-            }
+            },
+            shape = RoundedCornerShape(14.dp),
+            containerColor = Color.White
         )
     }
     

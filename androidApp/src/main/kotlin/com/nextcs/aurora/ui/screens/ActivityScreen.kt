@@ -127,8 +127,21 @@ fun ActivityScreen(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Clear All Trips?") },
-            text = { Text("This will permanently delete all your trip history. This action cannot be undone.") },
+            title = { 
+                Text(
+                    "Clear All Trips?",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF1C1C1E)
+                ) 
+            },
+            text = { 
+                Text(
+                    "This will permanently delete all your trip history. This action cannot be undone.",
+                    fontSize = 15.sp,
+                    color = Color(0xFF8E8E93)
+                ) 
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -140,19 +153,28 @@ fun ActivityScreen(
                             hazardsAvoided = 0
                             showDeleteDialog = false
                         }
-                    },
-                    colors = ButtonDefaults.textButtonColors(
-                        contentColor = Color(0xFFD32F2F)
-                    )
+                    }
                 ) {
-                    Text("Delete All")
+                    Text(
+                        "Delete All",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFFFF3B30)
+                    )
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel")
+                    Text(
+                        "Cancel",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF007AFF)
+                    )
                 }
-            }
+            },
+            shape = RoundedCornerShape(14.dp),
+            containerColor = Color.White
         )
     }
     
@@ -164,36 +186,62 @@ fun ActivityScreen(
         
         AlertDialog(
             onDismissRequest = { showAddCostDialog = false },
-            title = { Text("Add Trip Cost") },
+            title = { 
+                Text(
+                    "Add Trip Cost",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF1C1C1E)
+                ) 
+            },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Add cost data for a sample trip", fontSize = 14.sp, color = Color(0xFF757575))
+                    Text(
+                        "Add cost data for a sample trip",
+                        fontSize = 15.sp,
+                        color = Color(0xFF8E8E93)
+                    )
                     
                     OutlinedTextField(
                         value = distance,
                         onValueChange = { distance = it },
-                        label = { Text("Distance (km)") },
+                        label = { Text("Distance (km)", fontSize = 15.sp) },
                         placeholder = { Text("25.0") },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF007AFF),
+                            focusedLabelColor = Color(0xFF007AFF)
+                        )
                     )
                     
                     OutlinedTextField(
                         value = tollCost,
                         onValueChange = { tollCost = it },
-                        label = { Text("Toll Cost ($)") },
+                        label = { Text("Toll Cost ($)", fontSize = 15.sp) },
                         placeholder = { Text("5.50") },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF007AFF),
+                            focusedLabelColor = Color(0xFF007AFF)
+                        )
                     )
                     
                     OutlinedTextField(
                         value = parkingCost,
                         onValueChange = { parkingCost = it },
-                        label = { Text("Parking Cost ($)") },
+                        label = { Text("Parking Cost ($)", fontSize = 15.sp) },
                         placeholder = { Text("10.00") },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF007AFF),
+                            focusedLabelColor = Color(0xFF007AFF)
+                        )
                     )
                 }
             },
@@ -225,35 +273,55 @@ fun ActivityScreen(
                     },
                     enabled = distance.toDoubleOrNull() != null && distance.toDoubleOrNull()!! > 0
                 ) {
-                    Text("Add")
+                    Text(
+                        "Add",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF007AFF)
+                    )
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showAddCostDialog = false }) {
-                    Text("Cancel")
+                    Text(
+                        "Cancel",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF8E8E93)
+                    )
                 }
-            }
+            },
+            shape = RoundedCornerShape(14.dp),
+            containerColor = Color.White
         )
     }
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFF8F9FA))
+            .background(Color(0xFFF5F5F7))
     ) {
-        // Fixed Header
+        // Minimal App Bar
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            color = Color.White,
-            shadowElevation = 2.dp
+            color = Color.Transparent,
+            shadowElevation = 0.dp
         ) {
-            Text(
-                text = "Activity",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF212121),
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Activity",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF1C1C1E),
+                    letterSpacing = (-0.5).sp
+                )
+            }
         }
         
         // Scrollable Content
@@ -261,40 +329,45 @@ fun ActivityScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // Stats Summary
+            // Loading State
             if (isLoading) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(120.dp),
+                        .height(200.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(32.dp),
+                        color = Color(0xFF007AFF),
+                        strokeWidth = 2.5.dp
+                    )
                 }
             } else {
-                // Stats Row
+                // Summary Metrics Grid
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    StatCard(
-                        icon = Icons.Default.Star,
+                    CompactMetricCard(
+                        icon = Icons.Default.Place,
                         value = weeklyDistance,
                         unit = "km",
                         label = "Distance",
                         modifier = Modifier.weight(1f)
                     )
-                    StatCard(
+                    CompactMetricCard(
                         icon = Icons.Default.DateRange,
-                        value = timeSaved,
-                        unit = "",
+                        value = timeSaved.split(" ").firstOrNull() ?: "0h",
+                        unit = timeSaved.split(" ").getOrNull(1) ?: "",
                         label = "Saved",
                         modifier = Modifier.weight(1f)
                     )
-                    StatCard(
+                    CompactMetricCard(
                         icon = Icons.Default.Build,
                         value = hazardsAvoided.toString(),
                         unit = "",
@@ -303,308 +376,236 @@ fun ActivityScreen(
                     )
                 }
                     
-                    // Driving Score Card
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        shape = RoundedCornerShape(16.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                // Primary Highlight Card - Driving Score
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    shape = RoundedCornerShape(20.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        // Score Badge
+                        val avgScore = if (tripHistory.isEmpty()) 0 else {
+                            tripHistory.mapNotNull { trip ->
+                                try {
+                                    val parts = trip.id.split("_")
+                                    if (parts.size >= 2) {
+                                        val harshBraking = trip.hazardsAvoided
+                                        100 - (harshBraking * 5).coerceAtMost(30)
+                                    } else {
+                                        85
+                                    }
+                                } catch (e: Exception) {
+                                    85
+                                }
+                            }.average().toInt()
+                        }
+                        
+                        Surface(
+                            shape = androidx.compose.foundation.shape.CircleShape,
+                            color = when {
+                                tripHistory.isEmpty() -> Color(0xFFF2F2F7)
+                                avgScore >= 90 -> Color(0xFF34C759)
+                                avgScore >= 75 -> Color(0xFF5AC8FA)
+                                avgScore >= 60 -> Color(0xFFFFCC00)
+                                else -> Color(0xFFFF9500)
+                            }.copy(alpha = 0.15f),
+                            modifier = Modifier.size(60.dp)
                         ) {
-                            // Driving score badge
-                            Surface(
-                                shape = androidx.compose.foundation.shape.CircleShape,
-                                color = when {
-                                    tripHistory.isEmpty() -> Color(0xFF9E9E9E)
-                                    else -> {
-                                        val avgScore = tripHistory.mapNotNull { trip ->
-                                            try {
-                                                val parts = trip.id.split("_")
-                                                if (parts.size >= 2) {
-                                                    val harshBraking = trip.hazardsAvoided
-                                                    100 - (harshBraking * 5).coerceAtMost(30)
-                                                } else {
-                                                    85
-                                                }
-                                            } catch (e: Exception) {
-                                                85
-                                            }
-                                        }.average().toInt()
-                                        when {
-                                            avgScore >= 90 -> Color(0xFF4CAF50)
-                                            avgScore >= 75 -> Color(0xFF8BC34A)
-                                            avgScore >= 60 -> Color(0xFFFFC107)
-                                            else -> Color(0xFFFF9800)
-                                        }
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = if (tripHistory.isEmpty()) "—" else avgScore.toString(),
+                                    fontSize = 24.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = when {
+                                        tripHistory.isEmpty() -> Color(0xFFAEAEB2)
+                                        avgScore >= 90 -> Color(0xFF34C759)
+                                        avgScore >= 75 -> Color(0xFF007AFF)
+                                        avgScore >= 60 -> Color(0xFFFFCC00)
+                                        else -> Color(0xFFFF9500)
+                                    }
+                                )
+                            }
+                        }
+                        
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Driving Score",
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF1C1C1E),
+                                letterSpacing = (-0.3).sp
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = if (tripHistory.isEmpty()) "No trips recorded" else {
+                                    when {
+                                        avgScore >= 90 -> "Excellent driving!"
+                                        avgScore >= 75 -> "Good and safe"
+                                        avgScore >= 60 -> "Room to improve"
+                                        else -> "Drive carefully"
                                     }
                                 },
-                                modifier = Modifier.size(64.dp)
-                            ) {
-                                Column(
-                                    modifier = Modifier.fillMaxSize(),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center
-                                ) {
-                                    Text(
-                                        text = if (tripHistory.isEmpty()) "--" else {
-                                            val avgScore = tripHistory.mapNotNull { trip ->
-                                                try {
-                                                    val parts = trip.id.split("_")
-                                                    if (parts.size >= 2) {
-                                                        val harshBraking = trip.hazardsAvoided
-                                                        100 - (harshBraking * 5).coerceAtMost(30)
-                                                    } else {
-                                                        85
-                                                    }
-                                                } catch (e: Exception) {
-                                                    85
-                                                }
-                                            }.average().toInt()
-                                            avgScore.toString()
-                                        },
-                                        fontSize = 24.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White
-                                    )
-                                    Text(
-                                        text = "Score",
-                                        fontSize = 11.sp,
-                                        color = Color.White.copy(alpha = 0.9f)
-                                    )
-                                }
-                            }
-                            
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Driving Score",
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF212121)
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = if (tripHistory.isEmpty()) "No trips yet" else {
-                                        val avgScore = tripHistory.mapNotNull { trip ->
-                                            try {
-                                                val parts = trip.id.split("_")
-                                                if (parts.size >= 2) {
-                                                    val harshBraking = trip.hazardsAvoided
-                                                    100 - (harshBraking * 5).coerceAtMost(30)
-                                                } else {
-                                                    85
-                                                }
-                                            } catch (e: Exception) {
-                                                85
-                                            }
-                                        }.average().toInt()
-                                        when {
-                                            avgScore >= 90 -> "Excellent driving!"
-                                            avgScore >= 75 -> "Good and safe!"
-                                            avgScore >= 60 -> "Room for improvement"
-                                            else -> "Drive more carefully"
-                                        }
-                                    },
-                                    fontSize = 13.sp,
-                                    color = Color(0xFF757575)
-                                )
-                            }
-                            
-                            Icon(
-                                Icons.Default.Star,
-                                contentDescription = null,
-                                tint = Color(0xFFFFC107),
-                                modifier = Modifier.size(28.dp)
+                                fontSize = 15.sp,
+                                color = Color(0xFF8E8E93)
                             )
                         }
                     }
+                }
                     
-                    // Monthly Cost Summary Card
-                    Card(
+                // Monthly Costs Section
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showAddCostDialog = true },
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    shape = RoundedCornerShape(20.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                ) {
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { showAddCostDialog = true },
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        shape = RoundedCornerShape(16.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                            .padding(20.dp)
                     ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Top
                         ) {
-                            if (monthlyCosts.isNotEmpty()) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column {
-                                        Text(
-                                            text = "Monthly Costs",
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF212121)
-                                        )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            text = monthlyCosts.first().month,
-                                            fontSize = 13.sp,
-                                            color = Color(0xFF757575)
-                                        )
-                                    }
-                                    
-                                    Text(
-                                        text = "$${String.format("%.2f", monthlyCosts.first().totalTripCost)}",
-                                        fontSize = 24.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF1976D2)
-                                    )
-                                }
-                                
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Divider(color = Color(0xFFE0E0E0), thickness = 1.dp)
-                                Spacer(modifier = Modifier.height(16.dp))
-                                
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    CostBreakdownItem(
-                                        label = "Toll",
-                                        amount = monthlyCosts.first().totalTollCost
-                                    )
-                                    CostBreakdownItem(
-                                        label = "Parking",
-                                        amount = monthlyCosts.first().totalParkingCost
-                                    )
-                                    CostBreakdownItem(
-                                        label = "Fuel",
-                                        amount = monthlyCosts.first().totalFuelCost
-                                    )
-                                }
-                                
-                                Spacer(modifier = Modifier.height(12.dp))
-                                
+                            Column {
                                 Text(
-                                    text = "${monthlyCosts.first().totalTrips} trips • Avg: $${String.format("%.2f", monthlyCosts.first().averageCostPerTrip)}/trip",
-                                    fontSize = 12.sp,
-                                    color = Color(0xFF757575)
+                                    text = "Monthly Costs",
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color(0xFF1C1C1E),
+                                    letterSpacing = (-0.3).sp
                                 )
-                            } else {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column {
-                                        Text(
-                                            text = "Monthly Costs",
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF212121)
-                                        )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            text = "No cost data yet",
-                                            fontSize = 13.sp,
-                                            color = Color(0xFF757575)
-                                        )
-                                    }
-                                    
-                                    Text(
-                                        text = "$0.00",
-                                        fontSize = 24.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF9E9E9E)
-                                    )
-                                }
-                                
-                                Spacer(modifier = Modifier.height(12.dp))
-                                
+                                Spacer(modifier = Modifier.height(2.dp))
                                 Text(
-                                    text = "Complete trips to track costs automatically",
-                                    fontSize = 13.sp,
-                                    color = Color(0xFF757575)
+                                    text = if (monthlyCosts.isNotEmpty()) monthlyCosts.first().month else "No data",
+                                    fontSize = 15.sp,
+                                    color = Color(0xFF8E8E93)
                                 )
                             }
+                            
+                            Text(
+                                text = if (monthlyCosts.isNotEmpty()) {
+                                    "$${String.format("%.2f", monthlyCosts.first().totalTripCost)}"
+                                } else {
+                                    "$0.00"
+                                },
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (monthlyCosts.isNotEmpty()) Color(0xFF1C1C1E) else Color(0xFFAEAEB2),
+                                letterSpacing = (-0.5).sp
+                            )
+                        }
+                        
+                        if (monthlyCosts.isEmpty()) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                text = "Complete trips to track costs automatically",
+                                fontSize = 14.sp,
+                                color = Color(0xFF8E8E93),
+                                lineHeight = 20.sp
+                            )
                         }
                     }
+                }
                 
-                // Monthly Reports Card
+                // Monthly Reports Section
                 if (monthlyStats.isNotEmpty()) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
-                        shape = RoundedCornerShape(16.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        shape = RoundedCornerShape(20.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                     ) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp)
+                                .padding(20.dp)
                         ) {
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { isMonthlyExpanded = !isMonthlyExpanded },
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
                                     text = "Monthly Reports",
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF212121)
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color(0xFF1C1C1E),
+                                    letterSpacing = (-0.3).sp
                                 )
-                                IconButton(onClick = { isMonthlyExpanded = !isMonthlyExpanded }) {
-                                    Icon(
-                                        if (isMonthlyExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                        contentDescription = null,
-                                        tint = Color(0xFF757575)
-                                    )
-                                }
+                                Icon(
+                                    if (isMonthlyExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                    contentDescription = null,
+                                    tint = Color(0xFF8E8E93),
+                                    modifier = Modifier.size(20.dp)
+                                )
                             }
                             
                             AnimatedVisibility(visible = isMonthlyExpanded) {
-                                Column(modifier = Modifier.padding(top = 12.dp)) {
+                                Column(modifier = Modifier.padding(top = 20.dp)) {
                                     monthlyStats.forEach { (month, tripCount) ->
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .padding(vertical = 8.dp),
+                                                .padding(vertical = 10.dp),
                                             horizontalArrangement = Arrangement.SpaceBetween,
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Text(
                                                 text = month,
-                                                fontSize = 14.sp,
+                                                fontSize = 15.sp,
                                                 fontWeight = FontWeight.Medium,
-                                                color = Color(0xFF212121),
-                                                modifier = Modifier.width(70.dp)
+                                                color = Color(0xFF1C1C1E),
+                                                modifier = Modifier.width(60.dp)
                                             )
                                             
-                                            Box(modifier = Modifier.weight(1f)) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .padding(horizontal = 12.dp)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .height(6.dp)
+                                                        .background(
+                                                            Color(0xFFF2F2F7),
+                                                            RoundedCornerShape(3.dp)
+                                                        )
+                                                )
                                                 Box(
                                                     modifier = Modifier
                                                         .fillMaxWidth(tripCount / monthlyStats.maxOf { it.second }.toFloat())
-                                                        .height(28.dp)
+                                                        .height(6.dp)
                                                         .background(
-                                                            Color(0xFF1976D2).copy(alpha = 0.15f),
-                                                            RoundedCornerShape(6.dp)
+                                                            Color(0xFF007AFF),
+                                                            RoundedCornerShape(3.dp)
                                                         )
                                                 )
                                             }
                                             
                                             Text(
                                                 text = "$tripCount",
-                                                fontSize = 14.sp,
+                                                fontSize = 15.sp,
                                                 fontWeight = FontWeight.SemiBold,
-                                                color = Color(0xFF1976D2),
-                                                modifier = Modifier.width(40.dp),
+                                                color = Color(0xFF007AFF),
+                                                modifier = Modifier.width(30.dp),
                                                 textAlign = TextAlign.End
                                             )
                                         }
@@ -619,95 +620,52 @@ fun ActivityScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
-                    shape = RoundedCornerShape(16.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    shape = RoundedCornerShape(20.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Column(modifier = Modifier.fillMaxWidth()) {
-                        TabRow(
-                            selectedTabIndex = selectedTab,
-                            containerColor = Color.Transparent,
-                            contentColor = Color(0xFF1976D2)
+                        // Custom Tab Bar
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp)
+                                .padding(top = 16.dp, bottom = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Tab(
+                            TabButton(
+                                text = "Recent Trips",
                                 selected = selectedTab == 0,
-                                onClick = { selectedTab = 0 },
-                                text = {
-                                    Text(
-                                        "Recent Trips",
-                                        fontSize = 15.sp,
-                                        fontWeight = if (selectedTab == 0) FontWeight.SemiBold else FontWeight.Normal,
-                                        color = if (selectedTab == 0) Color(0xFF1976D2) else Color(0xFF757575)
-                                    )
-                                }
+                                onClick = { selectedTab = 0 }
                             )
-                            Tab(
+                            TabButton(
+                                text = "Saved",
                                 selected = selectedTab == 1,
-                                onClick = { selectedTab = 1 },
-                                text = {
-                                    Text(
-                                        "Saved",
-                                        fontSize = 15.sp,
-                                        fontWeight = if (selectedTab == 1) FontWeight.SemiBold else FontWeight.Normal,
-                                        color = if (selectedTab == 1) Color(0xFF1976D2) else Color(0xFF757575)
-                                    )
-                                }
+                                onClick = { selectedTab = 1 }
                             )
                         }
                         
-                        Column(modifier = Modifier.padding(16.dp)) {
+                        Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
                             if (selectedTab == 0) {
                                 if (tripHistory.isEmpty()) {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 32.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Place,
-                                            contentDescription = null,
-                                            tint = Color(0xFF9E9E9E),
-                                            modifier = Modifier.size(48.dp)
-                                        )
-                                        Spacer(modifier = Modifier.height(12.dp))
-                                        Text(
-                                            text = "No trips yet",
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            color = Color(0xFF757575)
-                                        )
-                                    }
+                                    EmptyState(
+                                        icon = Icons.Default.Place,
+                                        message = "No trips yet"
+                                    )
                                 } else {
                                     tripHistory.forEach { trip ->
-                                        TripCard(trip)
+                                        MinimalTripCard(trip)
                                         Spacer(modifier = Modifier.height(12.dp))
                                     }
                                 }
                             } else {
                                 if (savedRoutes.isEmpty()) {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 32.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Star,
-                                            contentDescription = null,
-                                            tint = Color(0xFF9E9E9E),
-                                            modifier = Modifier.size(48.dp)
-                                        )
-                                        Spacer(modifier = Modifier.height(12.dp))
-                                        Text(
-                                            text = "No saved routes",
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            color = Color(0xFF757575)
-                                        )
-                                    }
+                                    EmptyState(
+                                        icon = Icons.Default.Star,
+                                        message = "No saved routes"
+                                    )
                                 } else {
                                     savedRoutes.forEach { route ->
-                                        SavedRouteCard(
+                                        MinimalSavedRouteCard(
                                             route = route,
                                             onToggleFavorite = {
                                                 // Toggle favorite logic
@@ -733,8 +691,9 @@ fun ActivityScreen(
     }
 }
 
+// Compact Metric Card - Minimal Design
 @Composable
-fun StatCard(
+fun CompactMetricCard(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     value: String,
     unit: String,
@@ -742,148 +701,186 @@ fun StatCard(
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier.height(100.dp),
+        modifier = modifier.height(110.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(12.dp),
+                .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             Icon(
                 icon,
                 contentDescription = null,
-                tint = Color(0xFF1976D2),
-                modifier = Modifier.size(24.dp)
+                tint = Color(0xFF007AFF),
+                modifier = Modifier.size(20.dp)
             )
-            Spacer(modifier = Modifier.height(6.dp))
-            Row(
-                verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.Center
-            ) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = value,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF1C1C1E),
+                letterSpacing = (-0.5).sp,
+                maxLines = 1
+            )
+            if (unit.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = value,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF212121)
+                    text = unit,
+                    fontSize = 13.sp,
+                    color = Color(0xFF8E8E93)
                 )
-                if (unit.isNotEmpty()) {
-                    Spacer(modifier = Modifier.width(3.dp))
-                    Text(
-                        text = unit,
-                        fontSize = 13.sp,
-                        color = Color(0xFF757575)
-                    )
-                }
             }
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = label,
-                fontSize = 12.sp,
-                color = Color(0xFF757575)
+                fontSize = 13.sp,
+                color = Color(0xFF8E8E93)
             )
         }
     }
 }
 
+// Custom Tab Button
 @Composable
-fun TripCard(trip: TripDisplayRecord) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(16.dp)
+fun TabButton(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(12.dp),
+        color = if (selected) Color(0xFF007AFF).copy(alpha = 0.1f) else Color.Transparent,
+        modifier = Modifier.height(36.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+        Box(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = trip.route,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF212121)
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = trip.date,
-                        fontSize = 12.sp,
-                        color = Color(0xFF757575)
-                    )
-                }
-                
-                if (trip.hazardsAvoided > 0) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = Color(0xFFE8F5E9)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Build,
-                                contentDescription = null,
-                                tint = Color(0xFF4CAF50),
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Text(
-                                text = "${trip.hazardsAvoided} avoided",
-                                fontSize = 11.sp,
-                                color = Color(0xFF4CAF50),
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                TripInfoItem(Icons.Default.Star, trip.distance)
-                TripInfoItem(Icons.Default.DateRange, trip.duration)
-                TripInfoItem(Icons.Default.Star, trip.avgSpeed)
-            }
+            Text(
+                text = text,
+                fontSize = 15.sp,
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                color = if (selected) Color(0xFF007AFF) else Color(0xFF8E8E93)
+            )
         }
     }
 }
 
+// Empty State Component
 @Composable
-fun TripInfoItem(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+fun EmptyState(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    message: String
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 40.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Icon(
             icon,
             contentDescription = null,
-            tint = Color(0xFF757575),
-            modifier = Modifier.size(14.dp)
+            tint = Color(0xFFD1D1D6),
+            modifier = Modifier.size(44.dp)
         )
         Text(
-            text = text,
-            fontSize = 12.sp,
-            color = Color(0xFF757575)
+            text = message,
+            fontSize = 15.sp,
+            color = Color(0xFF8E8E93)
+        )
+    }
+}
+
+// Minimal Trip Card
+@Composable
+fun MinimalTripCard(trip: TripDisplayRecord) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
+        ) {
+            Column(
+                modifier = Modifier.weight(1f).padding(end = if (trip.hazardsAvoided > 0) 8.dp else 0.dp)
+            ) {
+                Text(
+                    text = trip.route,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF1C1C1E),
+                    letterSpacing = (-0.2).sp,
+                    maxLines = 2,
+                    lineHeight = 20.sp
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = trip.date,
+                    fontSize = 13.sp,
+                    color = Color(0xFF8E8E93),
+                    maxLines = 1
+                )
+            }
+            
+            if (trip.hazardsAvoided > 0) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFF34C759).copy(alpha = 0.12f)
+                ) {
+                    Text(
+                        text = "${trip.hazardsAvoided}",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        fontSize = 13.sp,
+                        color = Color(0xFF34C759),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            MinimalTripStat(trip.distance)
+            MinimalTripStat(trip.duration)
+            MinimalTripStat(trip.avgSpeed)
+        }
+        
+        // Subtle divider
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(Color(0xFFF2F2F7))
+                .padding(top = 8.dp)
         )
     }
 }
 
 @Composable
-fun SavedRouteCard(
+fun MinimalTripStat(text: String) {
+    Text(
+        text = text,
+        fontSize = 13.sp,
+        color = Color(0xFF8E8E93)
+    )
+}
+
+// Minimal Saved Route Card
+@Composable
+fun MinimalSavedRouteCard(
     route: SavedRouteRecord,
     onToggleFavorite: () -> Unit,
     onDelete: () -> Unit
@@ -893,8 +890,20 @@ fun SavedRouteCard(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Route?") },
-            text = { Text("Are you sure you want to delete \"${route.name}\"?") },
+            title = { 
+                Text(
+                    "Delete Route?",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold
+                ) 
+            },
+            text = { 
+                Text(
+                    "Are you sure you want to delete \"${route.name}\"?",
+                    fontSize = 15.sp,
+                    color = Color(0xFF8E8E93)
+                ) 
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -902,117 +911,89 @@ fun SavedRouteCard(
                         showDeleteDialog = false
                     },
                     colors = ButtonDefaults.textButtonColors(
-                        contentColor = Color(0xFFD32F2F)
+                        contentColor = Color(0xFFFF3B30)
                     )
                 ) {
-                    Text("Delete")
+                    Text("Delete", fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel")
+                    Text("Cancel", color = Color(0xFF007AFF))
                 }
-            }
+            },
+            shape = RoundedCornerShape(14.dp),
+            containerColor = Color.White
         )
     }
     
-    Card(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(12.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            Text(
+                text = route.name,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFF1C1C1E),
+                letterSpacing = (-0.2).sp,
+                modifier = Modifier.weight(1f)
+            )
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Text(
-                    text = route.name,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF212121),
-                    modifier = Modifier.weight(1f)
-                )
-                Row {
-                    IconButton(onClick = onToggleFavorite) {
-                        Icon(
-                            Icons.Default.Star,
-                            contentDescription = "Toggle favorite",
-                            tint = if (route.isFavorite) Color(0xFFFFD700) else Color(0xFFE0E0E0),
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                    IconButton(onClick = { showDeleteDialog = true }) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = "Delete route",
-                            tint = Color(0xFF757575),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Default.Place,
-                    contentDescription = null,
-                    tint = Color(0xFF1976D2),
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = "${route.origin} → ${route.destination}",
-                    fontSize = 14.sp,
-                    color = Color(0xFF757575)
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(
+                    onClick = onToggleFavorite,
+                    modifier = Modifier.size(36.dp)
+                ) {
                     Icon(
-                        Icons.Default.Place,
-                        contentDescription = null,
-                        tint = Color(0xFF1976D2),
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = String.format("%.1f km", route.distance),
-                        fontSize = 13.sp,
-                        color = Color(0xFF424242)
+                        Icons.Default.Star,
+                        contentDescription = "Favorite",
+                        tint = if (route.isFavorite) Color(0xFFFFCC00) else Color(0xFFD1D1D6),
+                        modifier = Modifier.size(20.dp)
                     )
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(
+                    onClick = { showDeleteDialog = true },
+                    modifier = Modifier.size(36.dp)
+                ) {
                     Icon(
-                        Icons.Default.DateRange,
-                        contentDescription = null,
-                        tint = Color(0xFF1976D2),
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "${route.estimatedTime} min",
-                        fontSize = 13.sp,
-                        color = Color(0xFF424242)
+                        Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        tint = Color(0xFFD1D1D6),
+                        modifier = Modifier.size(18.dp)
                     )
                 }
             }
         }
+        
+        Text(
+            text = "${route.origin} → ${route.destination}",
+            fontSize = 13.sp,
+            color = Color(0xFF8E8E93)
+        )
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            MinimalTripStat(String.format("%.1f km", route.distance))
+            MinimalTripStat("${route.estimatedTime} min")
+        }
+        
+        // Subtle divider
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(Color(0xFFF2F2F7))
+                .padding(top = 8.dp)
+        )
     }
 }
 

@@ -89,7 +89,7 @@ fun RealNavigationScreen(
     var friendLocations by remember { mutableStateOf<List<FriendLocation>>(emptyList()) }
     var showParkingSheet by remember { mutableStateOf(false) }
     var parkingSpots by remember { mutableStateOf<List<ParkingSpot>>(emptyList()) }
-    var showTrafficLayer by remember { mutableStateOf(false) }
+    var showTrafficLayer by remember { mutableStateOf(true) } // Enable traffic by default
     var currentDrivingBehavior by remember { mutableStateOf<DrivingBehavior?>(null) }
     var isOffRoute by remember { mutableStateOf(false) }
     
@@ -112,6 +112,8 @@ fun RealNavigationScreen(
     var showHazardAlert by remember { mutableStateOf(false) }
     var nextHazard by remember { mutableStateOf<com.nextcs.aurora.navigation.DetectedHazard?>(null) }
     var isNavigating by remember { mutableStateOf(false) }
+    var hasArrived by remember { mutableStateOf(false) }
+    var showFinishDialog by remember { mutableStateOf(false) }
     
     // Save route dialog
     if (showSaveDialog) {
@@ -119,16 +121,32 @@ fun RealNavigationScreen(
         
         AlertDialog(
             onDismissRequest = { showSaveDialog = false },
-            title = { Text("Save Route") },
+            title = { 
+                Text(
+                    "Save Route",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF1C1C1E)
+                ) 
+            },
             text = {
                 Column {
-                    Text("Save this route for quick access later.")
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Save this route for quick access later.",
+                        fontSize = 15.sp,
+                        color = Color(0xFF8E8E93)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
                     OutlinedTextField(
                         value = routeName,
                         onValueChange = { routeName = it },
-                        label = { Text("Route name") },
-                        placeholder = { Text("e.g., Daily Commute") }
+                        label = { Text("Route name", fontSize = 15.sp) },
+                        placeholder = { Text("e.g., Daily Commute") },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF007AFF),
+                            focusedLabelColor = Color(0xFF007AFF)
+                        )
                     )
                 }
             },
@@ -155,14 +173,122 @@ fun RealNavigationScreen(
                     },
                     enabled = routeName.isNotBlank()
                 ) {
-                    Text("Save")
+                    Text(
+                        "Save",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF007AFF)
+                    )
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showSaveDialog = false }) {
-                    Text("Cancel")
+                    Text(
+                        "Cancel",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF8E8E93)
+                    )
                 }
-            }
+            },
+            shape = RoundedCornerShape(14.dp),
+            containerColor = Color.White
+        )
+    }
+    
+    // Finish Trip Dialog
+    if (showFinishDialog) {
+        AlertDialog(
+            onDismissRequest = { showFinishDialog = false },
+            title = { 
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = Color(0xFF4CAF50),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        "Finish Trip",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF1C1C1E)
+                    ) 
+                }
+            },
+            text = {
+                Column {
+                    Text(
+                        if (hasArrived) {
+                            "You have arrived at your destination!"
+                        } else {
+                            "Are you sure you want to end navigation?"
+                        },
+                        fontSize = 15.sp,
+                        color = Color(0xFF8E8E93)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        "Your trip will be saved to history.",
+                        fontSize = 13.sp,
+                        color = Color(0xFF8E8E93)
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        // Save trip when manually finishing
+                        scope.launch {
+                            try {
+                                routeInfo?.let { route ->
+                                    val totalDistance = route.steps.sumOf { it.distance }
+                                    val totalDuration = route.steps.sumOf { it.duration }
+                                    val behavior = currentDrivingBehavior ?: behaviorAnalyzer.getBehavior()
+                                    
+                                    tripHistoryService.saveTrip(
+                                        origin = origin,
+                                        destination = destination,
+                                        routeInfo = com.nextcs.aurora.navigation.RouteInfo(
+                                            polyline = route.polyline,
+                                            steps = route.steps,
+                                            distance = totalDistance,
+                                            duration = totalDuration,
+                                            overview = "$origin to $destination"
+                                        ),
+                                        hazards = detectedHazards,
+                                        safetyScore = behavior.smoothDrivingScore,
+                                        routeType = "Regular",
+                                        harshBrakingCount = behavior.harshBrakingCount,
+                                        rapidAccelerationCount = behavior.rapidAccelerationCount,
+                                        speedingIncidents = behavior.speedingIncidents
+                                    )
+                                    android.util.Log.d("RealNavigation", "Trip saved via Finish button")
+                                }
+                            } catch (e: Exception) {
+                                android.util.Log.e("RealNavigation", "Failed to save trip via Finish button", e)
+                            }
+                        }
+                        showFinishDialog = false
+                        onBack()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF007AFF)
+                    )
+                ) {
+                    Text("Finish Trip")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showFinishDialog = false }) {
+                    Text("Continue")
+                }
+            },
+            shape = RoundedCornerShape(20.dp),
+            containerColor = Color.White
         )
     }
     
@@ -301,12 +427,16 @@ fun RealNavigationScreen(
                 routeInfo?.let { route ->
                     if (trafficService.checkOffRoute(location, route)) {
                         isOffRoute = true
+                        voiceService.announce("Recalculating route")
                         // Auto-reroute
                         scope.launch {
                             destinationLocation?.let { dest ->
                                 trafficService.autoReroute(location, dest).onSuccess { newRoute ->
                                     routeInfo = newRoute
                                     isOffRoute = false
+                                    currentStepIndex = 0
+                                    currentInstruction = newRoute.steps.firstOrNull()?.instruction ?: "Follow route"
+                                    voiceService.announce("Route updated")
                                 }
                             }
                         }
@@ -456,6 +586,7 @@ fun RealNavigationScreen(
                 } else if (distanceToNextStep < 50 && currentStepIndex == route.steps.size - 1) {
                     // Arrived at destination - save trip
                     currentInstruction = "You have arrived at $destination"
+                    hasArrived = true
                     voiceService.announce(currentInstruction)
                     
                     // Save completed trip
@@ -520,7 +651,8 @@ fun RealNavigationScreen(
             cameraPositionState = cameraPositionState,
             properties = MapProperties(
                 isMyLocationEnabled = locationService.hasLocationPermission(),
-                mapType = MapType.NORMAL
+                mapType = MapType.NORMAL,
+                isTrafficEnabled = showTrafficLayer
             ),
             uiSettings = MapUiSettings(
                 zoomControlsEnabled = false,
@@ -673,6 +805,16 @@ fun RealNavigationScreen(
                             onDismissRequest = { showMenu = false }
                         ) {
                             DropdownMenuItem(
+                                text = { Text("Finish Trip") },
+                                onClick = {
+                                    showMenu = false
+                                    showFinishDialog = true
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF4CAF50))
+                                }
+                            )
+                            DropdownMenuItem(
                                 text = { Text("Alternative Routes") },
                                 onClick = {
                                     showMenu = false
@@ -815,6 +957,37 @@ fun RealNavigationScreen(
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = Color.White
+                        )
+                    }
+                }
+            }
+            
+            // Traffic indicator - shows when traffic layer is enabled
+            if (showTrafficLayer) {
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 90.dp, end = 16.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color.White,
+                    shadowElevation = 2.dp
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.LocationOn,
+                            contentDescription = null,
+                            tint = Color(0xFFFF5722),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            "Live Traffic",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF1C1C1E)
                         )
                     }
                 }
@@ -1034,6 +1207,37 @@ fun RealNavigationScreen(
                             }
                         }
                     }
+                }
+            }
+        }
+        
+        // Finish Trip FAB - Shows when arrived
+        if (hasArrived) {
+            FloatingActionButton(
+                onClick = { showFinishDialog = true },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 140.dp),
+                containerColor = Color(0xFF4CAF50),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = "Finish Trip",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        "Finish Trip",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White
+                    )
                 }
             }
         }

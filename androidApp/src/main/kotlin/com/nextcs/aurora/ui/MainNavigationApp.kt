@@ -1,6 +1,9 @@
 package com.nextcs.aurora.ui
 
 import android.util.Log
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -146,7 +149,11 @@ fun NavigationGraph(
     NavHost(
         navController = navController,
         startDestination = BottomNavItem.Home.route,
-        modifier = modifier
+        modifier = modifier,
+        enterTransition = { slideInHorizontally(animationSpec = tween(200), initialOffsetX = { it }) },
+        exitTransition = { slideOutHorizontally(animationSpec = tween(200), targetOffsetX = { -it }) },
+        popEnterTransition = { slideInHorizontally(animationSpec = tween(200), initialOffsetX = { -it }) },
+        popExitTransition = { slideOutHorizontally(animationSpec = tween(200), targetOffsetX = { it }) }
     ) {
         composable(BottomNavItem.Home.route) {
             HomeScreen(

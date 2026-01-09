@@ -339,7 +339,14 @@ fun MultiStopPlanningScreen(
                 stopDuration = 5
                 stopLocation = null
             },
-            title = { Text("Add Stop", fontWeight = FontWeight.Bold) },
+            title = { 
+                Text(
+                    "Add Stop",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF1C1C1E)
+                ) 
+            },
             text = {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     // Location search with Places Autocomplete
@@ -375,9 +382,9 @@ fun MultiStopPlanningScreen(
                     
                     Text(
                         "Stop duration: $stopDuration minutes",
-                        fontSize = 14.sp,
+                        fontSize = 15.sp,
                         fontWeight = FontWeight.Medium,
-                        color = Color(0xFF212121)
+                        color = Color(0xFF1C1C1E)
                     )
                     
                     Slider(
@@ -386,8 +393,8 @@ fun MultiStopPlanningScreen(
                         valueRange = 0f..60f,
                         steps = 11,
                         colors = SliderDefaults.colors(
-                            thumbColor = Color(0xFF1976D2),
-                            activeTrackColor = Color(0xFF1976D2)
+                            thumbColor = Color(0xFF007AFF),
+                            activeTrackColor = Color(0xFF007AFF)
                         )
                     )
                 }
@@ -414,10 +421,16 @@ fun MultiStopPlanningScreen(
                     },
                     enabled = newStopName.isNotEmpty() && stopLocation != null,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF1976D2)
-                    )
+                        containerColor = Color(0xFF007AFF),
+                        disabledContainerColor = Color(0xFFD1D1D6)
+                    ),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Add Stop")
+                    Text(
+                        "Add Stop",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             },
             dismissButton = {
@@ -427,9 +440,16 @@ fun MultiStopPlanningScreen(
                     stopDuration = 5
                     stopLocation = null
                 }) {
-                    Text("Cancel")
+                    Text(
+                        "Cancel",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF8E8E93)
+                    )
                 }
-            }
+            },
+            shape = RoundedCornerShape(14.dp),
+            containerColor = Color.White
         )
     }
 }

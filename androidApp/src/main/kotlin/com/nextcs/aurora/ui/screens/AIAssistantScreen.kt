@@ -178,7 +178,18 @@ fun AIAssistantScreen(
                             onClick = {
                                 inputText = suggestion
                             },
-                            label = { Text(suggestion, fontSize = 12.sp) }
+                            label = { 
+                                Text(
+                                    suggestion, 
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium
+                                ) 
+                            },
+                            colors = SuggestionChipDefaults.suggestionChipColors(
+                                containerColor = Color(0xFFF8F9FA),
+                                labelColor = Color(0xFF1C1C1E)
+                            ),
+                            border = androidx.compose.foundation.BorderStroke(1.5.dp, Color(0xFFB0B0B5))
                         )
                     }
                 }

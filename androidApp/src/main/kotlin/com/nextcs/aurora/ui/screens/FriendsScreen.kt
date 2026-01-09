@@ -175,8 +175,21 @@ fun FriendsScreen(
     showDeleteDialog?.let { friend ->
         AlertDialog(
             onDismissRequest = { showDeleteDialog = null },
-            title = { Text("Remove Friend?") },
-            text = { Text("Remove ${friend.displayName} from your friends list?") },
+            title = { 
+                Text(
+                    "Remove Friend?",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF1C1C1E)
+                ) 
+            },
+            text = { 
+                Text(
+                    "Remove ${friend.displayName} from your friends list?",
+                    fontSize = 15.sp,
+                    color = Color(0xFF8E8E93)
+                ) 
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -186,19 +199,28 @@ fun FriendsScreen(
                                 showDeleteDialog = null
                             }
                         }
-                    },
-                    colors = ButtonDefaults.textButtonColors(
-                        contentColor = Color(0xFFD32F2F)
-                    )
+                    }
                 ) {
-                    Text("Remove")
+                    Text(
+                        "Remove",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFFFF3B30)
+                    )
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = null }) {
-                    Text("Cancel")
+                    Text(
+                        "Cancel",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF007AFF)
+                    )
                 }
-            }
+            },
+            shape = RoundedCornerShape(14.dp),
+            containerColor = Color.White
         )
     }
 }
@@ -282,7 +304,7 @@ fun AddFriendDialog(
     
     Dialog(onDismissRequest = onDismiss) {
         Card(
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White)
         ) {
             Column(
@@ -293,33 +315,49 @@ fun AddFriendDialog(
             ) {
                 Text(
                     text = "Add Friend",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF212121)
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF1C1C1E),
+                    letterSpacing = (-0.5).sp
                 )
                 
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Friend's Name") },
+                    label = { Text("Friend's Name", fontSize = 15.sp) },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF007AFF),
+                        focusedLabelColor = Color(0xFF007AFF)
+                    )
                 )
                 
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
-                    label = { Text("Email") },
+                    label = { Text("Email", fontSize = 15.sp) },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF007AFF),
+                        focusedLabelColor = Color(0xFF007AFF)
+                    )
                 )
                 
                 OutlinedTextField(
                     value = userId,
                     onValueChange = { userId = it },
-                    label = { Text("User ID") },
+                    label = { Text("User ID", fontSize = 15.sp) },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF007AFF),
+                        focusedLabelColor = Color(0xFF007AFF)
+                    )
                 )
                 
                 Row(
@@ -328,7 +366,12 @@ fun AddFriendDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text("Cancel")
+                        Text(
+                            "Cancel",
+                            fontSize = 17.sp,
+                            color = Color(0xFF8E8E93),
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
@@ -337,9 +380,18 @@ fun AddFriendDialog(
                                 onAdd(userId, name, email)
                             }
                         },
-                        enabled = userId.isNotBlank() && name.isNotBlank() && email.isNotBlank()
+                        enabled = userId.isNotBlank() && name.isNotBlank() && email.isNotBlank(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF007AFF),
+                            disabledContainerColor = Color(0xFFD1D1D6)
+                        ),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("Add")
+                        Text(
+                            "Add",
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
                 }
             }

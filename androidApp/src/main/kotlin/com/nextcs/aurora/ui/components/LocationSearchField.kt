@@ -211,6 +211,9 @@ fun LocationSearchField(
                     .fillMaxWidth()
                     .heightIn(max = 300.dp),
                 shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.White
+                ),
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
             ) {
                 LazyColumn {
@@ -254,13 +257,14 @@ private fun PredictionItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
+            .background(Color.White)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             Icons.Default.LocationOn,
             contentDescription = null,
-            tint = Color(0xFF757575),
+            tint = Color(0xFF007AFF),
             modifier = Modifier.size(24.dp)
         )
         
@@ -270,13 +274,13 @@ private fun PredictionItem(
             Text(
                 text = prediction.primaryText,
                 fontSize = 16.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color(0xFF212121)
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF1C1C1E)
             )
             Text(
                 text = prediction.secondaryText,
                 fontSize = 14.sp,
-                color = Color(0xFF757575)
+                color = Color(0xFF8E8E93)
             )
         }
     }

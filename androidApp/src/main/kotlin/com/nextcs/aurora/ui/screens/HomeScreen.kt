@@ -4,8 +4,10 @@ import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -58,7 +60,7 @@ fun HomeScreen(
     LaunchedEffect(Unit) {
         scope.launch {
             tripHistoryService.getAllTrips().onSuccess { trips ->
-                recentTrips = trips.take(3)
+                recentTrips = trips.take(10) // Show up to 10 recent trips
             }
         }
     }
@@ -68,32 +70,45 @@ fun HomeScreen(
         onStateChange(origin, destination, originLocation, destinationLocation)
     }
     var showQuickActions by remember { mutableStateOf(true) }
+    val scrollState = rememberScrollState()
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFFF8F9FA))
+                .background(Color(0xFFF5F5F7))
+                .verticalScroll(scrollState)
     ) {
-        // Minimalist Top Header
+        // Minimal App Bar
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            color = Color.White,
-            shadowElevation = 3.dp
+            color = Color.Transparent,
+            shadowElevation = 0.dp
+        ) {
+            Text(
+                text = "Where to?",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF1C1C1E),
+                letterSpacing = (-0.5).sp,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)
+            )
+        }
+        
+        // Input Section Card
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            shape = RoundedCornerShape(20.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(20.dp)
             ) {
-                Text(
-                    text = "Where to?",
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF212121)
-                )
-                
-                Spacer(modifier = Modifier.height(18.dp))
                 
                 // Origin Field with Places Autocomplete
                 LocationSearchField(
@@ -165,88 +180,98 @@ fun HomeScreen(
                 )
                 
                 if (destination.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
                     
                     Button(
                         onClick = { onStartNavigation(origin.ifEmpty { "Current location" }, destination) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp),
+                            .height(52.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF1976D2)
+                            containerColor = Color(0xFF007AFF)
                         ),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(14.dp),
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
                     ) {
-                        Icon(
-                            Icons.Default.Place,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
+                        Text(
+                            "Start Navigation",
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = (-0.3).sp
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Start Navigation", fontSize = 16.sp, fontWeight = FontWeight.Medium)
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(8.dp))
-                
                 // Multi-stop button
+                Spacer(modifier = Modifier.height(12.dp))
                 OutlinedButton(
                     onClick = onMultiStopNavigation,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color(0xFF1976D2)
+                        contentColor = Color(0xFF007AFF)
                     ),
-                    shape = RoundedCornerShape(12.dp)
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFD1D1D6)),
+                    shape = RoundedCornerShape(14.dp)
                 ) {
                     Icon(
                         Icons.Default.Add,
                         contentDescription = null,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Plan Multi-Stop Route", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                    Text(
+                        "Plan Multi-Stop Route",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
                 
                 // Set Reminder button (shown when destination is set)
                 if (destination.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(8.dp))
-                    
                     OutlinedButton(
                         onClick = { showReminderDialog = true },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp),
                         colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = Color(0xFFFF9800)
+                            contentColor = Color(0xFF8E8E93)
                         ),
-                        shape = RoundedCornerShape(12.dp)
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFD1D1D6)),
+                        shape = RoundedCornerShape(14.dp)
                     ) {
                         Icon(
                             Icons.Default.Notifications,
                             contentDescription = null,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Set Departure Reminder", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                        Text(
+                            "Set Departure Reminder",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 }
             }
         }
+        
+        Spacer(modifier = Modifier.height(20.dp))
         
         // Quick Actions
         if (showQuickActions) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(horizontal = 20.dp)
             ) {
                 Text(
                     text = "Quick Actions",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color(0xFF757575),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF8E8E93),
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
                 
@@ -293,25 +318,27 @@ fun HomeScreen(
         
         // Recent Trips
         if (recentTrips.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(20.dp))
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
+                    .padding(horizontal = 20.dp)
             ) {
                 Text(
                     text = "Recent Trips",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color(0xFF757575),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF8E8E93),
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
                 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(20.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
-                    Column {
+                    Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
                         recentTrips.forEachIndexed { index, trip ->
                             RecentTripItem(
                                 trip = trip,
@@ -321,7 +348,14 @@ fun HomeScreen(
                                 }
                             )
                             if (index < recentTrips.size - 1) {
-                                Divider(color = Color(0xFFE0E0E0))
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(1.dp)
+                                        .background(Color(0xFFF2F2F7))
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
                             }
                         }
                     }
@@ -330,20 +364,24 @@ fun HomeScreen(
         }
     }
     
-    // AI Assistant FAB - Car icon
+    // AI Assistant FAB
     FloatingActionButton(
         onClick = { showAIAssistant = true },
         modifier = Modifier
             .align(Alignment.BottomEnd)
-            .padding(24.dp),
-        containerColor = Color(0xFF8B5CF6),
-        shape = RoundedCornerShape(16.dp)
+            .padding(20.dp),
+        containerColor = Color(0xFF007AFF),
+        shape = RoundedCornerShape(16.dp),
+        elevation = FloatingActionButtonDefaults.elevation(
+            defaultElevation = 4.dp,
+            pressedElevation = 6.dp
+        )
     ) {
         Icon(
             Icons.Default.LocationOn,
             contentDescription = "AI Assistant",
             tint = Color.White,
-            modifier = Modifier.size(28.dp)
+            modifier = Modifier.size(26.dp)
         )
     }
 }
@@ -393,11 +431,11 @@ fun QuickActionCard(
 ) {
     Card(
         modifier = modifier
-            .height(90.dp)
+            .height(100.dp)
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier
@@ -409,14 +447,14 @@ fun QuickActionCard(
             Icon(
                 icon,
                 contentDescription = null,
-                tint = Color(0xFF1976D2),
-                modifier = Modifier.size(32.dp)
+                tint = Color(0xFF007AFF),
+                modifier = Modifier.size(28.dp)
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = label,
                 fontSize = 13.sp,
-                color = Color(0xFF212121),
+                color = Color(0xFF1C1C1E),
                 fontWeight = FontWeight.Medium
             )
         }
@@ -439,23 +477,15 @@ fun RecentTripItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Surface(
-            shape = CircleShape,
-            color = Color(0xFFE3F2FD),
-            modifier = Modifier.size(48.dp)
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    Icons.Default.Place,
-                    contentDescription = null,
-                    tint = Color(0xFF1976D2),
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        }
+        Icon(
+            Icons.Default.Place,
+            contentDescription = null,
+            tint = Color(0xFF007AFF),
+            modifier = Modifier.size(20.dp)
+        )
         
         Spacer(modifier = Modifier.width(12.dp))
         
@@ -464,20 +494,22 @@ fun RecentTripItem(
                 text = trip.destination,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Medium,
-                color = Color(0xFF212121),
+                color = Color(0xFF1C1C1E),
                 maxLines = 1
             )
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = "$distanceKm • $durationMin min • ${dateFormat.format(Date(trip.timestamp))}",
-                fontSize = 12.sp,
-                color = Color(0xFF757575)
+                fontSize = 13.sp,
+                color = Color(0xFF8E8E93)
             )
         }
         
         Icon(
             Icons.Default.KeyboardArrowRight,
             contentDescription = null,
-            tint = Color(0xFF757575)
+            tint = Color(0xFFD1D1D6),
+            modifier = Modifier.size(20.dp)
         )
     }
 }
@@ -551,7 +583,10 @@ fun ReminderDialog(
         title = {
             Text(
                 "Set Departure Reminder",
-                fontWeight = FontWeight.Bold
+                fontSize = 17.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF1C1C1E),
+                letterSpacing = (-0.3).sp
             )
         },
         text = {
@@ -561,12 +596,17 @@ fun ReminderDialog(
             ) {
                 Text(
                     "Destination: $destination",
-                    fontSize = 14.sp,
-                    color = Color(0xFF757575)
+                    fontSize = 15.sp,
+                    color = Color(0xFF8E8E93)
                 )
                 
                 // Departure Time Picker
-                Text("Departure Time", fontWeight = FontWeight.Medium)
+                Text(
+                    "Departure Time",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF1C1C1E)
+                )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -580,11 +620,16 @@ fun ReminderDialog(
                                 if (hour in 0..23) selectedHour = hour
                             }
                         },
-                        label = { Text("Hour") },
+                        label = { Text("Hour", fontSize = 13.sp) },
                         modifier = Modifier.weight(1f),
-                        singleLine = true
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF007AFF),
+                            unfocusedBorderColor = Color(0xFFD1D1D6)
+                        )
                     )
-                    Text(":", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Text(":", fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1C1C1E))
                     // Minute
                     OutlinedTextField(
                         value = selectedMinute.toString().padStart(2, '0'),
@@ -593,14 +638,24 @@ fun ReminderDialog(
                                 if (minute in 0..59) selectedMinute = minute
                             }
                         },
-                        label = { Text("Minute") },
+                        label = { Text("Minute", fontSize = 13.sp) },
                         modifier = Modifier.weight(1f),
-                        singleLine = true
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF007AFF),
+                            unfocusedBorderColor = Color(0xFFD1D1D6)
+                        )
                     )
                 }
                 
                 // Estimated Duration
-                Text("Estimated Travel Time (minutes)", fontWeight = FontWeight.Medium)
+                Text(
+                    "Estimated Travel Time (minutes)",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF1C1C1E)
+                )
                 OutlinedTextField(
                     value = estimatedDuration.toString(),
                     onValueChange = {
@@ -609,11 +664,21 @@ fun ReminderDialog(
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF007AFF),
+                        unfocusedBorderColor = Color(0xFFD1D1D6)
+                    )
                 )
                 
                 // Reminder Before
-                Text("Remind me before (minutes)", fontWeight = FontWeight.Medium)
+                Text(
+                    "Remind me before (minutes)",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF1C1C1E)
+                )
                 OutlinedTextField(
                     value = reminderMinutes.toString(),
                     onValueChange = {
@@ -622,15 +687,26 @@ fun ReminderDialog(
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF007AFF),
+                        unfocusedBorderColor = Color(0xFFD1D1D6)
+                    )
                 )
                 
-                Text(
-                    "You'll be notified $reminderMinutes minutes before $selectedHour:${selectedMinute.toString().padStart(2, '0')}",
-                    fontSize = 12.sp,
-                    color = Color(0xFF757575),
-                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
-                )
+                Surface(
+                    color = Color(0xFFF2F2F7),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text(
+                        "You'll be notified $reminderMinutes minutes before $selectedHour:${selectedMinute.toString().padStart(2, '0')}",
+                        modifier = Modifier.padding(12.dp),
+                        fontSize = 13.sp,
+                        color = Color(0xFF8E8E93),
+                        lineHeight = 18.sp
+                    )
+                }
             }
         },
         confirmButton = {
@@ -649,15 +725,25 @@ fun ReminderDialog(
                     }
                     
                     onConfirm(calendar.timeInMillis, reminderMinutes, estimatedDuration)
-                }
+                },
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = Color(0xFF007AFF)
+                )
             ) {
-                Text("Set Reminder", fontWeight = FontWeight.Bold)
+                Text("Set Reminder", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
+            TextButton(
+                onClick = onDismiss,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = Color(0xFF8E8E93)
+                )
+            ) {
+                Text("Cancel", fontSize = 15.sp)
             }
-        }
+        },
+        shape = RoundedCornerShape(16.dp),
+        containerColor = Color.White
     )
 }

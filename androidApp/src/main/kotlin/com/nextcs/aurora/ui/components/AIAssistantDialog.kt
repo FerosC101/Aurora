@@ -49,14 +49,24 @@ fun AIAssistantDialog(
                     Icon(
                         Icons.Default.LocationOn,
                         contentDescription = null,
-                        tint = Color(0xFF8B5CF6),
-                        modifier = Modifier.size(28.dp)
+                        tint = Color(0xFF007AFF),
+                        modifier = Modifier.size(26.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("AI Route Assistant", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        "AI Route Assistant",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF1C1C1E),
+                        letterSpacing = (-0.3).sp
+                    )
                 }
                 IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, contentDescription = "Close")
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "Close",
+                        tint = Color(0xFF8E8E93)
+                    )
                 }
             }
         },
@@ -71,41 +81,43 @@ fun AIAssistantDialog(
                         item {
                             Surface(
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
-                                color = Color(0xFFF3E5F5),
-                                shape = RoundedCornerShape(12.dp)
+                                color = Color(0xFFF2F2F7),
+                                shape = RoundedCornerShape(16.dp)
                             ) {
                                 Column(
-                                    modifier = Modifier.padding(16.dp),
+                                    modifier = Modifier.padding(20.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     Icon(
                                         Icons.Default.LocationOn,
                                         contentDescription = null,
-                                        tint = Color(0xFF8B5CF6),
-                                        modifier = Modifier.size(56.dp)
+                                        tint = Color(0xFF007AFF),
+                                        modifier = Modifier.size(48.dp)
                                     )
-                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Spacer(modifier = Modifier.height(12.dp))
                                     Text(
                                         "Hi! I'm your AI route assistant",
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.SemiBold
+                                        fontSize = 17.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Color(0xFF1C1C1E),
+                                        letterSpacing = (-0.3).sp
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
                                         "Ask me about routes, traffic, or navigation!",
-                                        fontSize = 14.sp,
-                                        color = Color(0xFF757575)
+                                        fontSize = 15.sp,
+                                        color = Color(0xFF8E8E93)
                                     )
                                 }
                             }
                             
-                            Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(modifier = Modifier.height(16.dp))
                             
                             Text(
                                 "Try asking:",
-                                fontSize = 12.sp,
+                                fontSize = 13.sp,
                                 fontWeight = FontWeight.Medium,
-                                color = Color(0xFF757575)
+                                color = Color(0xFF8E8E93)
                             )
                             
                             listOf(
@@ -120,14 +132,16 @@ fun AIAssistantDialog(
                                     onClick = {
                                         messageText = suggestion
                                     },
-                                    color = Color.White,
-                                    shape = RoundedCornerShape(8.dp),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E0E0))
+                                    color = Color(0xFFF8F9FA),
+                                    shape = RoundedCornerShape(12.dp),
+                                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color(0xFFB0B0B5))
                                 ) {
                                     Text(
                                         suggestion,
-                                        modifier = Modifier.padding(12.dp),
-                                        fontSize = 14.sp
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = Color(0xFF1C1C1E)
                                     )
                                 }
                             }
@@ -146,19 +160,24 @@ fun AIAssistantDialog(
                                     horizontalArrangement = Arrangement.Start
                                 ) {
                                     Surface(
-                                        color = Color(0xFFF3E5F5),
-                                        shape = RoundedCornerShape(12.dp)
+                                        color = Color(0xFFF2F2F7),
+                                        shape = RoundedCornerShape(16.dp)
                                     ) {
                                         Row(
-                                            modifier = Modifier.padding(12.dp),
+                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             CircularProgressIndicator(
                                                 modifier = Modifier.size(16.dp),
-                                                strokeWidth = 2.dp
+                                                strokeWidth = 2.dp,
+                                                color = Color(0xFF007AFF)
                                             )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text("Thinking...", fontSize = 14.sp)
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                            Text(
+                                                "Thinking...",
+                                                fontSize = 15.sp,
+                                                color = Color(0xFF8E8E93)
+                                            )
                                         }
                                     }
                                 }
@@ -178,16 +197,22 @@ fun AIAssistantDialog(
                         value = messageText,
                         onValueChange = { messageText = it },
                         modifier = Modifier.weight(1f),
-                        placeholder = { Text("Ask me anything...", fontSize = 14.sp) },
-                        shape = RoundedCornerShape(24.dp),
+                        placeholder = {
+                            Text(
+                                "Ask me anything...",
+                                fontSize = 15.sp,
+                                color = Color(0xFF8E8E93)
+                            )
+                        },
+                        shape = RoundedCornerShape(20.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF9C27B0),
-                            unfocusedBorderColor = Color(0xFFE0E0E0)
+                            focusedBorderColor = Color(0xFF007AFF),
+                            unfocusedBorderColor = Color(0xFFD1D1D6)
                         ),
                         maxLines = 3
                     )
                     
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
                     
                     FloatingActionButton(
                         onClick = {
@@ -216,11 +241,15 @@ fun AIAssistantDialog(
                                 }
                             }
                         },
-                        containerColor = if (messageText.isBlank() || isLoading) Color(0xFFE0E0E0) else Color(0xFF9C27B0),
+                        containerColor = if (messageText.isBlank() || isLoading) Color(0xFFD1D1D6) else Color(0xFF007AFF),
+                        elevation = FloatingActionButtonDefaults.elevation(
+                            defaultElevation = 0.dp,
+                            pressedElevation = 0.dp
+                        ),
                         modifier = Modifier.size(48.dp)
                     ) {
                         Icon(
-                            if (isLoading) Icons.Default.Send else Icons.Default.Send,
+                            Icons.Default.Send,
                             contentDescription = "Send",
                             tint = Color.White
                         )
@@ -230,7 +259,9 @@ fun AIAssistantDialog(
         },
         confirmButton = {},
         properties = DialogProperties(usePlatformDefaultWidth = false),
-        modifier = Modifier.fillMaxWidth(0.95f)
+        modifier = Modifier.fillMaxWidth(0.95f),
+        shape = RoundedCornerShape(20.dp),
+        containerColor = Color.White
     )
 }
 
@@ -239,58 +270,61 @@ fun ChatMessageBubble(message: ChatMessage) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 6.dp),
         horizontalArrangement = if (message.isUser) Arrangement.End else Arrangement.Start
     ) {
         if (!message.isUser) {
             Icon(
                 Icons.Default.Face,
                 contentDescription = null,
-                tint = Color(0xFF9C27B0),
-                modifier = Modifier.size(24.dp).padding(top = 4.dp)
+                tint = Color(0xFF007AFF),
+                modifier = Modifier.size(28.dp).padding(top = 4.dp)
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(12.dp))
         }
         
         Surface(
-            color = if (message.isUser) Color(0xFF1976D2) else Color(0xFFF3E5F5),
+            color = if (message.isUser) Color(0xFF007AFF) else Color(0xFFF2F2F7),
             shape = RoundedCornerShape(
-                topStart = if (message.isUser) 16.dp else 4.dp,
-                topEnd = if (message.isUser) 4.dp else 16.dp,
-                bottomStart = 16.dp,
-                bottomEnd = 16.dp
+                topStart = if (message.isUser) 18.dp else 4.dp,
+                topEnd = if (message.isUser) 4.dp else 18.dp,
+                bottomStart = 18.dp,
+                bottomEnd = 18.dp
             ),
             modifier = Modifier.widthIn(max = 280.dp)
         ) {
-            Column(modifier = Modifier.padding(12.dp)) {
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                 Text(
                     text = message.text,
-                    fontSize = 14.sp,
-                    color = if (message.isUser) Color.White else Color(0xFF212121)
+                    fontSize = 15.sp,
+                    lineHeight = 20.sp,
+                    color = if (message.isUser) Color.White else Color(0xFF1C1C1E)
                 )
                 
                 message.routeRequest?.let { request ->
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
                     Surface(
-                        color = if (message.isUser) Color(0xFF1565C0) else Color.White,
-                        shape = RoundedCornerShape(8.dp)
+                        color = if (message.isUser) Color(0xFF0056CC) else Color.White,
+                        shape = RoundedCornerShape(10.dp)
                     ) {
-                        Column(modifier = Modifier.padding(8.dp)) {
+                        Column(modifier = Modifier.padding(12.dp)) {
                             Text(
                                 "\ud83d\udccd Route Request",
-                                fontSize = 12.sp,
+                                fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = if (message.isUser) Color.White else Color(0xFF9C27B0)
+                                color = if (message.isUser) Color.White else Color(0xFF007AFF),
+                                letterSpacing = (-0.2).sp
                             )
+                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 "From: ${request.origin}",
-                                fontSize = 11.sp,
-                                color = if (message.isUser) Color.White.copy(alpha = 0.9f) else Color(0xFF757575)
+                                fontSize = 13.sp,
+                                color = if (message.isUser) Color.White.copy(alpha = 0.9f) else Color(0xFF8E8E93)
                             )
                             Text(
                                 "To: ${request.destination}",
-                                fontSize = 11.sp,
-                                color = if (message.isUser) Color.White.copy(alpha = 0.9f) else Color(0xFF757575)
+                                fontSize = 13.sp,
+                                color = if (message.isUser) Color.White.copy(alpha = 0.9f) else Color(0xFF8E8E93)
                             )
                         }
                     }
