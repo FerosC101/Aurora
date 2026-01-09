@@ -19,39 +19,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import com.nextcs.aurora.social.Friend
 import com.nextcs.aurora.social.FriendLocation
 import com.nextcs.aurora.social.FriendLocationSharingService
+import com.nextcs.aurora.social.SocialFirebaseService
+import com.nextcs.aurora.social.CarpoolListing
+import com.nextcs.aurora.social.RideRequest
+import com.nextcs.aurora.social.UserProfile
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
-
-// Carpool data models
-data class CarpoolListing(
-    val id: String = "",
-    val driverId: String = "",
-    val driverName: String = "",
-    val origin: String = "",
-    val destination: String = "",
-    val departureTime: Long = 0,
-    val availableSeats: Int = 0,
-    val pricePerSeat: Double = 0.0,
-    val vehicleModel: String = "",
-    val preferences: String = "",
-    val timestamp: Long = System.currentTimeMillis()
-)
-
-data class RideRequest(
-    val id: String = "",
-    val requesterId: String = "",
-    val requesterName: String = "",
-    val pickupLocation: String = "",
-    val dropoffLocation: String = "",
-    val requestedTime: Long = 0,
-    val passengers: Int = 1,
-    val notes: String = "",
-    val timestamp: Long = System.currentTimeMillis()
-)
 
 @Composable
 fun SocialScreen(
@@ -62,10 +38,18 @@ fun SocialScreen(
 ) {
     val context = LocalContext.current
     val friendService = remember { FriendLocationSharingService(context) }
+    val socialService = remember { SocialFirebaseService(context) }
     val scope = rememberCoroutineScope()
     
     var selectedTab by remember { mutableStateOf(0) }
     val tabs = listOf("Friends", "Carpool", "Drivers")
+    
+    // Initialize user profile on launch
+    LaunchedEffect(Unit) {
+        scope.launch {
+            socialService.getCurrentUserProfile()
+        }
+    }
     
     Column(
         modifier = modifier
@@ -122,20 +106,20 @@ fun SocialScreen(
         
         // Content
         when (selectedTab) {
-            0 -> FriendsTab(friendService, onNavigateToFriend)
-            1 -> CarpoolTab()
-            2 -> DriversTab()
+            0 -> FriendsTab(socialService, onNavigateToFriend)
+            1 -> CarpoolTab(socialService)
+            2 -> DriversTab(socialService)
         }
     }
 }
 
 @Composable
 fun FriendsTab(
-    friendService: FriendLocationSharingService,
+    socialService: SocialFirebaseService,
     onNavigateToFriend: (FriendLocation) -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    var friends by remember { mutableStateOf<List<Friend>>(emptyList()) }
+    var friends by remember { mutableStateOf<List<UserProfile>>(emptyList()) }
     var friendLocations by remember { mutableStateOf<List<FriendLocation>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var showAddDialog by remember { mutableStateOf(false) }
@@ -143,8 +127,10 @@ fun FriendsTab(
     // Load friends
     LaunchedEffect(Unit) {
         scope.launch {
-            friendService.getFriends().onSuccess { friendList ->
+            socialService.getFriends().onSuccess { friendList ->
                 friends = friendList
+                isLoading = false
+            }.onFailure {
                 isLoading = false
             }
         }
@@ -202,12 +188,14 @@ fun FriendsTab(
     }
     
     if (showAddDialog) {
-        SocialAddFriendDialog(
+        SearchFriendDialog(
+            socialService = socialService,
             onDismiss = { showAddDialog = false },
-            onAdd = { userId, name, email ->
+            onAdd = { userId ->
                 scope.launch {
-                    friendService.addFriend(userId, name, email).onSuccess {
-                        friendService.getFriends().onSuccess { friendList ->
+                    socialService.addFriend(userId).onSuccess {
+                        // Refresh friends list
+                        socialService.getFriends().onSuccess { friendList ->
                             friends = friendList
                         }
                         showAddDialog = false
@@ -220,7 +208,7 @@ fun FriendsTab(
 
 @Composable
 fun FriendCard(
-    friend: Friend,
+    friend: UserProfile,
     location: FriendLocation?,
     onNavigate: () -> Unit,
     onShareTrip: () -> Unit
@@ -366,12 +354,38 @@ fun FriendCard(
 }
 
 @Composable
-fun CarpoolTab() {
+fun CarpoolTab(socialService: SocialFirebaseService) {
     var showCreateDialog by remember { mutableStateOf(false) }
     var carpoolListings by remember { mutableStateOf<List<CarpoolListing>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    val scope = rememberCoroutineScope()
+    
+    // Load carpool listings
+    LaunchedEffect(Unit) {
+        scope.launch {
+            socialService.getCarpoolListings().onSuccess { listings ->
+                carpoolListings = listings
+                isLoading = false
+            }.onFailure {
+                isLoading = false
+            }
+        }
+    }
+    
+    // Observe real-time updates
+    LaunchedEffect(Unit) {
+        socialService.observeCarpoolListings().collect { listings ->
+            carpoolListings = listings
+        }
+    }
     
     Box(modifier = Modifier.fillMaxSize()) {
-        if (carpoolListings.isEmpty()) {
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center),
+                color = Color(0xFF007AFF)
+            )
+        } else if (carpoolListings.isEmpty()) {
             EmptyCarpoolState(modifier = Modifier.align(Alignment.Center))
         } else {
             LazyColumn(
@@ -380,7 +394,17 @@ fun CarpoolTab() {
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(carpoolListings) { listing ->
-                    CarpoolCard(listing)
+                    CarpoolCard(
+                        listing = listing,
+                        socialService = socialService,
+                        onDelete = {
+                            scope.launch {
+                                socialService.deleteCarpoolListing(listing.id).onSuccess {
+                                    carpoolListings = carpoolListings.filter { it.id != listing.id }
+                                }
+                            }
+                        }
+                    )
                 }
             }
         }
@@ -401,15 +425,26 @@ fun CarpoolTab() {
         CreateCarpoolDialog(
             onDismiss = { showCreateDialog = false },
             onCreate = { listing ->
-                carpoolListings = carpoolListings + listing
-                showCreateDialog = false
+                scope.launch {
+                    socialService.createCarpoolListing(listing).onSuccess {
+                        showCreateDialog = false
+                        // List will update automatically via observer
+                    }
+                }
             }
         )
     }
 }
 
 @Composable
-fun CarpoolCard(listing: CarpoolListing) {
+fun CarpoolCard(
+    listing: CarpoolListing,
+    socialService: SocialFirebaseService,
+    onDelete: () -> Unit
+) {
+    val currentUserId = socialService.getCurrentUserId()
+    val isOwnListing = listing.driverId == currentUserId
+    
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -441,17 +476,33 @@ fun CarpoolCard(listing: CarpoolListing) {
                     )
                 }
                 
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFFE3F2FD)
-                ) {
-                    Text(
-                        text = "$${listing.pricePerSeat}/seat",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF007AFF),
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                    )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFE3F2FD)
+                    ) {
+                        Text(
+                            text = "$${listing.pricePerSeat}/seat",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF007AFF),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        )
+                    }
+                    
+                    if (isOwnListing) {
+                        IconButton(
+                            onClick = onDelete,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Delete",
+                                tint = Color(0xFFFF3B30),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
                 }
             }
             
@@ -532,10 +583,11 @@ fun CarpoolCard(listing: CarpoolListing) {
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFF007AFF)
                 ),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
+                enabled = !isOwnListing
             ) {
                 Text(
-                    "Request Ride",
+                    if (isOwnListing) "Your Listing" else "Request Ride",
                     fontSize = 17.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -545,12 +597,38 @@ fun CarpoolCard(listing: CarpoolListing) {
 }
 
 @Composable
-fun DriversTab() {
+fun DriversTab(socialService: SocialFirebaseService) {
     var showOfferDialog by remember { mutableStateOf(false) }
     var rideRequests by remember { mutableStateOf<List<RideRequest>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    val scope = rememberCoroutineScope()
+    
+    // Load ride requests
+    LaunchedEffect(Unit) {
+        scope.launch {
+            socialService.getRideRequests().onSuccess { requests ->
+                rideRequests = requests
+                isLoading = false
+            }.onFailure {
+                isLoading = false
+            }
+        }
+    }
+    
+    // Observe real-time updates
+    LaunchedEffect(Unit) {
+        socialService.observeRideRequests().collect { requests ->
+            rideRequests = requests
+        }
+    }
     
     Box(modifier = Modifier.fillMaxSize()) {
-        if (rideRequests.isEmpty()) {
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center),
+                color = Color(0xFF007AFF)
+            )
+        } else if (rideRequests.isEmpty()) {
             EmptyDriverState(modifier = Modifier.align(Alignment.Center))
         } else {
             LazyColumn(
@@ -559,7 +637,20 @@ fun DriversTab() {
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(rideRequests) { request ->
-                    RideRequestCard(request)
+                    RideRequestCard(
+                        request = request,
+                        socialService = socialService,
+                        onAccept = {
+                            scope.launch {
+                                socialService.updateRideRequestStatus(request.id, "accepted")
+                            }
+                        },
+                        onDecline = {
+                            scope.launch {
+                                socialService.updateRideRequestStatus(request.id, "declined")
+                            }
+                        }
+                    )
                 }
             }
         }
@@ -575,10 +666,31 @@ fun DriversTab() {
             Icon(Icons.Default.Add, contentDescription = "Offer Ride")
         }
     }
+    
+    if (showOfferDialog) {
+        CreateRideRequestDialog(
+            onDismiss = { showOfferDialog = false },
+            onCreate = { request ->
+                scope.launch {
+                    socialService.createRideRequest(request).onSuccess {
+                        showOfferDialog = false
+                    }
+                }
+            }
+        )
+    }
 }
 
 @Composable
-fun RideRequestCard(request: RideRequest) {
+fun RideRequestCard(
+    request: RideRequest,
+    socialService: SocialFirebaseService,
+    onAccept: () -> Unit,
+    onDecline: () -> Unit
+) {
+    val currentUserId = socialService.getCurrentUserId()
+    val isOwnRequest = request.requesterId == currentUserId
+    
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -672,31 +784,66 @@ fun RideRequestCard(request: RideRequest) {
                 )
             }
             
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedButton(
-                    onClick = { /* TODO: Decline */ },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color(0xFF8E8E93)
+            // Status badge
+            if (request.status != "pending") {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = when (request.status) {
+                        "accepted" -> Color(0xFFE3F2FD)
+                        "declined" -> Color(0xFFFFEBEE)
+                        else -> Color(0xFFF5F5F5)
+                    }
+                ) {
+                    Text(
+                        text = request.status.uppercase(),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = when (request.status) {
+                            "accepted" -> Color(0xFF007AFF)
+                            "declined" -> Color(0xFFFF3B30)
+                            else -> Color(0xFF8E8E93)
+                        },
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                     )
-                ) {
-                    Text("Decline", fontSize = 15.sp, fontWeight = FontWeight.Medium)
                 }
-                
-                Button(
-                    onClick = { /* TODO: Accept */ },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF007AFF)
-                    ),
-                    shape = RoundedCornerShape(12.dp)
+            }
+            
+            if (!isOwnRequest && request.status == "pending") {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("Accept", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    OutlinedButton(
+                        onClick = onDecline,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color(0xFF8E8E93)
+                        )
+                    ) {
+                        Text("Decline", fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                    }
+                    
+                    Button(
+                        onClick = onAccept,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF007AFF)
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Accept", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    }
                 }
+            } else if (isOwnRequest) {
+                Text(
+                    text = "Your Request",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF8E8E93),
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
             }
         }
     }
@@ -783,6 +930,302 @@ fun EmptyDriverState(modifier: Modifier = Modifier) {
             color = Color(0xFF8E8E93),
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
+    }
+}
+
+@Composable
+fun SearchFriendDialog(
+    socialService: SocialFirebaseService,
+    onDismiss: () -> Unit,
+    onAdd: (userId: String) -> Unit
+) {
+    var searchQuery by remember { mutableStateOf("") }
+    var searchResults by remember { mutableStateOf<List<UserProfile>>(emptyList()) }
+    var isSearching by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    
+    // Debounced search
+    LaunchedEffect(searchQuery) {
+        if (searchQuery.length >= 2) {
+            isSearching = true
+            kotlinx.coroutines.delay(500) // Debounce
+            socialService.searchUsers(searchQuery).onSuccess { users ->
+                searchResults = users
+                isSearching = false
+            }.onFailure {
+                isSearching = false
+            }
+        } else {
+            searchResults = emptyList()
+        }
+    }
+    
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            modifier = Modifier.fillMaxWidth().heightIn(max = 600.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Add Friend",
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF1C1C1E),
+                        letterSpacing = (-0.5).sp
+                    )
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = Color(0xFF8E8E93)
+                        )
+                    }
+                }
+                
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    label = { Text("Search by name or email", fontSize = 15.sp) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription = null,
+                            tint = Color(0xFF8E8E93)
+                        )
+                    },
+                    trailingIcon = {
+                        if (isSearching) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = Color(0xFF007AFF)
+                            )
+                        }
+                    },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF007AFF),
+                        focusedLabelColor = Color(0xFF007AFF)
+                    )
+                )
+                
+                // Search results
+                if (searchQuery.length < 2) {
+                    Text(
+                        text = "Type at least 2 characters to search",
+                        fontSize = 13.sp,
+                        color = Color(0xFF8E8E93),
+                        modifier = Modifier.padding(vertical = 16.dp)
+                    )
+                } else if (searchResults.isEmpty() && !isSearching) {
+                    Text(
+                        text = "No users found",
+                        fontSize = 15.sp,
+                        color = Color(0xFF8E8E93),
+                        modifier = Modifier.padding(vertical = 16.dp)
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 300.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(searchResults) { user ->
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onAdd(user.userId) },
+                                shape = RoundedCornerShape(12.dp),
+                                color = Color(0xFFF5F5F7)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = Color(0xFF007AFF),
+                                        modifier = Modifier.size(40.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(
+                                                text = user.displayName.firstOrNull()?.uppercase() ?: "?",
+                                                color = Color.White,
+                                                fontSize = 18.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                    
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = user.displayName,
+                                            fontSize = 17.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = Color(0xFF1C1C1E)
+                                        )
+                                        Text(
+                                            text = user.email,
+                                            fontSize = 13.sp,
+                                            color = Color(0xFF8E8E93)
+                                        )
+                                    }
+                                    
+                                    Icon(
+                                        Icons.Default.Add,
+                                        contentDescription = "Add",
+                                        tint = Color(0xFF007AFF),
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CreateRideRequestDialog(
+    onDismiss: () -> Unit,
+    onCreate: (RideRequest) -> Unit
+) {
+    var pickup by remember { mutableStateOf("") }
+    var dropoff by remember { mutableStateOf("") }
+    var passengers by remember { mutableStateOf("1") }
+    var notes by remember { mutableStateOf("") }
+    
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "Request a Ride",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF1C1C1E),
+                    letterSpacing = (-0.5).sp
+                )
+                
+                OutlinedTextField(
+                    value = pickup,
+                    onValueChange = { pickup = it },
+                    label = { Text("Pickup Location", fontSize = 15.sp) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF007AFF),
+                        focusedLabelColor = Color(0xFF007AFF)
+                    )
+                )
+                
+                OutlinedTextField(
+                    value = dropoff,
+                    onValueChange = { dropoff = it },
+                    label = { Text("Dropoff Location", fontSize = 15.sp) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF007AFF),
+                        focusedLabelColor = Color(0xFF007AFF)
+                    )
+                )
+                
+                OutlinedTextField(
+                    value = passengers,
+                    onValueChange = { passengers = it },
+                    label = { Text("Number of Passengers", fontSize = 15.sp) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF007AFF),
+                        focusedLabelColor = Color(0xFF007AFF)
+                    )
+                )
+                
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = { Text("Notes (Optional)", fontSize = 15.sp) },
+                    modifier = Modifier.fillMaxWidth(),
+                    maxLines = 3,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF007AFF),
+                        focusedLabelColor = Color(0xFF007AFF)
+                    )
+                )
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text(
+                            "Cancel",
+                            fontSize = 17.sp,
+                            color = Color(0xFF8E8E93),
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            onCreate(
+                                RideRequest(
+                                    id = UUID.randomUUID().toString(),
+                                    pickupLocation = pickup,
+                                    dropoffLocation = dropoff,
+                                    passengers = passengers.toIntOrNull() ?: 1,
+                                    notes = notes,
+                                    requestedTime = System.currentTimeMillis()
+                                )
+                            )
+                        },
+                        enabled = pickup.isNotBlank() && dropoff.isNotBlank(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF007AFF)
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            "Request",
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
