@@ -1,154 +1,126 @@
-# Aurora iOS App
+# Aurora iOS Module
 
-## Overview
-iOS application for Aurora - AI-Powered Smart Navigation system.
+> Part of the Aurora Kotlin Multiplatform Contest 2026 submission
+
+## Status: Structure Ready 🚧
+
+The iOS module structure has been created with SwiftUI components and Firebase configuration in place. However, iOS compilation requires macOS with Xcode 15+.
+
+## What's Included
+
+- ✅ SwiftUI app structure (`AuroraApp.swift`, `ContentView.swift`)
+- ✅ Firebase configuration (`GoogleService-Info.plist`)
+- ✅ CocoaPods setup with dependencies (`Podfile`)
+- ✅ iOS targets in shared module (iosX64, iosArm64, iosSimulatorArm64)
+- ✅ Complete platform abstractions (`Platform.swift`)
 
 ## Requirements
 - **Xcode**: 15.0 or later
 - **iOS Deployment Target**: 15.0+
 - **Swift**: 5.0+
-- **CocoaPods**: For Firebase integration
+- **CocoaPods**: For dependency management
+- **macOS**: Required for iOS development
 
 ## Setup Instructions
 
-### 1. Install Xcode
-Download and install Xcode from the Mac App Store.
-
-### 2. Install CocoaPods
+### 1. Install CocoaPods
 ```bash
 sudo gem install cocoapods
 ```
 
-### 3. Setup Kotlin Multiplatform Framework
+### 2. Build Shared Framework
 From the project root directory:
 ```bash
-./gradlew :shared:linkDebugFrameworkIosArm64
-./gradlew :shared:linkDebugFrameworkIosX64
 ./gradlew :shared:linkDebugFrameworkIosSimulatorArm64
 ```
 
-### 4. Install Dependencies
+### 3. Install Dependencies
 ```bash
 cd iosApp
 pod install
 ```
 
-### 5. Open in Xcode
+### 4. Open in Xcode
 ```bash
-open iosApp.xcworkspace
+open Aurora.xcworkspace
 ```
+
+### 5. Build and Run
+Select a simulator or device in Xcode and press **Cmd + R**
 
 ## Project Structure
 ```
 iosApp/
 ├── iosApp/
-│   ├── AuroraApp.swift        # Main app entry point
-│   ├── ContentView.swift      # Main UI view
-│   ├── Info.plist            # App configuration
-│   └── Assets.xcassets/      # App icons and images
-├── Configuration/
-│   └── Config.xcconfig       # Build configuration
-├── Podfile                   # CocoaPods dependencies
-└── README.md                 # This file
+│   ├── AuroraApp.swift              # Main app entry point
+│   ├── ContentView.swift            # Main UI view (placeholder)
+│   ├── Platform.swift               # Platform-specific stubs
+│   ├── Info.plist                   # App configuration
+│   ├── GoogleService-Info.plist     # Firebase config (ready)
+│   └── Assets.xcassets/             # App icons and images
+├── Podfile                          # CocoaPods dependencies
+├── SETUP.md                         # Detailed setup guide
+└── README.md                        # This file
 ```
 
-## Current Status
-🚧 **Under Development**
+## Features (When Fully Implemented)
 
-The iOS app is currently a placeholder showing the feature list. Full implementation requires:
+The iOS app will include all Android features:
+- ✅ Smart navigation with AI assistant
+- ✅ Social carpool features  
+- ✅ Real-time chat and notifications
+- ✅ Trip history and analytics
+- ✅ Firebase integration
+- ✅ Google Maps integration
 
-### Phase 1: Core Integration
-- [ ] Link Kotlin Multiplatform shared module
-- [ ] Setup Firebase iOS SDK
-- [ ] Configure Google Maps iOS SDK
-- [ ] Implement location services
+## Dependencies (Podfile)
 
-### Phase 2: UI Implementation
-- [ ] Home screen with route input
-- [ ] Navigation screen with map
-- [ ] Profile and settings
-- [ ] Activity tracking
-
-### Phase 3: Features
-- [ ] AI route planning
-- [ ] Real-time navigation
-- [ ] Social features (chat, carpool)
-- [ ] Voice guidance
-
-### Phase 4: Polish
-- [ ] Notifications
-- [ ] Background location
-- [ ] Widget support
-- [ ] App Store preparation
-
-## Building the App
-
-### Debug Build
-1. Select a simulator or device in Xcode
-2. Press **Cmd + R** to build and run
-
-### Release Build
-1. Configure signing in Xcode
-2. Select **Product > Archive**
-3. Follow App Store submission process
-
-## Dependencies
-
-### CocoaPods (To be added)
 ```ruby
-# Firebase
+# Firebase SDK
+pod 'Firebase/Analytics'
 pod 'Firebase/Auth'
 pod 'Firebase/Firestore'
-pod 'Firebase/Storage'
 pod 'Firebase/Messaging'
 
 # Google Maps
 pod 'GoogleMaps'
 pod 'GooglePlaces'
 
-# Other
-pod 'Alamofire'  # Networking
+# Networking
+pod 'Alamofire'
 ```
 
-## Configuration
+## Development Timeline
 
-### API Keys
-Add the following to `Config.xcconfig`:
-```
-GOOGLE_MAPS_API_KEY = your_google_maps_ios_key
-FIREBASE_OPTIONS_PATH = GoogleService-Info.plist
-```
+**Estimated**: 6-8 weeks for full iOS implementation  
+**Requires**: Mac hardware with Xcode
 
-### Firebase Setup
-1. Create iOS app in Firebase Console
-2. Download `GoogleService-Info.plist`
-3. Add to iosApp target in Xcode
+### Implementation Phases
+1. **Phase 1**: Core navigation and maps (2 weeks)
+2. **Phase 2**: Firebase integration and auth (2 weeks)
+3. **Phase 3**: Social features and chat (2 weeks)
+4. **Phase 4**: Polish and testing (2 weeks)
 
 ## Troubleshooting
 
 ### Framework not found: 'shared'
-Run the gradle tasks to build the shared framework:
 ```bash
 ./gradlew :shared:linkDebugFrameworkIosSimulatorArm64
 ```
 
-### CocoaPods not working
+### CocoaPods issues
 ```bash
 pod repo update
 pod install --repo-update
 ```
 
-### Code signing issues
+### Code signing
 1. Open Xcode
 2. Select iosApp target
 3. Go to **Signing & Capabilities**
 4. Select your development team
 
-## Contributing
-This is the iOS counterpart to the Android app. Features should match the Android implementation as closely as possible.
+---
 
-## License
-Educational/Portfolio Project
+For full project documentation, see the [main README](../README.md).
 
-## Contact
-For questions about the iOS implementation, refer to the main project README.
