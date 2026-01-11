@@ -725,6 +725,7 @@ fun CarpoolCard(
 ) {
     val currentUserId = socialService.getCurrentUserId()
     val isOwnListing = listing.driverId == currentUserId
+    var showRequestDialog by remember { mutableStateOf(false) }
     
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -859,21 +860,34 @@ fun CarpoolCard(
             }
             
             Button(
-                onClick = { /* TODO: Request ride */ },
+                onClick = { showRequestDialog = true },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFF007AFF)
                 ),
                 shape = RoundedCornerShape(12.dp),
-                enabled = !isOwnListing
+                enabled = !isOwnListing && listing.availableSeats > 0
             ) {
                 Text(
-                    if (isOwnListing) "Your Listing" else "Request Ride",
+                    when {
+                        isOwnListing -> "Your Listing"
+                        listing.availableSeats == 0 -> "Full"
+                        else -> "Request Ride"
+                    },
                     fontSize = 17.sp,
                     fontWeight = FontWeight.SemiBold
                 )
             }
         }
+    }
+    
+    if (showRequestDialog) {
+        RequestRideDialog(
+            listing = listing,
+            socialService = socialService,
+            onDismiss = { showRequestDialog = false },
+            onSuccess = { showRequestDialog = false }
+        )
     }
 }
 
@@ -1541,6 +1555,298 @@ fun EnhancedFriendRequestCard(
                         fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun RequestRideDialog(
+    listing: CarpoolListing,
+    socialService: SocialFirebaseService,
+    onDismiss: () -> Unit,
+    onSuccess: () -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    var pickupLocation by remember { mutableStateOf("") }
+    var message by remember { mutableStateOf("") }
+    var passengers by remember { mutableStateOf("1") }
+    var isLoading by remember { mutableStateOf(false) }
+    var requesterProfile by remember { mutableStateOf<UserProfile?>(null) }
+    
+    // Load requester profile
+    LaunchedEffect(Unit) {
+        socialService.getCurrentUserProfile().onSuccess { profile ->
+            requesterProfile = profile
+        }
+    }
+    
+    Dialog(onDismissRequest = { if (!isLoading) onDismiss() }) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            shape = RoundedCornerShape(20.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Header
+                Text(
+                    text = "Request Ride",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1C1C1E)
+                )
+                
+                // Requester profile preview
+                requesterProfile?.let { profile ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFFF5F5F7), RoundedCornerShape(12.dp))
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(0xFF007AFF),
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = profile.displayName.firstOrNull()?.uppercase() ?: "?",
+                                    color = Color.White,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                        
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = profile.displayName,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF1C1C1E)
+                            )
+                            
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.Star,
+                                    contentDescription = null,
+                                    tint = Color(0xFFFFCC00),
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Text(
+                                    text = "${profile.stats.drivingScore.toInt()} score",
+                                    fontSize = 13.sp,
+                                    color = Color(0xFF8E8E93)
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                HorizontalDivider()
+                
+                // Trip details
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "Trip Details",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF1C1C1E)
+                    )
+                    
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Place,
+                            contentDescription = null,
+                            tint = Color(0xFF34C759),
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = "${listing.origin} → ${listing.destination}",
+                            fontSize = 14.sp,
+                            color = Color(0xFF1C1C1E)
+                        )
+                    }
+                    
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.DateRange,
+                            contentDescription = null,
+                            tint = Color(0xFF8E8E93),
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = SimpleDateFormat("MMM dd, hh:mm a", Locale.getDefault())
+                                .format(Date(listing.departureTimestamp)),
+                            fontSize = 14.sp,
+                            color = Color(0xFF8E8E93)
+                        )
+                    }
+                }
+                
+                HorizontalDivider()
+                
+                // Pickup location
+                OutlinedTextField(
+                    value = pickupLocation,
+                    onValueChange = { pickupLocation = it },
+                    label = { Text("Pickup Location") },
+                    placeholder = { Text("Where should the driver pick you up?") },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.LocationOn,
+                            contentDescription = null,
+                            tint = Color(0xFF007AFF)
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF007AFF),
+                        unfocusedBorderColor = Color(0xFFE5E5EA)
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                )
+                
+                // Number of passengers
+                OutlinedTextField(
+                    value = passengers,
+                    onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) passengers = it },
+                    label = { Text("Number of Passengers") },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Person,
+                            contentDescription = null,
+                            tint = Color(0xFF007AFF)
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF007AFF),
+                        unfocusedBorderColor = Color(0xFFE5E5EA)
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    supportingText = {
+                        Text("Available seats: ${listing.availableSeats}")
+                    }
+                )
+                
+                // Message
+                OutlinedTextField(
+                    value = message,
+                    onValueChange = { message = it },
+                    label = { Text("Message (Optional)") },
+                    placeholder = { Text("Add a note for the driver...") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF007AFF),
+                        unfocusedBorderColor = Color(0xFFE5E5EA)
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    maxLines = 3
+                )
+                
+                // Actions
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        enabled = !isLoading,
+                        modifier = Modifier.weight(1f).height(48.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = "Cancel",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    
+                    Button(
+                        onClick = {
+                            val passengersInt = passengers.toIntOrNull() ?: 1
+                            if (pickupLocation.isNotBlank() && passengersInt > 0 && passengersInt <= listing.availableSeats) {
+                                isLoading = true
+                                scope.launch {
+                                    requesterProfile?.let { profile ->
+                                        val request = RideRequest(
+                                            id = "",
+                                            requesterId = profile.userId,
+                                            requesterName = profile.displayName,
+                                            requesterEmail = profile.email,
+                                            requesterPhone = profile.phoneNumber,
+                                            requesterRating = profile.stats.averageRating,
+                                            pickupLocation = pickupLocation,
+                                            pickupAddress = pickupLocation,
+                                            dropoffLocation = listing.destination,
+                                            dropoffAddress = listing.destination,
+                                            requestedDate = listing.departureDate,
+                                            requestedTime = listing.departureTime,
+                                            requestedTimestamp = listing.departureTimestamp,
+                                            passengers = passengersInt,
+                                            offerPrice = listing.pricePerSeat * passengersInt,
+                                            notes = message,
+                                            status = "pending",
+                                            acceptedBy = listing.driverId,
+                                            timestamp = System.currentTimeMillis()
+                                        )
+                                        
+                                        socialService.createRideRequest(request).onSuccess {
+                                            android.util.Log.d("RequestRide", "Ride request sent successfully")
+                                            isLoading = false
+                                            onSuccess()
+                                        }.onFailure { error ->
+                                            android.util.Log.e("RequestRide", "Failed to send request: ${error.message}")
+                                            isLoading = false
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        enabled = !isLoading && pickupLocation.isNotBlank() && passengers.toIntOrNull()?.let { it > 0 && it <= listing.availableSeats } == true,
+                        modifier = Modifier.weight(1f).height(48.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF007AFF)
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(
+                                text = "Send Request",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
                 }
             }
         }
