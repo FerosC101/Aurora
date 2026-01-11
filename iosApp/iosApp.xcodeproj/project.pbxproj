@@ -1,0 +1,14 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+		{isa = PBXBuildFile; fileRef = AuroraApp.swift; };
+		{isa = PBXBuildFile; fileRef = ContentView.swift; };
+		{isa = PBXBuildFile; fileRef = Platform.swift; };
+		{isa = PBXBuildFile; fileRef = Assets.xcassets; };
+	};
+	rootObject = {isa = PBXProject; };
+}

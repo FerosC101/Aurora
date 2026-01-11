@@ -1,0 +1,16 @@
+// Configuration settings file format documentation can be found at:
+// https://help.apple.com/xcode/#/dev745c5c974
+
+// App Configuration
+APP_NAME = Aurora
+PRODUCT_BUNDLE_IDENTIFIER = com.nextcs.aurora
+DEVELOPMENT_TEAM = 
+
+// Build Settings
+IPHONEOS_DEPLOYMENT_TARGET = 15.0
+TARGETED_DEVICE_FAMILY = 1,2
+SWIFT_VERSION = 5.0
+
+// Framework Configuration
+FRAMEWORK_SEARCH_PATHS = $(inherited) $(SRCROOT)/../shared/build/bin/iosArm64/debugFramework
+OTHER_LDFLAGS = $(inherited) -framework shared

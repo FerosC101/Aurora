@@ -28,6 +28,11 @@ kotlin {
         jvmToolchain(17)
     }
     
+    // iOS targets
+    iosX64()
+    iosArm64()
+    iosSimulatorArm64()
+    
     sourceSets {
         val commonMain by getting {
             dependencies {
@@ -85,6 +90,20 @@ kotlin {
                 implementation("org.openjfx:javafx-graphics:$javaFxVersion:$platform")
                 implementation("org.openjfx:javafx-web:$javaFxVersion:$platform")
                 implementation("org.openjfx:javafx-swing:$javaFxVersion:$platform")
+            }
+        }
+        
+        val iosX64Main by getting
+        val iosArm64Main by getting
+        val iosSimulatorArm64Main by getting
+        val iosMain by creating {
+            dependsOn(commonMain)
+            iosX64Main.dependsOn(this)
+            iosArm64Main.dependsOn(this)
+            iosSimulatorArm64Main.dependsOn(this)
+            dependencies {
+                // Ktor Client engine for iOS
+                implementation("io.ktor:ktor-client-darwin:2.3.7")
             }
         }
     }

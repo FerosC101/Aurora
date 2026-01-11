@@ -1,0 +1,35 @@
+# Xcode gitignore
+
+# User-specific files
+*.xcuserstate
+*.xcuserdatad/
+xcuserdata/
+
+# Build folders
+build/
+DerivedData/
+*.build/
+
+# CocoaPods
+Pods/
+*.xcworkspace/xcshareddata/
+
+# Swift Package Manager
+.swiftpm/
+*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+
+# Carthage
+Carthage/Build/
+
+# Accio
+Dependencies/
+.accio/
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# Code Injection
+iOSInjectionProject/

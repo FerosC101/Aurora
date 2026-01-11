@@ -57,3 +57,5 @@ rootProject.name = "Aurora"
 // include(":shared")
 // include(":desktopApp")
 include(":androidApp")
+// iOS app will be built separately using Xcode
+// See iosApp/README.md for setup instructions
