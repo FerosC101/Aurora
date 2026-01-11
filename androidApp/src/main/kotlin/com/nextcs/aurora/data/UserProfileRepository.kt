@@ -2,14 +2,13 @@ package com.nextcs.aurora.data
 
 import com.nextcs.aurora.data.models.UserProfile
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.ktx.Firebase
+import com.google.firebase.FirebaseApp
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeout
 
 class UserProfileRepository {
     
-    private val db: FirebaseFirestore = Firebase.firestore
+    private val db: FirebaseFirestore = FirebaseFirestore.getInstance(FirebaseApp.getInstance(), "sfse")
     private val usersCollection = db.collection("users")
     
     init {

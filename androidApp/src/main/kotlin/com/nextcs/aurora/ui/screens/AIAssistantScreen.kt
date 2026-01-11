@@ -43,11 +43,14 @@ fun AIAssistantScreen(
     
     val listState = rememberLazyListState()
     
-    // Initial greeting
+    // Load conversation history on launch
     LaunchedEffect(Unit) {
+        assistantService.loadConversationHistory()
+        messages = assistantService.getConversationHistory()
         if (messages.isEmpty()) {
             messages = listOf(
                 ChatMessage(
+                    id = java.util.UUID.randomUUID().toString(),
                     text = "Hi! I'm Aurora, your navigation assistant. Where would you like to go today?",
                     isUser = false
                 )

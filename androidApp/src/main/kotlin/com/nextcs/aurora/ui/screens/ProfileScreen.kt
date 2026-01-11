@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nextcs.aurora.navigation.VehicleProfileService
+import kotlinx.coroutines.launch
 
 @Composable
 fun ProfileScreen(
@@ -29,10 +30,16 @@ fun ProfileScreen(
 ) {
     val context = LocalContext.current
     val vehicleProfileService = remember { VehicleProfileService(context) }
+    val scope = rememberCoroutineScope()
     
     var isDarkMode by remember { mutableStateOf(false) }
-    var selectedVehicle by remember { mutableStateOf(vehicleProfileService.getVehicleType()) }
+    var selectedVehicle by remember { mutableStateOf("driving") }
     var showVehicleDialog by remember { mutableStateOf(false) }
+    
+    // Load vehicle type on launch
+    LaunchedEffect(Unit) {
+        selectedVehicle = vehicleProfileService.getVehicleType()
+    }
     
     // Vehicle selection dialog
     if (showVehicleDialog) {
@@ -54,9 +61,11 @@ fun ProfileScreen(
                         vehicleType = VehicleProfileService.TYPE_DRIVING,
                         isSelected = selectedVehicle == VehicleProfileService.TYPE_DRIVING,
                         onClick = {
-                            vehicleProfileService.setVehicleType(VehicleProfileService.TYPE_DRIVING)
-                            selectedVehicle = VehicleProfileService.TYPE_DRIVING
-                            showVehicleDialog = false
+                            scope.launch {
+                                vehicleProfileService.setVehicleType(VehicleProfileService.TYPE_DRIVING)
+                                selectedVehicle = VehicleProfileService.TYPE_DRIVING
+                                showVehicleDialog = false
+                            }
                         }
                     )
                     VehicleOption(
@@ -65,9 +74,11 @@ fun ProfileScreen(
                         vehicleType = VehicleProfileService.TYPE_BICYCLING,
                         isSelected = selectedVehicle == VehicleProfileService.TYPE_BICYCLING,
                         onClick = {
-                            vehicleProfileService.setVehicleType(VehicleProfileService.TYPE_BICYCLING)
-                            selectedVehicle = VehicleProfileService.TYPE_BICYCLING
-                            showVehicleDialog = false
+                            scope.launch {
+                                vehicleProfileService.setVehicleType(VehicleProfileService.TYPE_BICYCLING)
+                                selectedVehicle = VehicleProfileService.TYPE_BICYCLING
+                                showVehicleDialog = false
+                            }
                         }
                     )
                     VehicleOption(
@@ -76,9 +87,11 @@ fun ProfileScreen(
                         vehicleType = VehicleProfileService.TYPE_WALKING,
                         isSelected = selectedVehicle == VehicleProfileService.TYPE_WALKING,
                         onClick = {
-                            vehicleProfileService.setVehicleType(VehicleProfileService.TYPE_WALKING)
-                            selectedVehicle = VehicleProfileService.TYPE_WALKING
-                            showVehicleDialog = false
+                            scope.launch {
+                                vehicleProfileService.setVehicleType(VehicleProfileService.TYPE_WALKING)
+                                selectedVehicle = VehicleProfileService.TYPE_WALKING
+                                showVehicleDialog = false
+                            }
                         }
                     )
                     VehicleOption(
@@ -87,9 +100,11 @@ fun ProfileScreen(
                         vehicleType = VehicleProfileService.TYPE_TRANSIT,
                         isSelected = selectedVehicle == VehicleProfileService.TYPE_TRANSIT,
                         onClick = {
-                            vehicleProfileService.setVehicleType(VehicleProfileService.TYPE_TRANSIT)
-                            selectedVehicle = VehicleProfileService.TYPE_TRANSIT
-                            showVehicleDialog = false
+                            scope.launch {
+                                vehicleProfileService.setVehicleType(VehicleProfileService.TYPE_TRANSIT)
+                                selectedVehicle = VehicleProfileService.TYPE_TRANSIT
+                                showVehicleDialog = false
+                            }
                         }
                     )
                 }

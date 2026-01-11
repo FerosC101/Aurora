@@ -3,9 +3,7 @@ package com.nextcs.aurora.data
 import com.nextcs.aurora.data.models.SavedRoute
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
-import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.firestore.ktx.toObject
-import com.google.firebase.ktx.Firebase
+import com.google.firebase.FirebaseApp
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -13,7 +11,7 @@ import kotlinx.coroutines.tasks.await
 
 class FirestoreRepository {
     
-    private val db: FirebaseFirestore = Firebase.firestore
+    private val db: FirebaseFirestore = FirebaseFirestore.getInstance(FirebaseApp.getInstance(), "sfse")
     private val routesCollection = db.collection("routes")
     
     /**
@@ -39,7 +37,7 @@ class FirestoreRepository {
                 .get()
                 .await()
             
-            val routes = snapshot.documents.mapNotNull { it.toObject<SavedRoute>() }
+            val routes = snapshot.documents.mapNotNull { it.toObject(SavedRoute::class.java) }
             Result.success(routes)
         } catch (e: Exception) {
             Result.failure(e)
@@ -60,7 +58,7 @@ class FirestoreRepository {
                 }
                 
                 val routes = snapshot?.documents?.mapNotNull { 
-                    it.toObject<SavedRoute>() 
+                    it.toObject(SavedRoute::class.java) 
                 } ?: emptyList()
                 
                 trySend(routes)
@@ -107,7 +105,7 @@ class FirestoreRepository {
                 .get()
                 .await()
             
-            val routes = snapshot.documents.mapNotNull { it.toObject<SavedRoute>() }
+            val routes = snapshot.documents.mapNotNull { it.toObject(SavedRoute::class.java) }
             Result.success(routes)
         } catch (e: Exception) {
             Result.failure(e)

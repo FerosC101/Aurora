@@ -1,25 +1,29 @@
 package com.nextcs.aurora.navigation
 
 import android.content.Context
-import android.content.SharedPreferences
+import android.util.Log
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.FirebaseApp
+import com.google.firebase.firestore.Query
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.json.JSONArray
-import org.json.JSONObject
+import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 data class TripRecord(
-    val id: String,
-    val origin: String,
-    val destination: String,
-    val distance: Int,          // meters
-    val duration: Int,          // seconds
-    val timestamp: Long,        // milliseconds since epoch
-    val hazardsEncountered: Int,
-    val safetyScore: Int,
-    val routeType: String,      // "Smart", "Chill", "Regular"
+    val id: String = "",
+    val userId: String = "",
+    val origin: String = "",
+    val destination: String = "",
+    val distance: Int = 0,          // meters
+    val duration: Int = 0,          // seconds
+    val timestamp: Long = 0L,        // milliseconds since epoch
+    val hazardsEncountered: Int = 0,
+    val safetyScore: Int = 0,
+    val routeType: String = "",      // "Smart", "Chill", "Regular"
     // Driving behavior metrics
     val harshBrakingCount: Int = 0,
     val rapidAccelerationCount: Int = 0,
@@ -39,15 +43,13 @@ data class Analytics(
 
 class TripHistoryService(private val context: Context) {
     
-    private val sharedPreferences: SharedPreferences = context.getSharedPreferences(
-        "aurora_trip_history",
-        Context.MODE_PRIVATE
-    )
+    private val TAG = "TripHistoryService"
+    private val firestore = FirebaseFirestore.getInstance(FirebaseApp.getInstance(), "sfse")
+    private val auth = FirebaseAuth.getInstance()
+    private val tripsCollection = firestore.collection("trips")
     
-    companion object {
-        private const val TRIPS_KEY = "trips"
-        private const val TIME_SAVED_KEY = "time_saved"
-        private const val HAZARDS_AVOIDED_KEY = "hazards_avoided"
+    private fun getCurrentUserId(): String? {
+        return auth.currentUser?.uid
     }
     
     suspend fun saveTrip(
@@ -62,9 +64,12 @@ class TripHistoryService(private val context: Context) {
         speedingIncidents: Int = 0
     ) = withContext(Dispatchers.IO) {
         try {
-            val tripId = "trip_${System.currentTimeMillis()}"
+            val userId = getCurrentUserId() ?: return@withContext Result.failure<TripRecord>(Exception("User not logged in"))
+            
+            val tripId = firestore.collection("trips").document().id
             val trip = TripRecord(
                 id = tripId,
+                userId = userId,
                 origin = origin,
                 destination = destination,
                 distance = routeInfo.distance,
@@ -79,47 +84,39 @@ class TripHistoryService(private val context: Context) {
                 smoothDrivingScore = safetyScore
             )
             
-            // Get existing trips
-            val tripsJson = sharedPreferences.getString(TRIPS_KEY, "[]") ?: "[]"
-            val tripsArray = JSONArray(tripsJson)
+            // Save to Firestore
+            tripsCollection.document(tripId).set(trip).await()
             
-            // Add new trip
-            tripsArray.put(tripToJson(trip))
-            
-            // Save back
-            sharedPreferences.edit().putString(TRIPS_KEY, tripsArray.toString()).apply()
-            
-            // Update cumulative stats
-            val hazardsAvoided = sharedPreferences.getInt(HAZARDS_AVOIDED_KEY, 0)
-            sharedPreferences.edit()
-                .putInt(HAZARDS_AVOIDED_KEY, hazardsAvoided + hazards.size)
-                .apply()
-            
+            Log.d(TAG, "Trip saved successfully for user $userId")
             Result.success(trip)
         } catch (e: Exception) {
+            Log.e(TAG, "Error saving trip", e)
             Result.failure(e)
         }
     }
     
     suspend fun getAllTrips(): Result<List<TripRecord>> = withContext(Dispatchers.IO) {
         try {
-            val tripsJson = sharedPreferences.getString(TRIPS_KEY, "[]") ?: "[]"
-            val tripsArray = JSONArray(tripsJson)
-            val trips = mutableListOf<TripRecord>()
+            val userId = getCurrentUserId() ?: return@withContext Result.failure(Exception("User not logged in"))
             
-            for (i in 0 until tripsArray.length()) {
-                val tripJson = tripsArray.getJSONObject(i)
-                trips.add(jsonToTrip(tripJson))
-            }
+            val trips = tripsCollection
+                .whereEqualTo("userId", userId)
+                .get()
+                .await()
+                .toObjects(TripRecord::class.java)
+                .sortedByDescending { it.timestamp }
             
-            Result.success(trips.sortedByDescending { it.timestamp })
+            Log.d(TAG, "Retrieved ${trips.size} trips for user $userId")
+            Result.success(trips)
         } catch (e: Exception) {
+            Log.e(TAG, "Error getting trips", e)
             Result.failure(e)
         }
     }
     
     suspend fun getAnalytics(): Result<Analytics> = withContext(Dispatchers.IO) {
         try {
+            val userId = getCurrentUserId() ?: return@withContext Result.failure(Exception("User not logged in"))
             val allTrips = getAllTrips().getOrNull() ?: emptyList()
             
             val totalTrips = allTrips.size
@@ -134,6 +131,7 @@ class TripHistoryService(private val context: Context) {
             val totalTimeSaved = calculateTimeSaved(allTrips)
             val timeSavedThisMonth = calculateTimeSavedThisMonth(allTrips)
             
+            Log.d(TAG, "Analytics calculated for user $userId: $totalTrips trips")
             Result.success(
                 Analytics(
                     totalTrips = totalTrips,
@@ -146,12 +144,14 @@ class TripHistoryService(private val context: Context) {
                 )
             )
         } catch (e: Exception) {
+            Log.e(TAG, "Error getting analytics", e)
             Result.failure(e)
         }
     }
     
     suspend fun getMonthlyStats(): Result<List<Pair<String, Int>>> = withContext(Dispatchers.IO) {
         try {
+            val userId = getCurrentUserId() ?: return@withContext Result.failure(Exception("User not logged in"))
             val allTrips = getAllTrips().getOrNull() ?: emptyList()
             val dateFormat = SimpleDateFormat("MMM", Locale.getDefault())
             
@@ -160,18 +160,34 @@ class TripHistoryService(private val context: Context) {
             }.mapValues { it.value.size }
             
             val result = monthlyTripCount.toList().sortedBy { it.first }
+            Log.d(TAG, "Monthly stats calculated for user $userId")
             Result.success(result)
         } catch (e: Exception) {
+            Log.e(TAG, "Error getting monthly stats", e)
             Result.failure(e)
         }
     }
     
     suspend fun clearAllTrips() = withContext(Dispatchers.IO) {
-        sharedPreferences.edit()
-            .remove(TRIPS_KEY)
-            .remove(TIME_SAVED_KEY)
-            .remove(HAZARDS_AVOIDED_KEY)
-            .apply()
+        try {
+            val userId = getCurrentUserId() ?: return@withContext
+            
+            // Delete all trips for this user
+            val trips = tripsCollection
+                .whereEqualTo("userId", userId)
+                .get()
+                .await()
+            
+            val batch = firestore.batch()
+            trips.documents.forEach { doc ->
+                batch.delete(doc.reference)
+            }
+            batch.commit().await()
+            
+            Log.d(TAG, "Cleared all trips for user $userId")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error clearing trips", e)
+        }
     }
     
     private fun calculateTimeSaved(trips: List<TripRecord>): Double {
@@ -186,33 +202,5 @@ class TripHistoryService(private val context: Context) {
         
         return trips.filter { it.timestamp > monthAgo && it.routeType == "Smart" }
             .sumOf { (it.duration * 0.12) / 3600.0 }
-    }
-    
-    private fun tripToJson(trip: TripRecord): JSONObject {
-        return JSONObject().apply {
-            put("id", trip.id)
-            put("origin", trip.origin)
-            put("destination", trip.destination)
-            put("distance", trip.distance)
-            put("duration", trip.duration)
-            put("timestamp", trip.timestamp)
-            put("hazards", trip.hazardsEncountered)
-            put("safety_score", trip.safetyScore)
-            put("route_type", trip.routeType)
-        }
-    }
-    
-    private fun jsonToTrip(json: JSONObject): TripRecord {
-        return TripRecord(
-            id = json.getString("id"),
-            origin = json.getString("origin"),
-            destination = json.getString("destination"),
-            distance = json.getInt("distance"),
-            duration = json.getInt("duration"),
-            timestamp = json.getLong("timestamp"),
-            hazardsEncountered = json.getInt("hazards"),
-            safetyScore = json.getInt("safety_score"),
-            routeType = json.getString("route_type")
-        )
     }
 }

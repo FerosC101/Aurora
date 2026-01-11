@@ -50,6 +50,9 @@ fun ActivityScreen(
     val costTrackingService = remember { CostTrackingService(context) }
     val scope = rememberCoroutineScope()
     
+    // Get current user ID to trigger reloads
+    val currentUserId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+    
     var selectedTab by remember { mutableStateOf(0) } // 0 = Recent Trips, 1 = Saved Routes
     var tripHistory by remember { mutableStateOf<List<TripDisplayRecord>>(emptyList()) }
     var savedRoutes by remember { mutableStateOf<List<SavedRouteRecord>>(emptyList()) }
@@ -63,12 +66,14 @@ fun ActivityScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showAddCostDialog by remember { mutableStateOf(false) }
     
-    // Load actual trip data
-    LaunchedEffect(Unit) {
+    // Load actual trip data - refresh when user changes
+    LaunchedEffect(currentUserId) {
         scope.launch {
+            android.util.Log.d("ActivityScreen", "Loading data for user: $currentUserId")
             isLoading = true
             val result = tripHistoryService.getAllTrips()
             result.onSuccess { trips ->
+                android.util.Log.d("ActivityScreen", "Loaded ${trips.size} trips")
                 // Convert to display format
                 tripHistory = trips.map { trip ->
                     val dateFormat = SimpleDateFormat("MMM dd, h:mm a", Locale.getDefault())
@@ -99,6 +104,8 @@ fun ActivityScreen(
                     timeSaved = "${hours}h ${minutes}m"
                     hazardsAvoided = analytics.hazardsAvoided
                 }
+            }.onFailure {
+                android.util.Log.e("ActivityScreen", "Failed to load trips", it)
             }
             
             // Load saved routes

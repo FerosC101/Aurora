@@ -239,7 +239,41 @@ fun NavigationGraph(
                             )
                         }
                     }
+                },
+                onNavigateToChat = {
+                    navController.navigate("chats")
+                },
+                onNavigateToNotifications = {
+                    navController.navigate("notifications")
                 }
+            )
+        }
+        
+        // Chat Screen
+        composable("chats") {
+            com.nextcs.aurora.ui.screens.ChatsListScreen(
+                onChatSelected = { chatId, otherUserName ->
+                    navController.navigate("chat/$chatId/$otherUserName")
+                },
+                onBack = { navController.navigateUp() }
+            )
+        }
+        
+        // Individual Chat Screen
+        composable("chat/{chatId}/{otherUserName}") { backStackEntry ->
+            val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
+            val otherUserName = backStackEntry.arguments?.getString("otherUserName") ?: ""
+            com.nextcs.aurora.ui.screens.ChatScreen(
+                chatId = chatId,
+                otherUserName = otherUserName,
+                onBack = { navController.navigateUp() }
+            )
+        }
+        
+        // Notifications Screen
+        composable("notifications") {
+            com.nextcs.aurora.ui.screens.NotificationsScreen(
+                onBack = { navController.navigateUp() }
             )
         }
         

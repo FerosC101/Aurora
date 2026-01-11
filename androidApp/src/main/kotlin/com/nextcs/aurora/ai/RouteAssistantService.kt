@@ -5,22 +5,27 @@ import android.util.Log
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.content
 import com.google.android.gms.maps.model.LatLng
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.FirebaseApp
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 
 data class RouteRequest(
-    val origin: String,
-    val destination: String,
+    val origin: String = "",
+    val destination: String = "",
     val waypoints: List<String> = emptyList()
 )
 
 data class ChatMessage(
-    val id: String = java.util.UUID.randomUUID().toString(),
-    val text: String,
-    val isUser: Boolean,
+    val id: String = "",
+    val text: String = "",
+    val isUser: Boolean = false,
     val timestamp: Long = System.currentTimeMillis(),
+    val userId: String = "",
     val routeRequest: RouteRequest? = null
 )
 
@@ -34,15 +39,17 @@ class RouteAssistantService(private val context: Context) {
     )
     
     private val conversationHistory = mutableListOf<ChatMessage>()
-    private val sharedPrefs = context.getSharedPreferences("ai_chat_history", Context.MODE_PRIVATE)
-    private val CHAT_HISTORY_KEY = "chat_messages"
+    private val firestore = FirebaseFirestore.getInstance(FirebaseApp.getInstance(), "sfse")
+    private val auth = FirebaseAuth.getInstance()
     
     init {
         Log.d(TAG, "Initializing RouteAssistantService")
         Log.d(TAG, "API Key length: ${apiKey.length}")
         Log.d(TAG, "API Key starts with: ${apiKey.take(10)}...")
-        // Load saved conversation history
-        loadConversationHistory()
+    }
+    
+    private fun getCurrentUserId(): String? {
+        return auth.currentUser?.uid
     }
     
     private fun getGeminiApiKey(): String {
@@ -61,8 +68,19 @@ class RouteAssistantService(private val context: Context) {
     }
     
     suspend fun sendMessage(userMessage: String): ChatMessage = withContext(Dispatchers.IO) {
+        val userId = getCurrentUserId() ?: return@withContext ChatMessage(
+            id = java.util.UUID.randomUUID().toString(),
+            text = "Please log in to use the AI assistant.",
+            isUser = false
+        )
+        
         // Add user message to history
-        val userChatMessage = ChatMessage(text = userMessage, isUser = true)
+        val userChatMessage = ChatMessage(
+            id = java.util.UUID.randomUUID().toString(),
+            text = userMessage,
+            isUser = true,
+            userId = userId
+        )
         conversationHistory.add(userChatMessage)
         saveConversationHistory()
         
@@ -137,8 +155,10 @@ class RouteAssistantService(private val context: Context) {
             val formattedText = stripMarkdown(cleanedText)
             
             val aiMessage = ChatMessage(
+                id = java.util.UUID.randomUUID().toString(),
                 text = formattedText,
                 isUser = false,
+                userId = getCurrentUserId() ?: "",
                 routeRequest = routeRequest
             )
             
@@ -163,8 +183,10 @@ class RouteAssistantService(private val context: Context) {
             }
             
             val errorMessage = ChatMessage(
+                id = java.util.UUID.randomUUID().toString(),
                 text = errorText,
-                isUser = false
+                isUser = false,
+                userId = getCurrentUserId() ?: ""
             )
             conversationHistory.add(errorMessage)
             saveConversationHistory()
@@ -223,9 +245,9 @@ class RouteAssistantService(private val context: Context) {
             Log.d(TAG, "Origin: $origin, Destination: $destination")
             
             val waypoints = mutableListOf<String>()
-            waypointsArray?.let {
-                for (i in 0 until it.length()) {
-                    val waypoint = it.getString(i).trim()
+            waypointsArray?.let { array ->
+                for (i in 0 until array.length()) {
+                    val waypoint = array.getString(i).trim()
                     // Only add non-empty waypoints
                     if (waypoint.isNotEmpty()) {
                         waypoints.add(waypoint)
@@ -251,66 +273,53 @@ class RouteAssistantService(private val context: Context) {
         }
     }
     
-    private fun loadConversationHistory() {
-        try {
-            val json = sharedPrefs.getString(CHAT_HISTORY_KEY, null) ?: return
-            val jsonArray = JSONArray(json)
-            conversationHistory.clear()
-            
-            for (i in 0 until jsonArray.length()) {
-                val obj = jsonArray.getJSONObject(i)
-                val message = ChatMessage(
-                    id = obj.getString("id"),
-                    text = obj.getString("text"),
-                    isUser = obj.getBoolean("isUser"),
-                    timestamp = obj.getLong("timestamp"),
-                    routeRequest = if (obj.has("routeRequest") && !obj.isNull("routeRequest")) {
-                        val routeObj = obj.getJSONObject("routeRequest")
-                        RouteRequest(
-                            origin = routeObj.getString("origin"),
-                            destination = routeObj.getString("destination"),
-                            waypoints = if (routeObj.has("waypoints")) {
-                                val wpArray = routeObj.getJSONArray("waypoints")
-                                (0 until wpArray.length()).map { wpArray.getString(it) }
-                            } else emptyList()
-                        )
-                    } else null
-                )
-                conversationHistory.add(message)
+    suspend fun loadConversationHistory() {
+        withContext(Dispatchers.IO) {
+            try {
+                val userId = getCurrentUserId() ?: return@withContext
+                
+                val messages = firestore.collection("chatHistory")
+                    .whereEqualTo("userId", userId)
+                    .get()
+                    .await()
+                    .toObjects(ChatMessage::class.java)
+                    .sortedBy { it.timestamp }
+                
+                conversationHistory.clear()
+                conversationHistory.addAll(messages)
+                Log.d(TAG, "Loaded ${conversationHistory.size} messages from Firestore")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error loading conversation history from Firestore", e)
+                conversationHistory.clear()
             }
-            Log.d(TAG, "Loaded ${conversationHistory.size} messages from history")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error loading conversation history", e)
-            conversationHistory.clear()
         }
     }
     
-    private fun saveConversationHistory() {
-        try {
-            val jsonArray = JSONArray()
-            for (msg in conversationHistory) {
-                val obj = JSONObject()
-                obj.put("id", msg.id)
-                obj.put("text", msg.text)
-                obj.put("isUser", msg.isUser)
-                obj.put("timestamp", msg.timestamp)
+    private suspend fun saveConversationHistory() {
+        withContext(Dispatchers.IO) {
+            try {
+                val userId = getCurrentUserId() ?: return@withContext
                 
-                if (msg.routeRequest != null) {
-                    val routeObj = JSONObject()
-                    routeObj.put("origin", msg.routeRequest.origin)
-                    routeObj.put("destination", msg.routeRequest.destination)
-                    val waypointsArray = JSONArray(msg.routeRequest.waypoints)
-                    routeObj.put("waypoints", waypointsArray)
-                    obj.put("routeRequest", routeObj)
+                // Save only recent messages (last message)
+                val recentMessages = conversationHistory.takeLast(1)
+                for (msg in recentMessages) {
+                    val messageWithUser = ChatMessage(
+                        id = msg.id,
+                        text = msg.text,
+                        isUser = msg.isUser,
+                        timestamp = msg.timestamp,
+                        userId = userId,
+                        routeRequest = msg.routeRequest
+                    )
+                    firestore.collection("chatHistory")
+                        .document(msg.id)
+                        .set(messageWithUser)
+                        .await()
                 }
-                
-                jsonArray.put(obj)
+                Log.d(TAG, "Saved messages to Firestore")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error saving conversation history to Firestore", e)
             }
-            
-            sharedPrefs.edit().putString(CHAT_HISTORY_KEY, jsonArray.toString()).apply()
-            Log.d(TAG, "Saved ${conversationHistory.size} messages to history")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error saving conversation history", e)
         }
     }
     
@@ -318,10 +327,28 @@ class RouteAssistantService(private val context: Context) {
         return conversationHistory.toList()
     }
     
-    fun clearHistory() {
-        conversationHistory.clear()
-        sharedPrefs.edit().remove(CHAT_HISTORY_KEY).apply()
-        Log.d(TAG, "Cleared conversation history")
+    suspend fun clearHistory() {
+        withContext(Dispatchers.IO) {
+            try {
+                val userId = getCurrentUserId() ?: return@withContext
+                
+                val messages = firestore.collection("chatHistory")
+                    .whereEqualTo("userId", userId)
+                    .get()
+                    .await()
+                
+                val batch = firestore.batch()
+                messages.documents.forEach { doc ->
+                    batch.delete(doc.reference)
+                }
+                batch.commit().await()
+                
+                conversationHistory.clear()
+                Log.d(TAG, "Cleared conversation history from Firestore")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error clearing conversation history", e)
+            }
+        }
     }
     
     // Quick suggestions for user

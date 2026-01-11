@@ -4,7 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
+import com.google.firebase.FirebaseApp
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -15,14 +15,24 @@ data class CarpoolListing(
     val driverId: String = "",
     val driverName: String = "",
     val driverEmail: String = "",
+    val driverPhone: String = "",
+    val driverRating: Double = 0.0,
     val origin: String = "",
     val destination: String = "",
-    val departureTime: Long = 0,
+    val departureDate: String = "", // YYYY-MM-DD format
+    val departureTime: String = "", // HH:mm format
+    val departureTimestamp: Long = 0,
     val availableSeats: Int = 0,
     val pricePerSeat: Double = 0.0,
     val vehicleModel: String = "",
+    val vehiclePlate: String = "",
+    val vehicleColor: String = "",
     val preferences: String = "",
-    val timestamp: Long = System.currentTimeMillis()
+    val amenities: List<String> = emptyList(), // AC, Music, Pet-friendly, etc.
+    val meetingPoint: String = "",
+    val route: String = "", // Preferred route
+    val status: String = "active", // active, completed, cancelled
+    val timestamp: Long = 0
 )
 
 data class RideRequest(
@@ -30,27 +40,47 @@ data class RideRequest(
     val requesterId: String = "",
     val requesterName: String = "",
     val requesterEmail: String = "",
+    val requesterPhone: String = "",
+    val requesterRating: Double = 0.0,
     val pickupLocation: String = "",
+    val pickupAddress: String = "",
     val dropoffLocation: String = "",
-    val requestedTime: Long = 0,
+    val dropoffAddress: String = "",
+    val requestedDate: String = "", // YYYY-MM-DD format
+    val requestedTime: String = "", // HH:mm format  
+    val requestedTimestamp: Long = 0,
     val passengers: Int = 1,
+    val offerPrice: Double = 0.0,
+    val luggage: Boolean = false,
     val notes: String = "",
-    val status: String = "pending", // pending, accepted, declined
-    val timestamp: Long = System.currentTimeMillis()
+    val preferences: String = "",
+    val status: String = "pending", // pending, accepted, declined, completed
+    val acceptedBy: String = "", // Driver ID who accepted
+    val timestamp: Long = 0
 )
 
 data class UserProfile(
     val userId: String = "",
     val displayName: String = "",
     val email: String = "",
-    val photoUrl: String = "",
-    val createdAt: Long = System.currentTimeMillis()
+    val photoUrl: String = ""
+)
+
+data class FriendRequest(
+    val id: String = "",
+    val fromUserId: String = "",
+    val fromUserName: String = "",
+    val fromUserEmail: String = "",
+    val toUserId: String = "",
+    val toUserName: String = "",
+    val status: String = "pending", // pending, accepted, rejected
+    val timestamp: Long = 0
 )
 
 class SocialFirebaseService(private val context: Context) {
     
     private val TAG = "SocialFirebaseService"
-    private val firestore = FirebaseFirestore.getInstance()
+    private val firestore = FirebaseFirestore.getInstance(FirebaseApp.getInstance(), "sfse")
     private val auth = FirebaseAuth.getInstance()
     
     // Collections
@@ -58,6 +88,7 @@ class SocialFirebaseService(private val context: Context) {
     private val carpoolCollection = firestore.collection("carpools")
     private val rideRequestsCollection = firestore.collection("rideRequests")
     private val friendsCollection = firestore.collection("friends")
+    private val friendRequestsCollection = firestore.collection("friendRequests")
     
     /**
      * Get current user ID
@@ -67,26 +98,60 @@ class SocialFirebaseService(private val context: Context) {
     }
     
     /**
-     * Get current user profile
+     * Get current user profile and ensure it's saved to Firestore
      */
     suspend fun getCurrentUserProfile(): Result<UserProfile> {
         return try {
             val userId = getCurrentUserId() ?: return Result.failure(Exception("User not logged in"))
             val user = auth.currentUser ?: return Result.failure(Exception("User not logged in"))
             
+            Log.d(TAG, "Getting profile for user: $userId, display name: ${user.displayName}, email: ${user.email}")
+            
+            // Check if user already exists in Firestore
+            val existingDoc = usersCollection.document(userId).get().await()
+            
+            if (existingDoc.exists()) {
+                // User exists, manually parse it to handle both UserProfile formats
+                try {
+                    val displayName = existingDoc.getString("fullName") 
+                        ?: existingDoc.getString("displayName") 
+                        ?: user.displayName
+                        ?: user.email?.substringBefore("@") 
+                        ?: "User"
+                    val email = existingDoc.getString("email") ?: user.email ?: ""
+                    val photoUrl = existingDoc.getString("profileImageUrl") 
+                        ?: existingDoc.getString("photoUrl") 
+                        ?: user.photoUrl?.toString() 
+                        ?: ""
+                    
+                    val existingProfile = UserProfile(
+                        userId = userId,
+                        displayName = displayName,
+                        email = email,
+                        photoUrl = photoUrl
+                    )
+                    Log.d(TAG, "User profile already exists: $existingProfile")
+                    return Result.success(existingProfile)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to parse existing profile, will create new one: ${e.message}")
+                }
+            }
+            
+            // Create new profile
             val profile = UserProfile(
                 userId = userId,
-                displayName = user.displayName ?: "User",
+                displayName = user.displayName ?: user.email?.substringBefore("@") ?: "User",
                 email = user.email ?: "",
                 photoUrl = user.photoUrl?.toString() ?: ""
             )
             
             // Save/update user profile in Firestore
             usersCollection.document(userId).set(profile).await()
+            Log.d(TAG, "User profile saved to Firestore: $profile")
             
             Result.success(profile)
         } catch (e: Exception) {
-            Log.e(TAG, "Error getting user profile", e)
+            Log.e(TAG, "Error getting/saving user profile: ${e.message}", e)
             Result.failure(e)
         }
     }
@@ -96,48 +161,253 @@ class SocialFirebaseService(private val context: Context) {
      */
     suspend fun searchUsers(query: String): Result<List<UserProfile>> {
         return try {
-            if (query.isBlank()) {
-                return Result.success(emptyList())
+            val currentUserId = getCurrentUserId()
+            
+            Log.d(TAG, "==================== SEARCH USERS ====================")
+            Log.d(TAG, "Query: '$query'")
+            Log.d(TAG, "Current user ID: $currentUserId")
+            Log.d(TAG, "Firestore project: ${firestore.app.options.projectId}")
+            Log.d(TAG, "Auth user: ${auth.currentUser?.email}")
+            
+            // Fetch all users as raw documents and convert manually
+            val snapshot = usersCollection
+                .limit(100) // Reasonable limit for user search
+                .get()
+                .await()
+            
+            Log.d(TAG, "✅ Firestore query successful!")
+            Log.d(TAG, "Found ${snapshot.documents.size} total documents in users collection")
+            
+            if (snapshot.documents.isEmpty()) {
+                Log.w(TAG, "⚠️ No documents in users collection! Users may not have been saved during registration.")
             }
             
-            val currentUserId = getCurrentUserId()
+            // Convert documents to UserProfile, handling both formats
+            val allUsers = snapshot.documents.mapNotNull { doc ->
+                try {
+                    Log.d(TAG, "Processing document: ${doc.id}")
+                    Log.d(TAG, "  Document data: ${doc.data}")
+                    
+                    // Try to get the fields we need
+                    val userId = doc.getString("userId") ?: doc.id
+                    val displayName = doc.getString("fullName") 
+                        ?: doc.getString("displayName") 
+                        ?: doc.getString("email")?.substringBefore("@") 
+                        ?: "User"
+                    val email = doc.getString("email") ?: ""
+                    val photoUrl = doc.getString("profileImageUrl") ?: doc.getString("photoUrl") ?: ""
+                    
+                    Log.d(TAG, "✅ Converted user: $userId, name: $displayName, email: $email")
+                    
+                    UserProfile(
+                        userId = userId,
+                        displayName = displayName,
+                        email = email,
+                        photoUrl = photoUrl
+                    )
+                } catch (e: Exception) {
+                    Log.e(TAG, "❌ Failed to convert document ${doc.id}: ${e.message}")
+                    null
+                }
+            }
+            
+            Log.d(TAG, "Successfully converted ${allUsers.size} users from ${snapshot.documents.size} documents")
+            Log.d(TAG, "======================================================")
+            
+            if (query.isBlank()) {
+                // Return all users except current user (for debugging/testing)
+                val results = allUsers.filter { it.userId != currentUserId }
+                Log.d(TAG, "Returning all ${results.size} users (empty query)")
+                return Result.success(results)
+            }
+            
             val queryLower = query.lowercase()
             
-            // Search by name
-            val nameResults = usersCollection
-                .orderBy("displayName")
-                .startAt(queryLower)
-                .endAt(queryLower + "\uf8ff")
-                .limit(20)
-                .get()
-                .await()
-                .toObjects(UserProfile::class.java)
+            // Filter by name or email (case-insensitive)
+            val results = allUsers
                 .filter { it.userId != currentUserId }
+                .filter { user ->
+                    user.displayName.lowercase().contains(queryLower) ||
+                    user.email.lowercase().contains(queryLower)
+                }
+                .take(20)
             
-            // Search by email
-            val emailResults = usersCollection
-                .orderBy("email")
-                .startAt(queryLower)
-                .endAt(queryLower + "\uf8ff")
-                .limit(20)
-                .get()
-                .await()
-                .toObjects(UserProfile::class.java)
-                .filter { it.userId != currentUserId }
-            
-            // Combine and deduplicate
-            val allResults = (nameResults + emailResults).distinctBy { it.userId }
-            
-            Log.d(TAG, "Found ${allResults.size} users matching '$query'")
-            Result.success(allResults)
+            Log.d(TAG, "Search '$query' found ${results.size} matching users")
+            Result.success(results)
         } catch (e: Exception) {
-            Log.e(TAG, "Error searching users", e)
+            Log.e(TAG, "Error searching users: ${e.message}", e)
             Result.failure(e)
         }
     }
     
     /**
-     * Add friend
+     * Send friend request
+     */
+    suspend fun sendFriendRequest(friendUserId: String, friendName: String, friendEmail: String): Result<Unit> {
+        return try {
+            val currentUserId = getCurrentUserId() ?: return Result.failure(Exception("User not logged in"))
+            val currentUserName = auth.currentUser?.displayName ?: auth.currentUser?.email?.substringBefore("@") ?: "User"
+            val currentUserEmail = auth.currentUser?.email ?: ""
+            
+            // Check if already friends
+            val existingFriend = friendsCollection
+                .document(currentUserId)
+                .collection("userFriends")
+                .document(friendUserId)
+                .get()
+                .await()
+            
+            if (existingFriend.exists()) {
+                return Result.failure(Exception("Already friends"))
+            }
+            
+            // Check if request already exists
+            val existingRequest = friendRequestsCollection
+                .whereEqualTo("fromUserId", currentUserId)
+                .whereEqualTo("toUserId", friendUserId)
+                .whereEqualTo("status", "pending")
+                .get()
+                .await()
+            
+            if (!existingRequest.isEmpty) {
+                return Result.failure(Exception("Friend request already sent"))
+            }
+            
+            // Create friend request
+            val requestId = friendRequestsCollection.document().id
+            val request = FriendRequest(
+                id = requestId,
+                fromUserId = currentUserId,
+                fromUserName = currentUserName,
+                fromUserEmail = currentUserEmail,
+                toUserId = friendUserId,
+                toUserName = friendName,
+                status = "pending"
+            )
+            
+            friendRequestsCollection.document(requestId).set(request).await()
+            
+            // Send notification
+            val notificationService = NotificationService(context)
+            notificationService.sendNotification(
+                toUserId = friendUserId,
+                type = "friend_request",
+                title = "New Friend Request",
+                message = "$currentUserName wants to be your friend",
+                actionData = mapOf("requestId" to requestId)
+            )
+            
+            Log.d(TAG, "Friend request sent: $requestId")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error sending friend request", e)
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Accept friend request
+     */
+    suspend fun acceptFriendRequest(requestId: String): Result<Unit> {
+        return try {
+            val requestDoc = friendRequestsCollection.document(requestId).get().await()
+            val request = requestDoc.toObject(FriendRequest::class.java) 
+                ?: return Result.failure(Exception("Request not found"))
+            
+            // Add to both users' friends
+            friendsCollection
+                .document(request.toUserId)
+                .collection("userFriends")
+                .document(request.fromUserId)
+                .set(mapOf(
+                    "userId" to request.fromUserId,
+                    "displayName" to request.fromUserName,
+                    "email" to request.fromUserEmail,
+                    "addedAt" to System.currentTimeMillis()
+                ))
+                .await()
+            
+            friendsCollection
+                .document(request.fromUserId)
+                .collection("userFriends")
+                .document(request.toUserId)
+                .set(mapOf(
+                    "userId" to request.toUserId,
+                    "displayName" to request.toUserName,
+                    "addedAt" to System.currentTimeMillis()
+                ))
+                .await()
+            
+            // Update request status
+            friendRequestsCollection.document(requestId)
+                .update("status", "accepted")
+                .await()
+            
+            // Send notification
+            val notificationService = NotificationService(context)
+            notificationService.sendNotification(
+                toUserId = request.fromUserId,
+                type = "friend_accepted",
+                title = "Friend Request Accepted",
+                message = "${request.toUserName} accepted your friend request"
+            )
+            
+            Log.d(TAG, "Friend request accepted: $requestId")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error accepting friend request", e)
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Reject friend request
+     */
+    suspend fun rejectFriendRequest(requestId: String): Result<Unit> {
+        return try {
+            friendRequestsCollection.document(requestId)
+                .update("status", "rejected")
+                .await()
+            
+            Log.d(TAG, "Friend request rejected: $requestId")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error rejecting friend request", e)
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Get pending friend requests for current user
+     */
+    fun observePendingRequests(): Flow<List<FriendRequest>> = callbackFlow {
+        val userId = getCurrentUserId()
+        if (userId == null) {
+            close(Exception("Not logged in"))
+            return@callbackFlow
+        }
+        
+        val listener = friendRequestsCollection
+            .whereEqualTo("toUserId", userId)
+            .whereEqualTo("status", "pending")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+                
+                val requests = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(FriendRequest::class.java)
+                } ?: emptyList()
+                
+                trySend(requests)
+            }
+        
+        awaitClose { listener.remove() }
+    }
+    
+    /**
+     * Add friend (deprecated - use sendFriendRequest instead)
      */
     suspend fun addFriend(friendUserId: String): Result<Unit> {
         return try {
@@ -200,7 +470,7 @@ class SocialFirebaseService(private val context: Context) {
                     .get()
                     .await()
                     .toObjects(UserProfile::class.java)
-            }
+            }.sortedBy { it.displayName }
             
             Log.d(TAG, "Retrieved ${friends.size} friends")
             Result.success(friends)
@@ -273,18 +543,28 @@ class SocialFirebaseService(private val context: Context) {
     }
     
     /**
-     * Get all carpool listings
+     * Observe all carpool listings from all users
      */
     fun observeCarpoolListings(): Flow<List<CarpoolListing>> = callbackFlow {
+        val currentUserId = getCurrentUserId()
+        
         val listener = carpoolCollection
-            .orderBy("timestamp", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    Log.e(TAG, "Error observing carpool listings", error)
+                    Log.e(TAG, "Error observing carpool listings: ${error.message}", error)
                     return@addSnapshotListener
                 }
                 
-                val listings = snapshot?.toObjects(CarpoolListing::class.java) ?: emptyList()
+                val listings = snapshot?.documents?.mapNotNull { doc ->
+                    try {
+                        doc.toObject(CarpoolListing::class.java)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Skipping carpool listing ${doc.id} - incompatible format: ${e.message}")
+                        null
+                    }
+                }?.sortedByDescending { it.timestamp } ?: emptyList()
+                
+                Log.d(TAG, "Observed ${listings.size} carpool listings (current user: $currentUserId)")
                 trySend(listings)
             }
         
@@ -292,20 +572,23 @@ class SocialFirebaseService(private val context: Context) {
     }
     
     /**
-     * Get carpool listings (one-time fetch)
+     * Get carpool listings (one-time fetch) - shows all listings from all users
      */
     suspend fun getCarpoolListings(): Result<List<CarpoolListing>> {
         return try {
+            val currentUserId = getCurrentUserId() ?: return Result.failure(Exception("User not logged in"))
+            
+            Log.d(TAG, "Fetching carpool listings...")
             val listings = carpoolCollection
-                .orderBy("timestamp", Query.Direction.DESCENDING)
                 .get()
                 .await()
                 .toObjects(CarpoolListing::class.java)
+                .sortedByDescending { it.timestamp }
             
-            Log.d(TAG, "Retrieved ${listings.size} carpool listings")
+            Log.d(TAG, "Retrieved ${listings.size} carpool listings for user $currentUserId")
             Result.success(listings)
         } catch (e: Exception) {
-            Log.e(TAG, "Error getting carpool listings", e)
+            Log.e(TAG, "Error getting carpool listings: ${e.message}", e)
             Result.failure(e)
         }
     }
@@ -356,18 +639,28 @@ class SocialFirebaseService(private val context: Context) {
     }
     
     /**
-     * Observe ride requests
+     * Observe ride requests (excluding own requests)
      */
     fun observeRideRequests(): Flow<List<RideRequest>> = callbackFlow {
+        val currentUserId = getCurrentUserId()
+        
         val listener = rideRequestsCollection
-            .orderBy("timestamp", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    Log.e(TAG, "Error observing ride requests", error)
+                    Log.e(TAG, "Error observing ride requests: ${error.message}", error)
                     return@addSnapshotListener
                 }
                 
-                val requests = snapshot?.toObjects(RideRequest::class.java) ?: emptyList()
+                val requests = snapshot?.documents?.mapNotNull { doc ->
+                    try {
+                        doc.toObject(RideRequest::class.java)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Skipping ride request ${doc.id} - incompatible format: ${e.message}")
+                        null
+                    }
+                }?.filter { it.requesterId != currentUserId } // Exclude own requests
+                  ?.sortedByDescending { it.timestamp } ?: emptyList()
+                
                 trySend(requests)
             }
         
@@ -375,20 +668,24 @@ class SocialFirebaseService(private val context: Context) {
     }
     
     /**
-     * Get ride requests (one-time fetch)
+     * Get ride requests (one-time fetch, excluding own requests)
      */
     suspend fun getRideRequests(): Result<List<RideRequest>> {
         return try {
+            val currentUserId = getCurrentUserId() ?: return Result.failure(Exception("User not logged in"))
+            
+            Log.d(TAG, "Fetching ride requests...")
             val requests = rideRequestsCollection
-                .orderBy("timestamp", Query.Direction.DESCENDING)
                 .get()
                 .await()
                 .toObjects(RideRequest::class.java)
+                .filter { it.requesterId != currentUserId } // Exclude own requests
+                .sortedByDescending { it.timestamp }
             
-            Log.d(TAG, "Retrieved ${requests.size} ride requests")
+            Log.d(TAG, "Retrieved ${requests.size} ride requests for user $currentUserId")
             Result.success(requests)
         } catch (e: Exception) {
-            Log.e(TAG, "Error getting ride requests", e)
+            Log.e(TAG, "Error getting ride requests: ${e.message}", e)
             Result.failure(e)
         }
     }

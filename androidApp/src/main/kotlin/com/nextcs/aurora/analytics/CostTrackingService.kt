@@ -2,13 +2,17 @@ package com.nextcs.aurora.analytics
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.FirebaseApp
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
-import org.json.JSONArray
-import org.json.JSONObject
 
 data class TripCost(
-    val tripId: String,
+    val tripId: String = "",
+    val userId: String = "",
     val tollCost: Double = 0.0,           // Currency
     val parkingCost: Double = 0.0,        // Currency
     val fuelConsumption: Double = 0.0,    // Liters
@@ -29,19 +33,26 @@ data class MonthlyCostSummary(
 
 class CostTrackingService(private val context: Context) {
     
+    private val firestore = FirebaseFirestore.getInstance(FirebaseApp.getInstance(), "sfse")
+    private val costsCollection = firestore.collection("costs")
+    
     private val prefs: SharedPreferences = context.getSharedPreferences(
         "aurora_cost_tracking",
         Context.MODE_PRIVATE
     )
     
     companion object {
-        private const val COSTS_KEY = "trip_costs"
+        private const val TAG = "CostTrackingService"
         private const val FUEL_PRICE_KEY = "fuel_price_per_liter"
         private const val DEFAULT_FUEL_PRICE = 1.5 // Default price per liter
         
         // Average fuel consumption by vehicle type (L/100km)
         private const val CAR_FUEL_CONSUMPTION = 7.5
         private const val MOTORCYCLE_FUEL_CONSUMPTION = 3.5
+    }
+    
+    private fun getCurrentUserId(): String? {
+        return FirebaseAuth.getInstance().currentUser?.uid
     }
     
     /**
@@ -55,6 +66,8 @@ class CostTrackingService(private val context: Context) {
         vehicleType: String = "driving"
     ): Result<TripCost> = withContext(Dispatchers.IO) {
         try {
+            val userId = getCurrentUserId() ?: return@withContext Result.failure(Exception("User not logged in"))
+            
             // Calculate fuel consumption and cost
             val fuelConsumption = calculateFuelConsumption(distanceKm, vehicleType)
             val fuelPrice = getFuelPrice()
@@ -62,6 +75,7 @@ class CostTrackingService(private val context: Context) {
             
             val cost = TripCost(
                 tripId = tripId,
+                userId = userId,
                 tollCost = tollCost,
                 parkingCost = parkingCost,
                 fuelConsumption = fuelConsumption,
@@ -70,18 +84,13 @@ class CostTrackingService(private val context: Context) {
                 timestamp = System.currentTimeMillis()
             )
             
-            // Get existing costs
-            val costsJson = prefs.getString(COSTS_KEY, "[]") ?: "[]"
-            val costsArray = JSONArray(costsJson)
-            
-            // Add new cost
-            costsArray.put(costToJson(cost))
-            
-            // Save
-            prefs.edit().putString(COSTS_KEY, costsArray.toString()).apply()
+            // Save to Firestore
+            costsCollection.document(tripId).set(cost).await()
+            Log.d(TAG, "Saved cost for trip $tripId (user: $userId)")
             
             Result.success(cost)
         } catch (e: Exception) {
+            Log.e(TAG, "Error saving trip cost", e)
             Result.failure(e)
         }
     }
@@ -91,18 +100,19 @@ class CostTrackingService(private val context: Context) {
      */
     suspend fun getTripCost(tripId: String): Result<TripCost?> = withContext(Dispatchers.IO) {
         try {
-            val costsJson = prefs.getString(COSTS_KEY, "[]") ?: "[]"
-            val costsArray = JSONArray(costsJson)
+            val userId = getCurrentUserId() ?: return@withContext Result.failure(Exception("User not logged in"))
             
-            for (i in 0 until costsArray.length()) {
-                val costObj = costsArray.getJSONObject(i)
-                if (costObj.getString("tripId") == tripId) {
-                    return@withContext Result.success(jsonToCost(costObj))
-                }
+            val doc = costsCollection.document(tripId).get().await()
+            val cost = doc.toObject(TripCost::class.java)
+            
+            // Verify it belongs to the current user
+            if (cost?.userId == userId) {
+                Result.success(cost)
+            } else {
+                Result.success(null)
             }
-            
-            Result.success(null)
         } catch (e: Exception) {
+            Log.e(TAG, "Error getting trip cost", e)
             Result.failure(e)
         }
     }
@@ -112,16 +122,19 @@ class CostTrackingService(private val context: Context) {
      */
     suspend fun getAllCosts(): Result<List<TripCost>> = withContext(Dispatchers.IO) {
         try {
-            val costsJson = prefs.getString(COSTS_KEY, "[]") ?: "[]"
-            val costsArray = JSONArray(costsJson)
+            val userId = getCurrentUserId() ?: return@withContext Result.failure(Exception("User not logged in"))
             
-            val costs = mutableListOf<TripCost>()
-            for (i in 0 until costsArray.length()) {
-                costs.add(jsonToCost(costsArray.getJSONObject(i)))
-            }
+            val costs = costsCollection
+                .whereEqualTo("userId", userId)
+                .get()
+                .await()
+                .toObjects(TripCost::class.java)
+                .sortedByDescending { it.timestamp }
             
-            Result.success(costs.sortedByDescending { it.timestamp })
+            Log.d(TAG, "Retrieved ${costs.size} costs for user $userId")
+            Result.success(costs)
         } catch (e: Exception) {
+            Log.e(TAG, "Error getting all costs", e)
             Result.failure(e)
         }
     }
@@ -175,12 +188,35 @@ class CostTrackingService(private val context: Context) {
     /**
      * Get/Set fuel price per liter
      */
-    fun getFuelPrice(): Double {
-        return prefs.getFloat(FUEL_PRICE_KEY, DEFAULT_FUEL_PRICE.toFloat()).toDouble()
+    suspend fun getFuelPrice(): Double = withContext(Dispatchers.IO) {
+        try {
+            val userId = getCurrentUserId() ?: return@withContext DEFAULT_FUEL_PRICE
+            
+            val doc = firestore.collection("userSettings")
+                .document(userId)
+                .get()
+                .await()
+            
+            doc.getDouble("fuelPrice") ?: DEFAULT_FUEL_PRICE
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting fuel price, using default", e)
+            DEFAULT_FUEL_PRICE
+        }
     }
     
-    fun setFuelPrice(pricePerLiter: Double) {
-        prefs.edit().putFloat(FUEL_PRICE_KEY, pricePerLiter.toFloat()).apply()
+    suspend fun setFuelPrice(pricePerLiter: Double) = withContext(Dispatchers.IO) {
+        try {
+            val userId = getCurrentUserId() ?: return@withContext
+            
+            firestore.collection("userSettings")
+                .document(userId)
+                .set(mapOf("fuelPrice" to pricePerLiter))
+                .await()
+            
+            Log.d(TAG, "Fuel price saved: $pricePerLiter")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error setting fuel price", e)
+        }
     }
     
     /**
@@ -195,27 +231,4 @@ class CostTrackingService(private val context: Context) {
         }
     }
     
-    private fun costToJson(cost: TripCost): JSONObject {
-        return JSONObject().apply {
-            put("tripId", cost.tripId)
-            put("tollCost", cost.tollCost)
-            put("parkingCost", cost.parkingCost)
-            put("fuelConsumption", cost.fuelConsumption)
-            put("fuelCost", cost.fuelCost)
-            put("totalCost", cost.totalCost)
-            put("timestamp", cost.timestamp)
-        }
-    }
-    
-    private fun jsonToCost(json: JSONObject): TripCost {
-        return TripCost(
-            tripId = json.getString("tripId"),
-            tollCost = json.getDouble("tollCost"),
-            parkingCost = json.getDouble("parkingCost"),
-            fuelConsumption = json.getDouble("fuelConsumption"),
-            fuelCost = json.getDouble("fuelCost"),
-            totalCost = json.getDouble("totalCost"),
-            timestamp = json.getLong("timestamp")
-        )
-    }
 }

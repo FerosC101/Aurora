@@ -26,6 +26,7 @@ import com.nextcs.aurora.social.CarpoolListing
 import com.nextcs.aurora.social.RideRequest
 import com.nextcs.aurora.social.UserProfile
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -34,6 +35,8 @@ fun SocialScreen(
     userName: String,
     userEmail: String,
     onNavigateToFriend: (FriendLocation) -> Unit,
+    onNavigateToChat: () -> Unit = {},
+    onNavigateToNotifications: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -47,7 +50,50 @@ fun SocialScreen(
     // Initialize user profile on launch
     LaunchedEffect(Unit) {
         scope.launch {
+            android.util.Log.d("SocialScreen", "========== INITIALIZING SOCIAL SCREEN ==========")
+            
+            // Step 1: Initialize current user profile
+            android.util.Log.d("SocialScreen", "Step 1: Initializing user profile...")
             socialService.getCurrentUserProfile()
+                .onSuccess { profile ->
+                    android.util.Log.d("SocialScreen", "✅ User profile initialized: $profile")
+                }
+                .onFailure { error ->
+                    android.util.Log.e("SocialScreen", "❌ Failed to initialize profile: ${error.message}", error)
+                }
+            
+            // Step 2: Test direct Firestore access
+            android.util.Log.d("SocialScreen", "Step 2: Testing direct Firestore access...")
+            try {
+                val db = com.google.firebase.firestore.FirebaseFirestore.getInstance(
+                    com.google.firebase.FirebaseApp.getInstance(), 
+                    "sfse"
+                )
+                android.util.Log.d("SocialScreen", "✅ Got Firestore instance for sfse database")
+                
+                val snapshot = db.collection("users").get().await()
+                android.util.Log.d("SocialScreen", "✅ Direct query successful!")
+                android.util.Log.d("SocialScreen", "📊 Total documents: ${snapshot.documents.size}")
+                snapshot.documents.forEach { doc ->
+                    android.util.Log.d("SocialScreen", "  📄 Document ID: ${doc.id}")
+                    android.util.Log.d("SocialScreen", "     Data: ${doc.data}")
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("SocialScreen", "❌ Direct Firestore query failed: ${e.message}", e)
+            }
+            
+            // Step 3: Try to fetch all users using service
+            android.util.Log.d("SocialScreen", "Step 3: Fetching users via service...")
+            socialService.searchUsers("").onSuccess { users ->
+                android.util.Log.d("SocialScreen", "🔍 Total users from service: ${users.size}")
+                users.forEach { user ->
+                    android.util.Log.d("SocialScreen", "  - User: ${user.displayName} (${user.email})")
+                }
+            }.onFailure { error ->
+                android.util.Log.e("SocialScreen", "❌ Failed to fetch users: ${error.message}", error)
+            }
+            
+            android.util.Log.d("SocialScreen", "================================================")
         }
     }
     
@@ -56,7 +102,7 @@ fun SocialScreen(
             .fillMaxSize()
             .background(Color(0xFFF5F5F7))
     ) {
-        // Modern Header
+        // Modern Header with Actions
         Surface(
             modifier = Modifier.fillMaxWidth(),
             color = Color.White,
@@ -67,19 +113,47 @@ fun SocialScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 16.dp)
             ) {
-                Text(
-                    text = "Social",
-                    fontSize = 34.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1C1C1E),
-                    letterSpacing = (-0.5).sp
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Friends, carpool & ride sharing",
-                    fontSize = 15.sp,
-                    color = Color(0xFF8E8E93)
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Social",
+                            fontSize = 34.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1C1C1E),
+                            letterSpacing = (-0.5).sp
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Friends, carpool & ride sharing",
+                            fontSize = 15.sp,
+                            color = Color(0xFF8E8E93)
+                        )
+                    }
+                    
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        // Notifications Icon
+                        IconButton(onClick = onNavigateToNotifications) {
+                            Icon(
+                                Icons.Default.Notifications,
+                                contentDescription = "Notifications",
+                                tint = Color(0xFF007AFF)
+                            )
+                        }
+                        
+                        // Chat Icon
+                        IconButton(onClick = onNavigateToChat) {
+                            Icon(
+                                Icons.Default.Email,
+                                contentDescription = "Messages",
+                                tint = Color(0xFF007AFF)
+                            )
+                        }
+                    }
+                }
             }
         }
         
@@ -120,19 +194,38 @@ fun FriendsTab(
 ) {
     val scope = rememberCoroutineScope()
     var friends by remember { mutableStateOf<List<UserProfile>>(emptyList()) }
+    var friendRequests by remember { mutableStateOf<List<com.nextcs.aurora.social.FriendRequest>>(emptyList()) }
     var friendLocations by remember { mutableStateOf<List<FriendLocation>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var showAddDialog by remember { mutableStateOf(false) }
+    val currentUserId = socialService.getCurrentUserId()
     
-    // Load friends
-    LaunchedEffect(Unit) {
+    // Load friends - refresh when user ID changes
+    LaunchedEffect(currentUserId) {
+        isLoading = true
         scope.launch {
+            android.util.Log.d("SocialScreen", "Loading friends for user: $currentUserId")
             socialService.getFriends().onSuccess { friendList ->
                 friends = friendList
+                android.util.Log.d("SocialScreen", "Loaded ${friendList.size} friends")
                 isLoading = false
             }.onFailure {
+                android.util.Log.e("SocialScreen", "Failed to load friends", it)
                 isLoading = false
             }
+        }
+    }
+    
+    // Observe friend requests (with error handling for missing security rules)
+    LaunchedEffect(currentUserId) {
+        try {
+            socialService.observePendingRequests().collect { requests ->
+                friendRequests = requests
+                android.util.Log.d("SocialScreen", "Received ${requests.size} pending friend requests")
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("SocialScreen", "Friend requests not available (missing security rules?): ${e.message}")
+            // Continue without friend requests - app should still work
         }
     }
     
@@ -154,7 +247,7 @@ fun FriendsTab(
                 modifier = Modifier.align(Alignment.Center),
                 color = Color(0xFF007AFF)
             )
-        } else if (friends.isEmpty()) {
+        } else if (friends.isEmpty() && friendRequests.isEmpty()) {
             EmptyFriendsState(modifier = Modifier.align(Alignment.Center))
         } else {
             LazyColumn(
@@ -162,6 +255,59 @@ fun FriendsTab(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                // Friend Requests Section
+                if (friendRequests.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "Friend Requests (${friendRequests.size})",
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF1C1C1E),
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                    }
+                    
+                    items(friendRequests) { request ->
+                        FriendRequestCard(
+                            request = request,
+                            onAccept = {
+                                scope.launch {
+                                    socialService.acceptFriendRequest(request.id).onSuccess {
+                                        // Refresh friends list
+                                        socialService.getFriends().onSuccess { friendList ->
+                                            friends = friendList
+                                        }
+                                    }
+                                }
+                            },
+                            onDecline = {
+                                scope.launch {
+                                    socialService.rejectFriendRequest(request.id)
+                                }
+                            }
+                        )
+                    }
+                    
+                    item {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        HorizontalDivider()
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                }
+                
+                // Friends Section
+                if (friends.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "My Friends (${friends.size})",
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF1C1C1E),
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                    }
+                }
+                
                 items(friends) { friend ->
                     val location = friendLocations.find { it.userId == friend.userId }
                     FriendCard(
@@ -191,18 +337,107 @@ fun FriendsTab(
         SearchFriendDialog(
             socialService = socialService,
             onDismiss = { showAddDialog = false },
-            onAdd = { userId ->
+            onAdd = { userId, friendName, friendEmail ->
                 scope.launch {
-                    socialService.addFriend(userId).onSuccess {
-                        // Refresh friends list
-                        socialService.getFriends().onSuccess { friendList ->
-                            friends = friendList
-                        }
+                    // Send friend request instead of directly adding
+                    socialService.sendFriendRequest(userId, friendName, friendEmail).onSuccess {
                         showAddDialog = false
+                    }.onFailure { error ->
+                        android.util.Log.e("FriendsTab", "Failed to send friend request: ${error.message}")
                     }
                 }
             }
         )
+    }
+}
+
+@Composable
+fun FriendRequestCard(
+    request: com.nextcs.aurora.social.FriendRequest,
+    onAccept: () -> Unit,
+    onDecline: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF0F8FF)),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = Color(0xFF007AFF),
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = request.fromUserName.firstOrNull()?.uppercase() ?: "?",
+                            color = Color.White,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+                
+                Column {
+                    Text(
+                        text = request.fromUserName,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF1C1C1E)
+                    )
+                    Text(
+                        text = request.fromUserEmail,
+                        fontSize = 13.sp,
+                        color = Color(0xFF8E8E93)
+                    )
+                    Text(
+                        text = "Wants to be friends",
+                        fontSize = 12.sp,
+                        color = Color(0xFF007AFF),
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+            }
+            
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = onAccept,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF34C759)
+                    ),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Text("Accept", fontSize = 13.sp)
+                }
+                
+                OutlinedButton(
+                    onClick = onDecline,
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color(0xFFFF3B30)
+                    )
+                ) {
+                    Text("Decline", fontSize = 13.sp)
+                }
+            }
+        }
     }
 }
 
@@ -359,23 +594,29 @@ fun CarpoolTab(socialService: SocialFirebaseService) {
     var carpoolListings by remember { mutableStateOf<List<CarpoolListing>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
+    val currentUserId = socialService.getCurrentUserId()
     
-    // Load carpool listings
-    LaunchedEffect(Unit) {
+    // Load carpool listings - refresh when user ID changes
+    LaunchedEffect(currentUserId) {
+        isLoading = true
         scope.launch {
+            android.util.Log.d("SocialScreen", "Loading carpool listings for user: $currentUserId")
             socialService.getCarpoolListings().onSuccess { listings ->
                 carpoolListings = listings
+                android.util.Log.d("SocialScreen", "Loaded ${listings.size} carpool listings")
                 isLoading = false
             }.onFailure {
+                android.util.Log.e("SocialScreen", "Failed to load carpools", it)
                 isLoading = false
             }
         }
     }
     
-    // Observe real-time updates
-    LaunchedEffect(Unit) {
+    // Observe real-time updates - restart when user changes
+    LaunchedEffect(currentUserId) {
         socialService.observeCarpoolListings().collect { listings ->
             carpoolListings = listings
+            android.util.Log.d("SocialScreen", "Real-time update: ${listings.size} carpools")
         }
     }
     
@@ -426,9 +667,14 @@ fun CarpoolTab(socialService: SocialFirebaseService) {
             onDismiss = { showCreateDialog = false },
             onCreate = { listing ->
                 scope.launch {
+                    android.util.Log.d("SocialScreen", "Creating carpool listing: $listing")
                     socialService.createCarpoolListing(listing).onSuccess {
+                        android.util.Log.d("SocialScreen", "Carpool created successfully: $it")
                         showCreateDialog = false
                         // List will update automatically via observer
+                    }.onFailure { error ->
+                        android.util.Log.e("SocialScreen", "Failed to create carpool: ${error.message}", error)
+                        // TODO: Show error to user
                     }
                 }
             }
@@ -555,7 +801,7 @@ fun CarpoolCard(
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = SimpleDateFormat("MMM dd, hh:mm a", Locale.getDefault())
-                            .format(Date(listing.departureTime)),
+                            .format(Date(listing.departureTimestamp)),
                         fontSize = 13.sp,
                         color = Color(0xFF8E8E93)
                     )
@@ -602,23 +848,29 @@ fun DriversTab(socialService: SocialFirebaseService) {
     var rideRequests by remember { mutableStateOf<List<RideRequest>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
+    val currentUserId = socialService.getCurrentUserId()
     
-    // Load ride requests
-    LaunchedEffect(Unit) {
+    // Load ride requests - refresh when user ID changes (excludes own requests)
+    LaunchedEffect(currentUserId) {
+        isLoading = true
         scope.launch {
+            android.util.Log.d("SocialScreen", "Loading ride requests for user: $currentUserId")
             socialService.getRideRequests().onSuccess { requests ->
                 rideRequests = requests
+                android.util.Log.d("SocialScreen", "Loaded ${requests.size} ride requests (excluding own)")
                 isLoading = false
             }.onFailure {
+                android.util.Log.e("SocialScreen", "Failed to load ride requests", it)
                 isLoading = false
             }
         }
     }
     
-    // Observe real-time updates
-    LaunchedEffect(Unit) {
+    // Observe real-time updates - restart when user changes
+    LaunchedEffect(currentUserId) {
         socialService.observeRideRequests().collect { requests ->
             rideRequests = requests
+            android.util.Log.d("SocialScreen", "Real-time update: ${requests.size} ride requests")
         }
     }
     
@@ -672,8 +924,13 @@ fun DriversTab(socialService: SocialFirebaseService) {
             onDismiss = { showOfferDialog = false },
             onCreate = { request ->
                 scope.launch {
+                    android.util.Log.d("SocialScreen", "Creating ride request: $request")
                     socialService.createRideRequest(request).onSuccess {
+                        android.util.Log.d("SocialScreen", "Ride request created successfully: $it")
                         showOfferDialog = false
+                    }.onFailure { error ->
+                        android.util.Log.e("SocialScreen", "Failed to create ride request: ${error.message}", error)
+                        // TODO: Show error to user
                     }
                 }
             }
@@ -937,26 +1194,51 @@ fun EmptyDriverState(modifier: Modifier = Modifier) {
 fun SearchFriendDialog(
     socialService: SocialFirebaseService,
     onDismiss: () -> Unit,
-    onAdd: (userId: String) -> Unit
+    onAdd: (userId: String, friendName: String, friendEmail: String) -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var searchResults by remember { mutableStateOf<List<UserProfile>>(emptyList()) }
+    var allUsers by remember { mutableStateOf<List<UserProfile>>(emptyList()) }
     var isSearching by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     
+    // Load all users on launch
+    LaunchedEffect(Unit) {
+        android.util.Log.d("SearchFriendDialog", "🔵 Loading all users...")
+        isSearching = true
+        socialService.searchUsers("").onSuccess { users ->
+            android.util.Log.d("SearchFriendDialog", "✅ Loaded ${users.size} users")
+            users.forEach { user ->
+                android.util.Log.d("SearchFriendDialog", "  - ${user.displayName} (${user.email})")
+            }
+            allUsers = users
+            searchResults = users
+            isSearching = false
+        }.onFailure { error ->
+            android.util.Log.e("SearchFriendDialog", "❌ Failed to load users: ${error.message}", error)
+            isSearching = false
+        }
+    }
+    
     // Debounced search
     LaunchedEffect(searchQuery) {
+        android.util.Log.d("SearchFriendDialog", "🔍 Search query changed to: '$searchQuery'")
         if (searchQuery.length >= 2) {
             isSearching = true
             kotlinx.coroutines.delay(500) // Debounce
+            android.util.Log.d("SearchFriendDialog", "🔵 Searching for: '$searchQuery'")
             socialService.searchUsers(searchQuery).onSuccess { users ->
+                android.util.Log.d("SearchFriendDialog", "✅ Search found ${users.size} results")
                 searchResults = users
                 isSearching = false
-            }.onFailure {
+            }.onFailure { error ->
+                android.util.Log.e("SearchFriendDialog", "❌ Search failed: ${error.message}", error)
                 isSearching = false
             }
         } else {
-            searchResults = emptyList()
+            // Show all users when search is cleared
+            android.util.Log.d("SearchFriendDialog", "🔄 Showing all ${allUsers.size} users (query cleared)")
+            searchResults = allUsers
         }
     }
     
@@ -1022,17 +1304,19 @@ fun SearchFriendDialog(
                     )
                 )
                 
-                // Search results
-                if (searchQuery.length < 2) {
+                // Search results or all users
+                if (isSearching) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = Color(0xFF007AFF))
+                    }
+                } else if (searchResults.isEmpty()) {
                     Text(
-                        text = "Type at least 2 characters to search",
-                        fontSize = 13.sp,
-                        color = Color(0xFF8E8E93),
-                        modifier = Modifier.padding(vertical = 16.dp)
-                    )
-                } else if (searchResults.isEmpty() && !isSearching) {
-                    Text(
-                        text = "No users found",
+                        text = if (searchQuery.isEmpty()) "No users available" else "No users found",
                         fontSize = 15.sp,
                         color = Color(0xFF8E8E93),
                         modifier = Modifier.padding(vertical = 16.dp)
@@ -1048,7 +1332,7 @@ fun SearchFriendDialog(
                             Surface(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { onAdd(user.userId) },
+                                    .clickable { onAdd(user.userId, user.displayName, user.email) },
                                 shape = RoundedCornerShape(12.dp),
                                 color = Color(0xFFF5F5F7)
                             ) {
@@ -1200,14 +1484,17 @@ fun CreateRideRequestDialog(
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = {
+                            val currentDate = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
+                            val currentTime = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date())
                             onCreate(
                                 RideRequest(
-                                    id = UUID.randomUUID().toString(),
                                     pickupLocation = pickup,
                                     dropoffLocation = dropoff,
                                     passengers = passengers.toIntOrNull() ?: 1,
                                     notes = notes,
-                                    requestedTime = System.currentTimeMillis()
+                                    requestedDate = currentDate,
+                                    requestedTime = currentTime,
+                                    requestedTimestamp = System.currentTimeMillis()
                                 )
                             )
                         },
@@ -1447,14 +1734,15 @@ fun CreateCarpoolDialog(
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = {
+                            val currentDate = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
+                            val currentTime = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date())
                             onCreate(
                                 CarpoolListing(
-                                    id = UUID.randomUUID().toString(),
-                                    driverId = "current_user",
-                                    driverName = "You",
                                     origin = origin,
                                     destination = destination,
-                                    departureTime = System.currentTimeMillis(),
+                                    departureDate = currentDate,
+                                    departureTime = currentTime,
+                                    departureTimestamp = System.currentTimeMillis(),
                                     availableSeats = seats.toIntOrNull() ?: 0,
                                     pricePerSeat = price.toDoubleOrNull() ?: 0.0,
                                     vehicleModel = vehicle,
@@ -1462,6 +1750,7 @@ fun CreateCarpoolDialog(
                                 )
                             )
                         },
+                        enabled = origin.isNotBlank() && destination.isNotBlank() && seats.isNotBlank(),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF007AFF)
                         ),

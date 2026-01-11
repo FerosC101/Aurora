@@ -49,6 +49,9 @@ fun HomeScreen(
     val placesService = remember { com.nextcs.aurora.location.PlacesAutocompleteService(context) }
     val scope = rememberCoroutineScope()
     
+    // Get current user ID to trigger reloads
+    val currentUserId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+    
     var origin by remember { mutableStateOf(initialOrigin) }
     var destination by remember { mutableStateOf(initialDestination) }
     var originLocation by remember { mutableStateOf(initialOriginLocation) }
@@ -57,11 +60,15 @@ fun HomeScreen(
     var showAIAssistant by remember { mutableStateOf(false) }
     var recentTrips by remember { mutableStateOf<List<TripRecord>>(emptyList()) }
     
-    // Load recent trips on launch
-    LaunchedEffect(Unit) {
+    // Load recent trips - refresh when user changes
+    LaunchedEffect(currentUserId) {
         scope.launch {
+            android.util.Log.d("HomeScreen", "Loading trips for user: $currentUserId")
             tripHistoryService.getAllTrips().onSuccess { trips ->
                 recentTrips = trips.take(10) // Show up to 10 recent trips
+                android.util.Log.d("HomeScreen", "Loaded ${trips.size} trips")
+            }.onFailure {
+                android.util.Log.e("HomeScreen", "Failed to load trips", it)
             }
         }
     }

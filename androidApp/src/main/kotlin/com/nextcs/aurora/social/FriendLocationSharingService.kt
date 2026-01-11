@@ -4,8 +4,7 @@ import android.content.Context
 import com.google.android.gms.maps.model.LatLng
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.ktx.Firebase
+import com.google.firebase.FirebaseApp
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -34,7 +33,7 @@ data class Friend(
 
 class FriendLocationSharingService(private val context: Context) {
     
-    private val firestore: FirebaseFirestore = Firebase.firestore
+    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(FirebaseApp.getInstance(), "sfse")
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
     
     private val currentUserId: String?
@@ -171,7 +170,7 @@ class FriendLocationSharingService(private val context: Context) {
         return try {
             val snapshot = firestore.collection("friends")
                 .document(userId)
-                .collection("user_friends")
+                .collection("userFriends")
                 .get()
                 .await()
                 
@@ -198,7 +197,7 @@ class FriendLocationSharingService(private val context: Context) {
         // Listen to friends list changes
         val friendsListener = firestore.collection("friends")
             .document(userId)
-            .collection("user_friends")
+            .collection("userFriends")
             .addSnapshotListener { friendsSnapshot, error ->
                 if (error != null) {
                     close(error)
