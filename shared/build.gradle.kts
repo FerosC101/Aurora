@@ -1,7 +1,8 @@
 plugins {
     kotlin("multiplatform")
-    kotlin("plugin.serialization") version "1.9.10"
+    kotlin("plugin.serialization") version "2.0.0"
     id("org.jetbrains.compose")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 group = "org.example"
@@ -24,9 +25,10 @@ repositories {
 // }
 
 kotlin {
-    jvm("desktop") {
-        jvmToolchain(17)
-    }
+    // Configure JVM toolchain at extension level (Kotlin 2.0 requirement)
+    jvmToolchain(17)
+    
+    jvm("desktop")
     
     // iOS targets
     iosX64()

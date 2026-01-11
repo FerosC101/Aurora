@@ -16,7 +16,7 @@ import org.aurora.database.Database
 import org.aurora.maps.MapsProviderFactory
 import org.aurora.ui.auth.LoginScreen
 import org.aurora.ui.auth.RegisterScreen
-import org.aurora.ui.navigation.AuroraRiderApp
+import org.aurora.ui.navigation.MainNavigationApp
 
 enum class AuthScreen {
     LOGIN, REGISTER, NAVIGATION
@@ -86,8 +86,9 @@ fun main() = application {
             
             AuthScreen.NAVIGATION -> {
                 currentUser?.let { user ->
-                    AuroraRiderApp(
-                        userId = user.id.toInt(),
+                    MainNavigationApp(
+                        userName = user.fullName,
+                        userEmail = user.email,
                         mapsProvider = mapsProvider,
                         onLogout = {
                             currentUser = null

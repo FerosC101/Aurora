@@ -10,17 +10,19 @@ pluginManagement {
         mavenCentral()
     }
     plugins {
-        // Kotlin plugins - Use 1.9.10 for compatibility with Compose 1.5.3
-        kotlin("jvm") version "1.9.10"
-        kotlin("android") version "1.9.10"
-        kotlin("multiplatform") version "1.9.10"
+        // Kotlin plugins - Upgraded to 2.0.0 for Gradle 8.12 compatibility
+        kotlin("jvm") version "2.0.0"
+        kotlin("android") version "2.0.0"
+        kotlin("multiplatform") version "2.0.0"
+        kotlin("plugin.serialization") version "2.0.0"
 
-        // Android Gradle Plugin - Use 8.2.0 for better JDK compatibility
+        // Android Gradle Plugin
         id("com.android.application") version "8.10.1"
         id("com.android.library") version "8.10.1"
 
-        // Compose Multiplatform Gradle plugin - 1.5.3 is stable with Kotlin 1.9.10 and Gradle 8.2
-        id("org.jetbrains.compose") version "1.5.3"
+        // Compose Multiplatform Gradle plugin - 1.7.0 for full Gradle 8.12 support
+        id("org.jetbrains.compose") version "1.7.0"
+        id("org.jetbrains.kotlin.plugin.compose") version "2.0.0"
         
         // Google Services for Firebase
         id("com.google.gms.google-services") version "4.4.0" apply false
@@ -52,10 +54,8 @@ rootProject.name = "Aurora"
 // include(":utils")
 
 // Add new Aurora modules
-// Temporarily excluding shared and desktopApp modules due to Compose Multiplatform/Gradle compatibility issues
-// The androidApp will have the desktop features copied directly
-// include(":shared")
-// include(":desktopApp")
+include(":shared")
+include(":desktopApp")
 include(":androidApp")
 // iOS app will be built separately using Xcode
 // See iosApp/README.md for setup instructions
