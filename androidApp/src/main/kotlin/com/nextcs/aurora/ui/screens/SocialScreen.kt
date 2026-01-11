@@ -1,5 +1,6 @@
 package com.nextcs.aurora.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -45,7 +46,7 @@ fun SocialScreen(
     val scope = rememberCoroutineScope()
     
     var selectedTab by remember { mutableStateOf(0) }
-    val tabs = listOf("Friends", "Carpool", "Drivers")
+    val tabs = listOf("Friends", "Requests", "Carpool", "Drivers")
     
     // State for navigation to friend profile
     var selectedFriendId by remember { mutableStateOf<String?>(null) }
@@ -197,9 +198,22 @@ fun SocialScreen(
         // Content
         when (selectedTab) {
             0 -> FriendsTab(socialService, onNavigateToFriend, onClickProfile = { friendId -> selectedFriendId = friendId })
-            1 -> CarpoolTab(socialService)
-            2 -> DriversTab(socialService)
+            1 -> FriendRequestsTab(socialService, onClickProfile = { friendId -> selectedFriendId = friendId })
+            2 -> CarpoolTab(socialService)
+            3 -> DriversTab(socialService)
         }
+    }
+    
+    // Navigate to friend profile
+    selectedFriendId?.let { friendId ->
+        FriendProfileScreen(
+            friendId = friendId,
+            onBack = { selectedFriendId = null },
+            onMessage = {
+                selectedFriendId = null
+                onNavigateToChat()
+            }
+        )
     }
 }
 
@@ -1208,6 +1222,328 @@ fun EmptyDriverState(modifier: Modifier = Modifier) {
             color = Color(0xFF8E8E93),
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
+    }
+}
+
+@Composable
+fun FriendRequestsTab(
+    socialService: SocialFirebaseService,
+    onClickProfile: (String) -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    var friendRequests by remember { mutableStateOf<List<com.nextcs.aurora.social.FriendRequest>>(emptyList()) }
+    var requestProfiles by remember { mutableStateOf<Map<String, UserProfile>>(emptyMap()) }
+    var isLoading by remember { mutableStateOf(true) }
+    var processingRequests by remember { mutableStateOf<Set<String>>(emptySet()) }
+    val currentUserId = socialService.getCurrentUserId()
+    
+    // Observe friend requests
+    LaunchedEffect(currentUserId) {
+        isLoading = true
+        try {
+            socialService.observePendingRequests().collect { requests ->
+                friendRequests = requests
+                android.util.Log.d("FriendRequestsTab", "Received ${requests.size} pending friend requests")
+                
+                // Load profiles for all request senders
+                requests.forEach { request ->
+                    if (!requestProfiles.containsKey(request.fromUserId)) {
+                        scope.launch {
+                            socialService.getUserProfile(request.fromUserId).onSuccess { profile ->
+                                requestProfiles = requestProfiles + (request.fromUserId to profile)
+                            }
+                        }
+                    }
+                }
+                isLoading = false
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("FriendRequestsTab", "Friend requests not available: ${e.message}")
+            isLoading = false
+        }
+    }
+    
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center),
+                color = Color(0xFF007AFF)
+            )
+        } else if (friendRequests.isEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    Icons.Default.Person,
+                    contentDescription = null,
+                    modifier = Modifier.size(80.dp),
+                    tint = Color(0xFFE5E5EA)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "No pending friend requests",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF1C1C1E)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "New friend requests will appear here",
+                    fontSize = 15.sp,
+                    color = Color(0xFF8E8E93),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                item {
+                    Text(
+                        text = "Friend Requests (${friendRequests.size})",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1C1C1E),
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
+                
+                items(friendRequests) { request ->
+                    val senderProfile = requestProfiles[request.fromUserId]
+                    val isProcessing = processingRequests.contains(request.id)
+                    
+                    EnhancedFriendRequestCard(
+                        request = request,
+                        senderProfile = senderProfile,
+                        isProcessing = isProcessing,
+                        onAccept = {
+                            processingRequests = processingRequests + request.id
+                            scope.launch {
+                                socialService.acceptFriendRequest(request.id).onSuccess {
+                                    android.util.Log.d("FriendRequestsTab", "Accepted friend request from ${request.fromUserName}")
+                                    processingRequests = processingRequests - request.id
+                                }.onFailure { error ->
+                                    android.util.Log.e("FriendRequestsTab", "Failed to accept request: ${error.message}")
+                                    processingRequests = processingRequests - request.id
+                                }
+                            }
+                        },
+                        onDecline = {
+                            processingRequests = processingRequests + request.id
+                            scope.launch {
+                                socialService.rejectFriendRequest(request.id).onSuccess {
+                                    android.util.Log.d("FriendRequestsTab", "Declined friend request from ${request.fromUserName}")
+                                    processingRequests = processingRequests - request.id
+                                }.onFailure { error ->
+                                    android.util.Log.e("FriendRequestsTab", "Failed to decline request: ${error.message}")
+                                    processingRequests = processingRequests - request.id
+                                }
+                            }
+                        },
+                        onClickProfile = { onClickProfile(request.fromUserId) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun EnhancedFriendRequestCard(
+    request: com.nextcs.aurora.social.FriendRequest,
+    senderProfile: UserProfile?,
+    isProcessing: Boolean,
+    onAccept: () -> Unit,
+    onDecline: () -> Unit,
+    onClickProfile: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = !isProcessing) { onClickProfile() },
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    // Profile photo
+                    Surface(
+                        shape = CircleShape,
+                        color = Color(0xFF007AFF),
+                        modifier = Modifier.size(60.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = request.fromUserName.firstOrNull()?.uppercase() ?: "?",
+                                color = Color.White,
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                    
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = request.fromUserName,
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1C1C1E)
+                        )
+                        
+                        senderProfile?.let { profile ->
+                            // Driving score badge
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = when {
+                                        profile.stats.drivingScore >= 80 -> Color(0xFF34C759)
+                                        profile.stats.drivingScore >= 60 -> Color(0xFFFFCC00)
+                                        else -> Color(0xFFFF9500)
+                                    }.copy(alpha = 0.15f)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Star,
+                                            contentDescription = null,
+                                            tint = when {
+                                                profile.stats.drivingScore >= 80 -> Color(0xFF34C759)
+                                                profile.stats.drivingScore >= 60 -> Color(0xFFFFCC00)
+                                                else -> Color(0xFFFF9500)
+                                            },
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Text(
+                                            text = "${profile.stats.drivingScore.toInt()}",
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF1C1C1E)
+                                        )
+                                    }
+                                }
+                                
+                                Text(
+                                    text = "Driving Score",
+                                    fontSize = 12.sp,
+                                    color = Color(0xFF8E8E93)
+                                )
+                            }
+                            
+                            // Quick stats
+                            if (profile.stats.totalRides > 0) {
+                                Text(
+                                    text = "${profile.stats.totalRides} rides · ${String.format("%.1f", profile.stats.averageRating)}★",
+                                    fontSize = 13.sp,
+                                    color = Color(0xFF8E8E93)
+                                )
+                            }
+                        }
+                        
+                        Text(
+                            text = "Wants to be friends",
+                            fontSize = 13.sp,
+                            color = Color(0xFF007AFF),
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(top = 6.dp)
+                        )
+                        
+                        // Time ago
+                        val timeAgo = remember(request.timestamp) {
+                            val now = System.currentTimeMillis()
+                            val diff = now - request.timestamp
+                            when {
+                                diff < 60_000 -> "Just now"
+                                diff < 3600_000 -> "${diff / 60_000}m ago"
+                                diff < 86400_000 -> "${diff / 3600_000}h ago"
+                                else -> "${diff / 86400_000}d ago"
+                            }
+                        }
+                        Text(
+                            text = timeAgo,
+                            fontSize = 12.sp,
+                            color = Color(0xFF8E8E93),
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Action buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = onAccept,
+                    enabled = !isProcessing,
+                    modifier = Modifier.weight(1f).height(44.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF007AFF),
+                        disabledContainerColor = Color(0xFF007AFF).copy(alpha = 0.5f)
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    if (isProcessing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(
+                            text = "Accept",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+                
+                OutlinedButton(
+                    onClick = onDecline,
+                    enabled = !isProcessing,
+                    modifier = Modifier.weight(1f).height(44.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color(0xFFFF3B30)
+                    ),
+                    border = BorderStroke(1.dp, Color(0xFFFF3B30)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = "Decline",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
     }
 }
 
