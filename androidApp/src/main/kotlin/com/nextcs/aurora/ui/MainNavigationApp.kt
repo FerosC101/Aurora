@@ -249,21 +249,18 @@ fun NavigationGraph(
             )
         }
         
-        // Chat Screen
+        // Chat Screen - New two-panel Facebook Messenger style
         composable("chats") {
-            com.nextcs.aurora.ui.screens.ChatsListScreen(
-                onChatSelected = { chatId, otherUserName ->
-                    navController.navigate("chat/$chatId/$otherUserName")
-                },
+            com.nextcs.aurora.ui.screens.ChatScreen(
                 onBack = { navController.navigateUp() }
             )
         }
         
-        // Individual Chat Screen
+        // Individual Chat Screen (legacy route for backward compatibility)
         composable("chat/{chatId}/{otherUserName}") { backStackEntry ->
             val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
             val otherUserName = backStackEntry.arguments?.getString("otherUserName") ?: ""
-            com.nextcs.aurora.ui.screens.ChatScreen(
+            com.nextcs.aurora.ui.screens.ChatScreenLegacy(
                 chatId = chatId,
                 otherUserName = otherUserName,
                 onBack = { navController.navigateUp() }
