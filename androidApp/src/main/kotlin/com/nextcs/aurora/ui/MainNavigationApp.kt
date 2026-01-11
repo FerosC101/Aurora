@@ -167,16 +167,16 @@ fun NavigationGraph(
                     selectedOriginLocation = newOrigLoc
                     selectedDestinationLocation = newDestLoc
                 },
-                onStartNavigation = { orig, dest, origLoc, destLoc ->
+                onStartNavigation = { orig, dest, origLoc, destLoc, waypoints ->
                     // Clear selected route before starting new navigation
                     selectedRoute = null
-                    selectedWaypoints = emptyList()
                     
                     // Update shared state
                     selectedOrigin = orig
                     selectedDestination = dest
                     selectedOriginLocation = origLoc
                     selectedDestinationLocation = destLoc
+                    selectedWaypoints = waypoints
                     
                     // Encode text addresses
                     val encodedOrigin = URLEncoder.encode(orig, StandardCharsets.UTF_8.toString())
@@ -188,10 +188,18 @@ fun NavigationGraph(
                     val destLat = destLoc?.latitude?.toString() ?: ""
                     val destLng = destLoc?.longitude?.toString() ?: ""
                     
-                    Log.d("MainNavApp", "Starting navigation: $orig -> $dest, Coords: ($origLat,$origLng) -> ($destLat,$destLng)")
+                    // Encode waypoints as "lat,lng|lat,lng|..." format
+                    val waypointsParam = if (waypoints.isNotEmpty()) {
+                        URLEncoder.encode(
+                            waypoints.joinToString("|") { "${it.latitude},${it.longitude}" },
+                            StandardCharsets.UTF_8.toString()
+                        )
+                    } else ""
+                    
+                    Log.d("MainNavApp", "Starting navigation: $orig -> $dest, Waypoints: ${waypoints.size}, Coords: ($origLat,$origLng) -> ($destLat,$destLng)")
                     
                     navController.navigate(
-                        "navigation?origLat=$origLat&origLng=$origLng&destLat=$destLat&destLng=$destLng&origin=$encodedOrigin&dest=$encodedDest&waypoints="
+                        "navigation?origLat=$origLat&origLng=$origLng&destLat=$destLat&destLng=$destLng&origin=$encodedOrigin&dest=$encodedDest&waypoints=$waypointsParam"
                     )
                 },
                 onMultiStopNavigation = {

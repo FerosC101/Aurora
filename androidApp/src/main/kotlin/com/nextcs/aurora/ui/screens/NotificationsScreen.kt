@@ -79,7 +79,7 @@ fun NotificationsScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF6200EE),
+                    containerColor = Color(0xFF007AFF),
                     titleContentColor = Color.White,
                     navigationIconContentColor = Color.White
                 )
@@ -160,7 +160,7 @@ fun NotificationItem(
     
     Surface(
         shape = RoundedCornerShape(12.dp),
-        color = if (notification.read) Color.White else Color(0xFFF0E6FF),
+        color = if (notification.read) Color.White else Color(0xFFE3F2FD),
         shadowElevation = 2.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -184,7 +184,7 @@ fun NotificationItem(
                             else -> Icons.Default.Notifications
                         },
                         contentDescription = null,
-                        tint = Color(0xFF6200EE),
+                        tint = Color(0xFF007AFF),
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
@@ -231,7 +231,7 @@ fun NotificationItem(
                             }
                         },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF6200EE)
+                            containerColor = Color(0xFF007AFF)
                         ),
                         modifier = Modifier.weight(1f)
                     ) {

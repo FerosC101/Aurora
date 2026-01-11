@@ -9,6 +9,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -33,7 +35,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * Facebook Messenger-style two-panel chat interface
+ * Facebook Messenger-style single-column chat interface for phones
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,6 +50,8 @@ fun ChatScreen(
     
     var chats by remember { mutableStateOf<List<ChatConversation>>(emptyList()) }
     var selectedChatId by remember { mutableStateOf<String?>(null) }
+    var selectedChatUserName by remember { mutableStateOf<String?>(null) }
+    var selectedChatUserId by remember { mutableStateOf<String?>(null) }
     var showNewMessageDialog by remember { mutableStateOf(false) }
     var chatsError by remember { mutableStateOf<String?>(null) }
     
@@ -57,6 +61,9 @@ fun ChatScreen(
             chatService.observeChats().collect { chatList ->
                 chats = chatList
                 android.util.Log.d("ChatScreen", "Received ${chatList.size} chats")
+                chatList.forEach { chat ->
+                    android.util.Log.d("ChatScreen", "Chat: id=${chat.id}, participants=${chat.participants}, names=${chat.participantNames}")
+                }
             }
         } catch (e: Exception) {
             chatsError = "Chats unavailable: ${e.message}"
@@ -64,100 +71,282 @@ fun ChatScreen(
         }
     }
     
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { 
-                    Text(
-                        "Messages",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { showNewMessageDialog = true }) {
-                        Icon(
-                            Icons.Default.Create,
-                            contentDescription = "New Message",
-                            tint = Color(0xFF007AFF)
+    // Phone-style navigation: show chat list OR active chat (not both)
+    if (selectedChatId != null) {
+        // Show full-screen chat
+        val chatId = selectedChatId!!
+        val chat = chats.find { it.id == chatId }
+        val currentUserId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
+        
+        val otherUserId = chat?.participants?.firstOrNull { id -> id != currentUserId } 
+            ?: selectedChatUserId 
+            ?: ""
+        val otherUserName = chat?.participantNames?.get(otherUserId) 
+            ?: selectedChatUserName 
+            ?: "Chat"
+        
+        ActiveChatPanel(
+            chatId = chatId,
+            otherUserName = otherUserName,
+            otherUserId = otherUserId,
+            chatService = chatService,
+            onClose = { 
+                selectedChatId = null
+                selectedChatUserName = null
+                selectedChatUserId = null
+            }
+        )
+    } else {
+        // Show conversation list
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { 
+                        Text(
+                            "Messages",
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold
                         )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White,
-                    titleContentColor = Color(0xFF1C1C1E),
-                    navigationIconContentColor = Color(0xFF007AFF)
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.Default.ArrowBack, "Back")
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { showNewMessageDialog = true }) {
+                            Icon(
+                                Icons.Default.Create,
+                                contentDescription = "New Message",
+                                tint = Color(0xFF007AFF)
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.White,
+                        titleContentColor = Color(0xFF1C1C1E),
+                        navigationIconContentColor = Color(0xFF007AFF)
+                    )
                 )
+            },
+            floatingActionButton = {
+                FloatingActionButton(
+                    onClick = { showNewMessageDialog = true },
+                    containerColor = Color(0xFF007AFF),
+                    contentColor = Color.White
+                ) {
+                    Icon(Icons.Default.Create, contentDescription = "New Message")
+                }
+            }
+        ) { paddingValues ->
+            PhoneConversationList(
+                chats = chats,
+                onSelectChat = { chatId, userName, userId ->
+                    selectedChatId = chatId
+                    selectedChatUserName = userName
+                    selectedChatUserId = userId
+                },
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
             )
         }
-    ) { paddingValues ->
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            // Left Panel - Conversation List
-            ConversationListPanel(
-                chats = chats,
-                selectedChatId = selectedChatId,
-                onSelectChat = { chatId -> selectedChatId = chatId },
-                modifier = Modifier
-                    .weight(0.35f)
-                    .fillMaxHeight()
+        
+        if (showNewMessageDialog) {
+            NewMessageDialog(
+                socialService = socialService,
+                chatService = chatService,
+                onDismiss = { showNewMessageDialog = false },
+                onChatCreated = { chatId, userName, userId ->
+                    selectedChatId = chatId
+                    selectedChatUserName = userName
+                    selectedChatUserId = userId
+                    showNewMessageDialog = false
+                }
             )
-            
-            // Divider
-            VerticalDivider(
-                modifier = Modifier.fillMaxHeight(),
-                color = Color(0xFFE5E5EA)
-            )
-            
-            // Right Panel - Active Chat or Empty State
+        }
+    }
+}
+
+/**
+ * Phone-style conversation list (full width)
+ */
+@Composable
+fun PhoneConversationList(
+    chats: List<ChatConversation>,
+    onSelectChat: (chatId: String, userName: String, userId: String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val currentUserId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
+    
+    Surface(
+        modifier = modifier,
+        color = Color.White
+    ) {
+        if (chats.isEmpty()) {
             Box(
-                modifier = Modifier
-                    .weight(0.65f)
-                    .fillMaxHeight()
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
             ) {
-                selectedChatId?.let { chatId ->
-                    val chat = chats.find { it.id == chatId }
-                    chat?.let {
-                        val currentUserId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
-                        val otherUserId = it.participants.firstOrNull { id -> id != currentUserId } ?: ""
-                        val otherUserName = it.participantNames[otherUserId] ?: "Unknown"
-                        ActiveChatPanel(
-                            chatId = chatId,
-                            otherUserName = otherUserName,
-                            otherUserId = otherUserId,
-                            chatService = chatService,
-                            onClose = { selectedChatId = null }
-                        )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = Color(0xFFF0F0F5),
+                        modifier = Modifier.size(80.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.Default.Email,
+                                contentDescription = null,
+                                modifier = Modifier.size(40.dp),
+                                tint = Color(0xFF8E8E93)
+                            )
+                        }
                     }
-                } ?: run {
-                    // Empty state
-                    EmptyChatState(
-                        modifier = Modifier.align(Alignment.Center),
-                        onNewMessage = { showNewMessageDialog = true }
+                    Text(
+                        "No messages yet",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF1C1C1E)
+                    )
+                    Text(
+                        "Start a conversation with your friends",
+                        fontSize = 14.sp,
+                        color = Color(0xFF8E8E93)
+                    )
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(chats) { chat ->
+                    val otherUserId = chat.participants.firstOrNull { it != currentUserId } ?: ""
+                    val otherUserName = chat.participantNames[otherUserId] ?: "Unknown"
+                    
+                    PhoneChatListItem(
+                        chat = chat,
+                        otherUserName = otherUserName,
+                        onClick = { onSelectChat(chat.id, otherUserName, otherUserId) }
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.padding(start = 76.dp),
+                        color = Color(0xFFF0F0F0)
                     )
                 }
             }
         }
     }
+}
+
+@Composable
+fun PhoneChatListItem(
+    chat: ChatConversation,
+    otherUserName: String,
+    onClick: () -> Unit
+) {
+    val currentUserId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
+    val unreadCount = chat.unreadCount[currentUserId] ?: 0
     
-    if (showNewMessageDialog) {
-        NewMessageDialog(
-            socialService = socialService,
-            chatService = chatService,
-            onDismiss = { showNewMessageDialog = false },
-            onChatCreated = { chatId ->
-                selectedChatId = chatId
-                showNewMessageDialog = false
+    val timeFormat = remember { SimpleDateFormat("h:mm a", Locale.getDefault()) }
+    val dateFormat = remember { SimpleDateFormat("MMM d", Locale.getDefault()) }
+    
+    val timeText = remember(chat.lastMessageTime) {
+        val now = System.currentTimeMillis()
+        val diff = now - chat.lastMessageTime
+        val oneDay = 24 * 60 * 60 * 1000L
+        
+        when {
+            diff < oneDay -> timeFormat.format(Date(chat.lastMessageTime))
+            else -> dateFormat.format(Date(chat.lastMessageTime))
+        }
+    }
+    
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Avatar
+        Surface(
+            shape = CircleShape,
+            color = Color(0xFF007AFF),
+            modifier = Modifier.size(56.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Text(
+                    text = otherUserName.firstOrNull()?.uppercase() ?: "?",
+                    color = Color.White,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
-        )
+        }
+        
+        // Message info
+        Column(modifier = Modifier.weight(1f)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = otherUserName,
+                    fontSize = 16.sp,
+                    fontWeight = if (unreadCount > 0) FontWeight.Bold else FontWeight.SemiBold,
+                    color = Color(0xFF1C1C1E),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    text = timeText,
+                    fontSize = 12.sp,
+                    color = if (unreadCount > 0) Color(0xFF007AFF) else Color(0xFF8E8E93)
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(4.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = chat.lastMessage.ifEmpty { "No messages yet" },
+                    fontSize = 14.sp,
+                    color = if (unreadCount > 0) Color(0xFF1C1C1E) else Color(0xFF8E8E93),
+                    fontWeight = if (unreadCount > 0) FontWeight.Medium else FontWeight.Normal,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                
+                if (unreadCount > 0) {
+                    Surface(
+                        shape = CircleShape,
+                        color = Color(0xFF007AFF),
+                        modifier = Modifier.size(22.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = if (unreadCount > 99) "99+" else unreadCount.toString(),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -359,7 +548,7 @@ fun ActiveChatPanel(
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
-        // Chat header
+        // Chat header with back button
         Surface(
             modifier = Modifier.fillMaxWidth(),
             color = Color.White,
@@ -368,10 +557,20 @@ fun ActiveChatPanel(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(12.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    .padding(horizontal = 4.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Back button
+                IconButton(onClick = onClose) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color(0xFF007AFF)
+                    )
+                }
+                
+                // Profile avatar
                 Surface(
                     shape = CircleShape,
                     color = Color(0xFF007AFF),
@@ -635,27 +834,41 @@ fun NewMessageDialog(
     socialService: SocialFirebaseService,
     chatService: ChatService,
     onDismiss: () -> Unit,
-    onChatCreated: (String) -> Unit
+    onChatCreated: (chatId: String, userName: String, userId: String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
     var searchQuery by remember { mutableStateOf("") }
     var searchResults by remember { mutableStateOf<List<UserProfile>>(emptyList()) }
+    var allFriends by remember { mutableStateOf<List<UserProfile>>(emptyList()) }
     var isSearching by remember { mutableStateOf(false) }
+    var isCreatingChat by remember { mutableStateOf(false) }
+    var selectedUserId by remember { mutableStateOf<String?>(null) }
     
-    // Search friends
+    // Load all friends when dialog opens
+    LaunchedEffect(Unit) {
+        android.util.Log.d("NewMessage", "Loading friends...")
+        isSearching = true
+        socialService.searchUsers("").onSuccess { users ->
+            android.util.Log.d("NewMessage", "Loaded ${users.size} friends")
+            allFriends = users
+            searchResults = users
+            isSearching = false
+        }.onFailure { error ->
+            android.util.Log.e("NewMessage", "Failed to load friends: ${error.message}")
+            isSearching = false
+        }
+    }
+    
+    // Filter friends based on search query
     LaunchedEffect(searchQuery) {
         if (searchQuery.isNotBlank()) {
-            isSearching = true
-            scope.launch {
-                socialService.searchUsers(searchQuery).onSuccess { users ->
-                    searchResults = users
-                    isSearching = false
-                }.onFailure {
-                    isSearching = false
-                }
+            val query = searchQuery.lowercase()
+            searchResults = allFriends.filter { user ->
+                user.displayName.lowercase().contains(query) ||
+                user.email.lowercase().contains(query)
             }
         } else {
-            searchResults = emptyList()
+            searchResults = allFriends
         }
     }
     
@@ -719,17 +932,28 @@ fun NewMessageDialog(
                     ) {
                         CircularProgressIndicator(color = Color(0xFF007AFF))
                     }
-                } else if (searchResults.isEmpty() && searchQuery.isNotBlank()) {
+                } else if (searchResults.isEmpty()) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            "No friends found",
-                            color = Color(0xFF8E8E93)
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Person,
+                                contentDescription = null,
+                                modifier = Modifier.size(48.dp),
+                                tint = Color(0xFFE5E5EA)
+                            )
+                            Text(
+                                if (searchQuery.isNotBlank()) "No friends found" else "No users available",
+                                color = Color(0xFF8E8E93)
+                            )
+                        }
                     }
                 } else {
                     LazyColumn(
@@ -738,24 +962,58 @@ fun NewMessageDialog(
                             .weight(1f)
                     ) {
                         items(searchResults) { user ->
-                            Surface(
+                            val isSelected = selectedUserId == user.userId
+                            Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .background(
+                                        when {
+                                            isSelected && isCreatingChat -> Color(0xFFE0F0FF)
+                                            else -> Color.White
+                                        }
+                                    )
                                     .clickable {
+                                        android.util.Log.d("NewMessage", "=== CLICK DETECTED: ${user.displayName} ===")
+                                        if (isCreatingChat) {
+                                            android.util.Log.d("NewMessage", "Already creating chat, ignoring")
+                                            return@clickable
+                                        }
+                                        if (user.userId.isEmpty()) {
+                                            android.util.Log.e("NewMessage", "User ID is empty!")
+                                            return@clickable
+                                        }
+                                        selectedUserId = user.userId
+                                        isCreatingChat = true
                                         scope.launch {
-                                            chatService.getOrCreateChat(
-                                                otherUserId = user.userId,
-                                                otherUserName = user.displayName
-                                            ).onSuccess { chatId ->
-                                                onChatCreated(chatId)
+                                            try {
+                                                android.util.Log.d("NewMessage", "Calling getOrCreateChat for ${user.userId}...")
+                                                val result = chatService.getOrCreateChat(
+                                                    otherUserId = user.userId,
+                                                    otherUserName = user.displayName
+                                                )
+                                                android.util.Log.d("NewMessage", "Result: isSuccess=${result.isSuccess}")
+                                                if (result.isSuccess) {
+                                                    val chatId = result.getOrNull()!!
+                                                    android.util.Log.d("NewMessage", "SUCCESS! Chat ID: $chatId, navigating to chat...")
+                                                    onChatCreated(chatId, user.displayName, user.userId)
+                                                    onDismiss()
+                                                } else {
+                                                    val error = result.exceptionOrNull()
+                                                    android.util.Log.e("NewMessage", "FAILED: ${error?.message}", error)
+                                                    isCreatingChat = false
+                                                    selectedUserId = null
+                                                }
+                                            } catch (e: Exception) {
+                                                android.util.Log.e("NewMessage", "EXCEPTION: ${e.message}", e)
+                                                isCreatingChat = false
+                                                selectedUserId = null
                                             }
                                         }
                                     }
+                                    .padding(horizontal = 16.dp, vertical = 12.dp)
                             ) {
                                 Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
+                                    modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
@@ -788,13 +1046,22 @@ fun NewMessageDialog(
                                         )
                                     }
                                     
-                                    Icon(
-                                        Icons.Default.Send,
-                                        contentDescription = null,
-                                        tint = Color(0xFF007AFF)
-                                    )
+                                    if (isSelected && isCreatingChat) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(24.dp),
+                                            color = Color(0xFF007AFF),
+                                            strokeWidth = 2.dp
+                                        )
+                                    } else {
+                                        Icon(
+                                            Icons.Default.Send,
+                                            contentDescription = "Start chat",
+                                            tint = Color(0xFF007AFF)
+                                        )
+                                    }
                                 }
                             }
+                            HorizontalDivider(color = Color(0xFFF0F0F0))
                         }
                     }
                 }

@@ -46,12 +46,14 @@ fun CarpoolRequestsScreen(
     LaunchedEffect(carpoolId) {
         isLoading = true
         scope.launch {
-            // Get all ride requests and filter by carpool
+            // Get ride requests specifically for THIS carpool (carpoolId must match)
+            // DO NOT include requests with empty carpoolId - those are direct driver requests
             socialService.getRideRequests().onSuccess { allRequests ->
-                // Filter requests for this carpool (match by acceptedBy field which contains driverId)
-                rideRequests = allRequests.filter { it.acceptedBy == socialService.getCurrentUserId() }
+                rideRequests = allRequests.filter { it.carpoolId == carpoolId }
+                android.util.Log.d("CarpoolRequests", "Filtering for carpoolId=$carpoolId")
+                android.util.Log.d("CarpoolRequests", "Total requests: ${allRequests.size}, carpool requests: ${rideRequests.size}")
                 
-                android.util.Log.d("CarpoolRequests", "Found ${rideRequests.size} requests")
+                android.util.Log.d("CarpoolRequests", "Found ${rideRequests.size} requests for carpool $carpoolId")
                 
                 // Load profiles for all requesters
                 rideRequests.forEach { request ->
@@ -71,6 +73,7 @@ fun CarpoolRequestsScreen(
     }
     
     Scaffold(
+        containerColor = Color.White,
         topBar = {
             TopAppBar(
                 title = { Text("Ride Requests") },
@@ -180,33 +183,61 @@ fun CarpoolRequestsScreen(
                         requesterProfile = requesterProfile,
                         isProcessing = isProcessing,
                         onAccept = {
+                            android.util.Log.d("CarpoolRequests", "Accept clicked for request: ${request.id}")
+                            if (request.id.isEmpty()) {
+                                android.util.Log.e("CarpoolRequests", "Request ID is empty!")
+                                return@RideRequestCard
+                            }
                             processingRequests = processingRequests + request.id
                             scope.launch {
-                                socialService.updateRideRequestStatus(request.id, "accepted").onSuccess {
-                                    android.util.Log.d("CarpoolRequests", "Accepted request from ${request.requesterName}")
-                                    // Refresh requests
-                                    socialService.getRideRequests().onSuccess { allRequests ->
-                                        rideRequests = allRequests.filter { it.acceptedBy == socialService.getCurrentUserId() }
+                                try {
+                                    android.util.Log.d("CarpoolRequests", "Calling updateRideRequestStatus...")
+                                    val result = socialService.updateRideRequestStatus(request.id, "accepted")
+                                    android.util.Log.d("CarpoolRequests", "Update result: ${result.isSuccess}")
+                                    if (result.isSuccess) {
+                                        android.util.Log.d("CarpoolRequests", "Successfully accepted, updating UI")
+                                        rideRequests = rideRequests.map { r ->
+                                            if (r.id == request.id) {
+                                                android.util.Log.d("CarpoolRequests", "Updating request ${r.id} status to accepted")
+                                                r.copy(status = "accepted")
+                                            } else r
+                                        }
+                                    } else {
+                                        android.util.Log.e("CarpoolRequests", "Update failed: ${result.exceptionOrNull()?.message}")
                                     }
-                                    processingRequests = processingRequests - request.id
-                                }.onFailure { error ->
-                                    android.util.Log.e("CarpoolRequests", "Failed to accept: ${error.message}")
+                                } catch (e: Exception) {
+                                    android.util.Log.e("CarpoolRequests", "Exception: ${e.message}", e)
+                                } finally {
                                     processingRequests = processingRequests - request.id
                                 }
                             }
                         },
                         onDecline = {
+                            android.util.Log.d("CarpoolRequests", "Decline clicked for request: ${request.id}")
+                            if (request.id.isEmpty()) {
+                                android.util.Log.e("CarpoolRequests", "Request ID is empty!")
+                                return@RideRequestCard
+                            }
                             processingRequests = processingRequests + request.id
                             scope.launch {
-                                socialService.updateRideRequestStatus(request.id, "declined").onSuccess {
-                                    android.util.Log.d("CarpoolRequests", "Declined request from ${request.requesterName}")
-                                    // Refresh requests
-                                    socialService.getRideRequests().onSuccess { allRequests ->
-                                        rideRequests = allRequests.filter { it.acceptedBy == socialService.getCurrentUserId() }
+                                try {
+                                    android.util.Log.d("CarpoolRequests", "Calling updateRideRequestStatus for decline...")
+                                    val result = socialService.updateRideRequestStatus(request.id, "declined")
+                                    android.util.Log.d("CarpoolRequests", "Decline result: ${result.isSuccess}")
+                                    if (result.isSuccess) {
+                                        android.util.Log.d("CarpoolRequests", "Successfully declined, updating UI")
+                                        rideRequests = rideRequests.map { r ->
+                                            if (r.id == request.id) {
+                                                android.util.Log.d("CarpoolRequests", "Updating request ${r.id} status to declined")
+                                                r.copy(status = "declined")
+                                            } else r
+                                        }
+                                    } else {
+                                        android.util.Log.e("CarpoolRequests", "Decline failed: ${result.exceptionOrNull()?.message}")
                                     }
-                                    processingRequests = processingRequests - request.id
-                                }.onFailure { error ->
-                                    android.util.Log.e("CarpoolRequests", "Failed to decline: ${error.message}")
+                                } catch (e: Exception) {
+                                    android.util.Log.e("CarpoolRequests", "Exception: ${e.message}", e)
+                                } finally {
                                     processingRequests = processingRequests - request.id
                                 }
                             }

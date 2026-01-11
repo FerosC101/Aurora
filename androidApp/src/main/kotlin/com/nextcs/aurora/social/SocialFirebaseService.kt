@@ -37,6 +37,7 @@ data class CarpoolListing(
 
 data class RideRequest(
     val id: String = "",
+    val carpoolId: String = "",
     val requesterId: String = "",
     val requesterName: String = "",
     val requesterEmail: String = "",
@@ -669,7 +670,7 @@ class SocialFirebaseService(private val context: Context) {
                 
                 val requests = snapshot?.documents?.mapNotNull { doc ->
                     try {
-                        doc.toObject(RideRequest::class.java)
+                        parseRideRequest(doc)
                     } catch (e: Exception) {
                         Log.w(TAG, "Skipping ride request ${doc.id} - incompatible format: ${e.message}")
                         null
@@ -691,12 +692,17 @@ class SocialFirebaseService(private val context: Context) {
             val currentUserId = getCurrentUserId() ?: return Result.failure(Exception("User not logged in"))
             
             Log.d(TAG, "Fetching ride requests...")
-            val requests = rideRequestsCollection
-                .get()
-                .await()
-                .toObjects(RideRequest::class.java)
-                .filter { it.requesterId != currentUserId } // Exclude own requests
-                .sortedByDescending { it.timestamp }
+            val snapshot = rideRequestsCollection.get().await()
+            
+            val requests = snapshot.documents.mapNotNull { doc ->
+                try {
+                    parseRideRequest(doc)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Skipping ride request ${doc.id} - parse error: ${e.message}")
+                    null
+                }
+            }.filter { it.requesterId != currentUserId }
+             .sortedByDescending { it.timestamp }
             
             Log.d(TAG, "Retrieved ${requests.size} ride requests for user $currentUserId")
             Result.success(requests)
@@ -707,18 +713,58 @@ class SocialFirebaseService(private val context: Context) {
     }
     
     /**
+     * Parse a RideRequest from a Firestore document, handling type mismatches
+     */
+    private fun parseRideRequest(doc: com.google.firebase.firestore.DocumentSnapshot): RideRequest {
+        val data = doc.data ?: throw Exception("No data")
+        return RideRequest(
+            id = doc.id,
+            carpoolId = data["carpoolId"]?.toString() ?: "",
+            requesterId = data["requesterId"]?.toString() ?: "",
+            requesterName = data["requesterName"]?.toString() ?: "",
+            requesterEmail = data["requesterEmail"]?.toString() ?: "",
+            requesterPhone = data["requesterPhone"]?.toString() ?: "",
+            requesterRating = (data["requesterRating"] as? Number)?.toDouble() ?: 0.0,
+            pickupLocation = data["pickupLocation"]?.toString() ?: "",
+            pickupAddress = data["pickupAddress"]?.toString() ?: "",
+            dropoffLocation = data["dropoffLocation"]?.toString() ?: "",
+            dropoffAddress = data["dropoffAddress"]?.toString() ?: "",
+            requestedDate = data["requestedDate"]?.toString() ?: "",
+            requestedTime = data["requestedTime"]?.toString() ?: "",
+            requestedTimestamp = (data["requestedTimestamp"] as? Number)?.toLong() ?: 0L,
+            passengers = (data["passengers"] as? Number)?.toInt() ?: 1,
+            offerPrice = (data["offerPrice"] as? Number)?.toDouble() ?: 0.0,
+            luggage = data["luggage"] as? Boolean ?: false,
+            notes = data["notes"]?.toString() ?: "",
+            preferences = data["preferences"]?.toString() ?: "",
+            status = data["status"]?.toString() ?: "pending",
+            acceptedBy = data["acceptedBy"]?.toString() ?: "",
+            timestamp = (data["timestamp"] as? Number)?.toLong() ?: 0L
+        )
+    }
+    
+    /**
      * Update ride request status
      */
     suspend fun updateRideRequestStatus(requestId: String, status: String): Result<Unit> {
         return try {
+            Log.d(TAG, "Updating ride request $requestId to status: $status")
+            
             // Get request details for notification
             val requestDoc = rideRequestsCollection.document(requestId).get().await()
-            val request = requestDoc.toObject(RideRequest::class.java)
+            val request = try {
+                parseRideRequest(requestDoc)
+            } catch (e: Exception) {
+                Log.w(TAG, "Could not parse request for notification: ${e.message}")
+                null
+            }
             
             rideRequestsCollection
                 .document(requestId)
                 .update("status", status)
                 .await()
+            
+            Log.d(TAG, "Successfully updated status in Firestore")
             
             // Send notification to requester
             if (request != null) {

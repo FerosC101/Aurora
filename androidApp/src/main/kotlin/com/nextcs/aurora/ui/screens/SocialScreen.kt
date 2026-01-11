@@ -256,8 +256,10 @@ fun SocialScreen(
                     text = {
                         Text(
                             text = title,
-                            fontSize = 15.sp,
-                            fontWeight = if (selectedTab == index) FontWeight.SemiBold else FontWeight.Medium
+                            fontSize = 14.sp,
+                            fontWeight = if (selectedTab == index) FontWeight.SemiBold else FontWeight.Medium,
+                            lineHeight = 14.sp,
+                            letterSpacing = 0.sp
                         )
                     }
                 )
@@ -728,58 +730,71 @@ fun CarpoolTab(
         }
     }
     
+    // Use a single Box as container for proper overlay
     Box(modifier = Modifier.fillMaxSize()) {
-        if (isLoading) {
-            CircularProgressIndicator(
-                modifier = Modifier.align(Alignment.Center),
-                color = Color(0xFF007AFF)
-            )
-        } else if (carpoolListings.isEmpty()) {
-            EmptyCarpoolState(modifier = Modifier.align(Alignment.Center))
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(carpoolListings) { listing ->
-                    CarpoolCard(
-                        listing = listing,
-                        socialService = socialService,
-                        onDelete = {
-                            scope.launch {
-                                socialService.deleteCarpoolListing(listing.id).onSuccess {
-                                    carpoolListings = carpoolListings.filter { it.id != listing.id }
+        // Main content layer
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center),
+                    color = Color(0xFF007AFF)
+                )
+            } else if (carpoolListings.isEmpty()) {
+                EmptyCarpoolState(modifier = Modifier.align(Alignment.Center))
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(carpoolListings) { listing ->
+                        CarpoolCard(
+                            listing = listing,
+                            socialService = socialService,
+                            onDelete = {
+                                scope.launch {
+                                    socialService.deleteCarpoolListing(listing.id).onSuccess {
+                                        carpoolListings = carpoolListings.filter { it.id != listing.id }
+                                    }
                                 }
+                            },
+                            onViewRequests = {
+                                android.util.Log.d("CarpoolTab", "View Requests clicked for carpool: ${listing.id}")
+                                selectedCarpoolId = listing.id
                             }
-                        },
-                        onViewRequests = {
-                            selectedCarpoolId = listing.id
-                        }
-                    )
+                        )
+                    }
                 }
+            }
+            
+            FloatingActionButton(
+                onClick = { showCreateDialog = true },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp),
+                containerColor = Color(0xFF007AFF),
+                contentColor = Color.White
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Create Carpool")
             }
         }
         
-        FloatingActionButton(
-            onClick = { showCreateDialog = true },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp),
-            containerColor = Color(0xFF007AFF),
-            contentColor = Color.White
-        ) {
-            Icon(Icons.Default.Add, contentDescription = "Create Carpool")
+        // Overlay layer - CarpoolRequestsScreen covers everything when visible
+        if (selectedCarpoolId != null) {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = Color.White
+            ) {
+                CarpoolRequestsScreen(
+                    carpoolId = selectedCarpoolId!!,
+                    onBack = { 
+                        android.util.Log.d("CarpoolTab", "Back pressed, closing requests screen")
+                        selectedCarpoolId = null 
+                    },
+                    onViewProfile = onViewProfile
+                )
+            }
         }
-    }
-    
-    // Navigate to carpool requests screen
-    selectedCarpoolId?.let { carpoolId ->
-        CarpoolRequestsScreen(
-            carpoolId = carpoolId,
-            onBack = { selectedCarpoolId = null },
-            onViewProfile = onViewProfile
-        )
     }
     
     if (showCreateDialog) {
@@ -993,31 +1008,61 @@ fun DriversTab(socialService: SocialFirebaseService) {
     val scope = rememberCoroutineScope()
     val currentUserId = socialService.getCurrentUserId()
     
-    // Load ride requests - refresh when user ID changes (excludes own requests)
+    // Load ride requests - only show DIRECT ride requests to ME (where I'm acceptedBy or it's pending with no carpoolId)
+    // These are ride requests sent TO this user as a driver
     LaunchedEffect(currentUserId) {
         isLoading = true
         scope.launch {
-            android.util.Log.d("SocialScreen", "Loading ride requests for user: $currentUserId")
-            socialService.getRideRequests().onSuccess { requests ->
-                rideRequests = requests
-                android.util.Log.d("SocialScreen", "Loaded ${requests.size} ride requests (excluding own)")
+            android.util.Log.d("DriversTab", "Loading ride requests TO me as driver: $currentUserId")
+            socialService.getRideRequests().onSuccess { allRequests ->
+                // Show requests where:
+                // 1. carpoolId is empty (direct driver request, not a carpool request)
+                // 2. AND either acceptedBy matches my ID OR status is pending (so I can accept it)
+                rideRequests = allRequests.filter { request ->
+                    val hasEmptyCarpoolId = request.carpoolId.isEmpty()
+                    val isForMe = request.acceptedBy == currentUserId || request.status == "pending"
+                    val shouldShow = hasEmptyCarpoolId && isForMe
+                    
+                    if (!hasEmptyCarpoolId) {
+                        android.util.Log.d("DriversTab", "Filtering OUT request ${request.id} - has carpoolId: ${request.carpoolId}")
+                    }
+                    
+                    shouldShow
+                }
+                android.util.Log.d("DriversTab", "Loaded ${rideRequests.size} direct driver requests (carpoolId empty)")
+                android.util.Log.d("DriversTab", "All requests: ${allRequests.size}, filtered: ${rideRequests.size}")
+                
+                // Log each shown request for debugging
+                rideRequests.forEach { request ->
+                    android.util.Log.d("DriversTab", "SHOWING: id=${request.id}, carpoolId='${request.carpoolId}', status=${request.status}, requester=${request.requesterName}")
+                }
+                
                 isLoading = false
             }.onFailure {
-                android.util.Log.e("SocialScreen", "Failed to load ride requests", it)
+                android.util.Log.e("DriversTab", "Failed to load ride requests", it)
                 isLoading = false
             }
         }
     }
     
-    // Observe real-time updates - restart when user changes
+    // Observe real-time updates - filter for direct driver requests only
     LaunchedEffect(currentUserId) {
-        socialService.observeRideRequests().collect { requests ->
-            rideRequests = requests
-            android.util.Log.d("SocialScreen", "Real-time update: ${requests.size} ride requests")
+        socialService.observeRideRequests().collect { allRequests ->
+            rideRequests = allRequests.filter { request ->
+                val hasEmptyCarpoolId = request.carpoolId.isEmpty()
+                val isForMe = request.acceptedBy == currentUserId || request.status == "pending"
+                hasEmptyCarpoolId && isForMe
+            }
+            android.util.Log.d("DriversTab", "Real-time update: ${rideRequests.size} direct driver requests")
+            android.util.Log.d("DriversTab", "Total in DB: ${allRequests.size}, After filtering: ${rideRequests.size}")
         }
     }
     
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+    ) {
         if (isLoading) {
             CircularProgressIndicator(
                 modifier = Modifier.align(Alignment.Center),
@@ -1036,13 +1081,45 @@ fun DriversTab(socialService: SocialFirebaseService) {
                         request = request,
                         socialService = socialService,
                         onAccept = {
+                            android.util.Log.d("DriversTab", "=== ACCEPT clicked for request ${request.id} ===")
                             scope.launch {
-                                socialService.updateRideRequestStatus(request.id, "accepted")
+                                try {
+                                    android.util.Log.d("DriversTab", "Calling updateRideRequestStatus...")
+                                    val result = socialService.updateRideRequestStatus(request.id, "accepted")
+                                    if (result.isSuccess) {
+                                        android.util.Log.d("DriversTab", "SUCCESS! Request accepted")
+                                        // Update local state immediately
+                                        rideRequests = rideRequests.map { r ->
+                                            if (r.id == request.id) r.copy(status = "accepted", acceptedBy = currentUserId ?: "")
+                                            else r
+                                        }
+                                    } else {
+                                        android.util.Log.e("DriversTab", "FAILED: ${result.exceptionOrNull()?.message}")
+                                    }
+                                } catch (e: Exception) {
+                                    android.util.Log.e("DriversTab", "EXCEPTION: ${e.message}", e)
+                                }
                             }
                         },
                         onDecline = {
+                            android.util.Log.d("DriversTab", "=== DECLINE clicked for request ${request.id} ===")
                             scope.launch {
-                                socialService.updateRideRequestStatus(request.id, "declined")
+                                try {
+                                    android.util.Log.d("DriversTab", "Calling updateRideRequestStatus...")
+                                    val result = socialService.updateRideRequestStatus(request.id, "declined")
+                                    if (result.isSuccess) {
+                                        android.util.Log.d("DriversTab", "SUCCESS! Request declined")
+                                        // Update local state immediately
+                                        rideRequests = rideRequests.map { r ->
+                                            if (r.id == request.id) r.copy(status = "declined")
+                                            else r
+                                        }
+                                    } else {
+                                        android.util.Log.e("DriversTab", "FAILED: ${result.exceptionOrNull()?.message}")
+                                    }
+                                } catch (e: Exception) {
+                                    android.util.Log.e("DriversTab", "EXCEPTION: ${e.message}", e)
+                                }
                             }
                         }
                     )
@@ -1663,6 +1740,7 @@ fun RequestRideDialog(
     onSuccess: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     var pickupLocation by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("") }
     var passengers by remember { mutableStateOf("1") }
@@ -1888,6 +1966,7 @@ fun RequestRideDialog(
                                     requesterProfile?.let { profile ->
                                         val request = RideRequest(
                                             id = "",
+                                            carpoolId = listing.id,
                                             requesterId = profile.userId,
                                             requesterName = profile.displayName,
                                             requesterEmail = profile.email,
@@ -1909,7 +1988,19 @@ fun RequestRideDialog(
                                         )
                                         
                                         socialService.createRideRequest(request).onSuccess {
-                                            android.util.Log.d("RequestRide", "Ride request sent successfully")
+                                            android.util.Log.d("RequestRide", "Ride request sent successfully for carpool ${listing.id}")
+                                            // Send notification to driver
+                                            val notificationService = NotificationService(context)
+                                            notificationService.sendNotification(
+                                                toUserId = listing.driverId,
+                                                type = "carpool_request",
+                                                title = "New Ride Request",
+                                                message = "${profile.displayName} wants to join your carpool",
+                                                actionData = mapOf(
+                                                    "carpoolId" to listing.id,
+                                                    "requesterId" to profile.userId
+                                                )
+                                            )
                                             isLoading = false
                                             onSuccess()
                                         }.onFailure { error ->

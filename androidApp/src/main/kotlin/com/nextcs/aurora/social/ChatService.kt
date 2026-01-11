@@ -158,18 +158,21 @@ class ChatService(private val context: Context) {
      * Observe messages in a chat
      */
     fun observeMessages(chatId: String): Flow<List<ChatMessage>> = callbackFlow {
+        // Simple query without orderBy to avoid index requirement
+        // Sort client-side instead
         val listener = messagesCollection
             .whereEqualTo("chatId", chatId)
-            .orderBy("timestamp", Query.Direction.ASCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    close(error)
+                    // Log the error but don't crash - just emit empty list
+                    android.util.Log.e("ChatService", "Error observing messages: ${error.message}", error)
+                    trySend(emptyList())
                     return@addSnapshotListener
                 }
                 
                 val messages = snapshot?.documents?.mapNotNull { doc ->
                     doc.toObject(ChatMessage::class.java)
-                } ?: emptyList()
+                }?.sortedBy { it.timestamp } ?: emptyList()
                 
                 trySend(messages)
             }
@@ -187,18 +190,21 @@ class ChatService(private val context: Context) {
             return@callbackFlow
         }
         
+        // Simple query without orderBy to avoid index requirement
+        // Sort client-side instead
         val listener = chatsCollection
             .whereArrayContains("participants", userId)
-            .orderBy("lastMessageTime", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    close(error)
+                    // Log the error but don't crash - just emit empty list
+                    android.util.Log.e("ChatService", "Error observing chats: ${error.message}", error)
+                    trySend(emptyList())
                     return@addSnapshotListener
                 }
                 
                 val chats = snapshot?.documents?.mapNotNull { doc ->
                     doc.toObject(ChatConversation::class.java)
-                } ?: emptyList()
+                }?.sortedByDescending { it.lastMessageTime } ?: emptyList()
                 
                 trySend(chats)
             }
