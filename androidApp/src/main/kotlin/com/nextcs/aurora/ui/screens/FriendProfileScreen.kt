@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nextcs.aurora.social.SocialFirebaseService
 import com.nextcs.aurora.social.UserProfile
+import com.nextcs.aurora.ui.components.ProfileSkeleton
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -68,13 +69,13 @@ fun FriendProfileScreen(
         }
     ) { padding ->
         if (isLoading) {
-            Box(
+            LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
+                    .padding(padding)
+                    .background(Color(0xFFF5F5F7))
             ) {
-                CircularProgressIndicator(color = Color(0xFF007AFF))
+                item { ProfileSkeleton() }
             }
         } else {
             profile?.let { user ->

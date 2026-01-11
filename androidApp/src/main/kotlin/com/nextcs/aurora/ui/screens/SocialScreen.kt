@@ -8,6 +8,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -52,12 +54,29 @@ fun SocialScreen(
     var selectedTab by remember { mutableStateOf(0) }
     val tabs = listOf("Friends", "Requests", "Carpool", "Drivers")
     
-    // Badge counts
-    val notificationCount by notificationService.observeUnreadCount().collectAsState(initial = 0)
-    val messageCount by chatService.observeChats().collectAsState(initial = emptyList())
-    val unreadMessageCount = remember(messageCount) {
-        val currentUserId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
-        messageCount.sumOf { it.unreadCount[currentUserId] ?: 0 }
+    // Badge counts with error handling
+    var notificationCount by remember { mutableStateOf(0) }
+    var unreadMessageCount by remember { mutableStateOf(0) }
+    
+    LaunchedEffect(Unit) {
+        try {
+            notificationService.observeUnreadCount().collect { count ->
+                notificationCount = count
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("SocialScreen", "Error observing notification count: ${e.message}")
+        }
+    }
+    
+    LaunchedEffect(Unit) {
+        try {
+            chatService.observeChats().collect { chats ->
+                val currentUserId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
+                unreadMessageCount = chats.sumOf { it.unreadCount[currentUserId] ?: 0 }
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("SocialScreen", "Error observing chat count: ${e.message}")
+        }
     }
     
     // State for navigation to friend profile
