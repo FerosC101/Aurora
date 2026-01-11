@@ -199,7 +199,7 @@ fun SocialScreen(
         when (selectedTab) {
             0 -> FriendsTab(socialService, onNavigateToFriend, onClickProfile = { friendId -> selectedFriendId = friendId })
             1 -> FriendRequestsTab(socialService, onClickProfile = { friendId -> selectedFriendId = friendId })
-            2 -> CarpoolTab(socialService)
+            2 -> CarpoolTab(socialService, onViewProfile = { friendId -> selectedFriendId = friendId })
             3 -> DriversTab(socialService)
         }
     }
@@ -624,10 +624,14 @@ fun FriendCard(
 }
 
 @Composable
-fun CarpoolTab(socialService: SocialFirebaseService) {
+fun CarpoolTab(
+    socialService: SocialFirebaseService,
+    onViewProfile: (String) -> Unit = {}
+) {
     var showCreateDialog by remember { mutableStateOf(false) }
     var carpoolListings by remember { mutableStateOf<List<CarpoolListing>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    var selectedCarpoolId by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val currentUserId = socialService.getCurrentUserId()
     
@@ -679,6 +683,9 @@ fun CarpoolTab(socialService: SocialFirebaseService) {
                                     carpoolListings = carpoolListings.filter { it.id != listing.id }
                                 }
                             }
+                        },
+                        onViewRequests = {
+                            selectedCarpoolId = listing.id
                         }
                     )
                 }
@@ -695,6 +702,15 @@ fun CarpoolTab(socialService: SocialFirebaseService) {
         ) {
             Icon(Icons.Default.Add, contentDescription = "Create Carpool")
         }
+    }
+    
+    // Navigate to carpool requests screen
+    selectedCarpoolId?.let { carpoolId ->
+        CarpoolRequestsScreen(
+            carpoolId = carpoolId,
+            onBack = { selectedCarpoolId = null },
+            onViewProfile = onViewProfile
+        )
     }
     
     if (showCreateDialog) {
@@ -721,7 +737,8 @@ fun CarpoolTab(socialService: SocialFirebaseService) {
 fun CarpoolCard(
     listing: CarpoolListing,
     socialService: SocialFirebaseService,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onViewRequests: () -> Unit = {}
 ) {
     val currentUserId = socialService.getCurrentUserId()
     val isOwnListing = listing.driverId == currentUserId
@@ -860,17 +877,25 @@ fun CarpoolCard(
             }
             
             Button(
-                onClick = { showRequestDialog = true },
+                onClick = { if (isOwnListing) onViewRequests() else showRequestDialog = true },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF007AFF)
+                    containerColor = if (isOwnListing) Color(0xFF34C759) else Color(0xFF007AFF)
                 ),
                 shape = RoundedCornerShape(12.dp),
-                enabled = !isOwnListing && listing.availableSeats > 0
+                enabled = if (isOwnListing) true else listing.availableSeats > 0
             ) {
+                if (isOwnListing) {
+                    Icon(
+                        Icons.Default.List,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
                 Text(
                     when {
-                        isOwnListing -> "Your Listing"
+                        isOwnListing -> "View Requests"
                         listing.availableSeats == 0 -> "Full"
                         else -> "Request Ride"
                     },
