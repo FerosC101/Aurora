@@ -11,6 +11,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
+enum class MessageStatus {
+    SENT,      // Message sent to server
+    DELIVERED, // Message delivered to recipient's device
+    SEEN       // Message viewed by recipient
+}
+
 data class ChatMessage(
     val id: String = "",
     val chatId: String = "",
@@ -18,7 +24,8 @@ data class ChatMessage(
     val senderName: String = "",
     val message: String = "",
     val timestamp: Long = System.currentTimeMillis(),
-    val read: Boolean = false
+    val read: Boolean = false,
+    val status: String = MessageStatus.SENT.name
 )
 
 data class ChatConversation(
@@ -115,7 +122,8 @@ class ChatService(private val context: Context) {
                 chatId = chatId,
                 senderId = currentUserId,
                 senderName = currentUserName,
-                message = message
+                message = message,
+                status = MessageStatus.SENT.name
             )
             
             // Save message
@@ -216,6 +224,88 @@ class ChatService(private val context: Context) {
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Error marking as read", e)
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Update message status (SENT -> DELIVERED -> SEEN)
+     */
+    suspend fun updateMessageStatus(messageId: String, status: MessageStatus): Result<Unit> {
+        return try {
+            messagesCollection.document(messageId)
+                .update("status", status.name)
+                .await()
+            
+            Log.d(TAG, "Message status updated: $messageId -> $status")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating message status", e)
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Mark all messages in a chat as delivered for the current user
+     */
+    suspend fun markMessagesAsDelivered(chatId: String): Result<Unit> {
+        return try {
+            val currentUserId = getCurrentUserId() ?: return Result.failure(Exception("Not logged in"))
+            
+            // Get all messages in chat not sent by current user with SENT status
+            val messages = messagesCollection
+                .whereEqualTo("chatId", chatId)
+                .whereNotEqualTo("senderId", currentUserId)
+                .whereEqualTo("status", MessageStatus.SENT.name)
+                .get()
+                .await()
+            
+            // Update each message to DELIVERED
+            messages.documents.forEach { doc ->
+                messagesCollection.document(doc.id)
+                    .update("status", MessageStatus.DELIVERED.name)
+                    .await()
+            }
+            
+            Log.d(TAG, "Marked ${messages.documents.size} messages as delivered in chat $chatId")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error marking messages as delivered", e)
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Mark all messages in a chat as seen for the current user
+     */
+    suspend fun markMessagesAsSeen(chatId: String): Result<Unit> {
+        return try {
+            val currentUserId = getCurrentUserId() ?: return Result.failure(Exception("Not logged in"))
+            
+            // Get all messages in chat not sent by current user
+            val messages = messagesCollection
+                .whereEqualTo("chatId", chatId)
+                .whereNotEqualTo("senderId", currentUserId)
+                .get()
+                .await()
+            
+            // Update each message to SEEN and mark as read
+            messages.documents.forEach { doc ->
+                messagesCollection.document(doc.id)
+                    .update(mapOf(
+                        "status" to MessageStatus.SEEN.name,
+                        "read" to true
+                    ))
+                    .await()
+            }
+            
+            // Also update chat unread count
+            markAsRead(chatId)
+            
+            Log.d(TAG, "Marked ${messages.documents.size} messages as seen in chat $chatId")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error marking messages as seen", e)
             Result.failure(e)
         }
     }

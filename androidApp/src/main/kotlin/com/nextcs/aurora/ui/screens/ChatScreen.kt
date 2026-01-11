@@ -24,6 +24,7 @@ import androidx.compose.ui.window.Dialog
 import com.nextcs.aurora.social.ChatService
 import com.nextcs.aurora.social.ChatMessage
 import com.nextcs.aurora.social.ChatConversation
+import com.nextcs.aurora.social.MessageStatus
 import com.nextcs.aurora.social.SocialFirebaseService
 import com.nextcs.aurora.social.UserProfile
 import kotlinx.coroutines.launch
@@ -331,9 +332,21 @@ fun ActiveChatPanel(
     var messageText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
     
+    // Mark messages as delivered when opening chat
+    LaunchedEffect(chatId) {
+        chatService.markMessagesAsDelivered(chatId)
+    }
+    
     // Mark as read when entering chat
     LaunchedEffect(chatId) {
         chatService.markAsRead(chatId)
+    }
+    
+    // Mark messages as seen when viewing
+    LaunchedEffect(chatId, messages.size) {
+        if (messages.isNotEmpty()) {
+            chatService.markMessagesAsSeen(chatId)
+        }
     }
     
     // Auto-scroll to bottom when new messages arrive
@@ -533,12 +546,39 @@ fun ChatMessageItem(message: ChatMessage) {
                 
                 Spacer(modifier = Modifier.height(4.dp))
                 
-                Text(
-                    dateFormat.format(Date(message.timestamp)),
-                    fontSize = 11.sp,
-                    color = if (isCurrentUser) Color.White.copy(alpha = 0.8f) else Color(0xFF8E8E93),
-                    modifier = Modifier.align(Alignment.End)
-                )
+                Row(
+                    modifier = Modifier.align(Alignment.End),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        dateFormat.format(Date(message.timestamp)),
+                        fontSize = 11.sp,
+                        color = if (isCurrentUser) Color.White.copy(alpha = 0.8f) else Color(0xFF8E8E93)
+                    )
+                    
+                    // Show status indicators for sent messages
+                    if (isCurrentUser) {
+                        val statusIcon = when (message.status) {
+                            MessageStatus.SEEN.name -> "✓✓" // Double check for seen
+                            MessageStatus.DELIVERED.name -> "✓✓" // Double check for delivered
+                            MessageStatus.SENT.name -> "✓" // Single check for sent
+                            else -> "✓"
+                        }
+                        val statusColor = if (message.status == MessageStatus.SEEN.name) {
+                            Color(0xFF34C759) // Green for seen
+                        } else {
+                            Color.White.copy(alpha = 0.8f)
+                        }
+                        
+                        Text(
+                            statusIcon,
+                            fontSize = 10.sp,
+                            color = statusColor,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
             }
         }
     }
