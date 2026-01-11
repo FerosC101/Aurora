@@ -47,6 +47,22 @@ fun SocialScreen(
     var selectedTab by remember { mutableStateOf(0) }
     val tabs = listOf("Friends", "Carpool", "Drivers")
     
+    // State for navigation to friend profile
+    var selectedFriendId by remember { mutableStateOf<String?>(null) }
+    
+    // Show friend profile if selected
+    selectedFriendId?.let { friendId ->
+        FriendProfileScreen(
+            friendId = friendId,
+            onBack = { selectedFriendId = null },
+            onMessage = {
+                selectedFriendId = null
+                onNavigateToChat()
+            }
+        )
+        return
+    }
+    
     // Initialize user profile on launch
     LaunchedEffect(Unit) {
         scope.launch {
@@ -180,7 +196,7 @@ fun SocialScreen(
         
         // Content
         when (selectedTab) {
-            0 -> FriendsTab(socialService, onNavigateToFriend)
+            0 -> FriendsTab(socialService, onNavigateToFriend, onClickProfile = { friendId -> selectedFriendId = friendId })
             1 -> CarpoolTab(socialService)
             2 -> DriversTab(socialService)
         }
@@ -190,7 +206,8 @@ fun SocialScreen(
 @Composable
 fun FriendsTab(
     socialService: SocialFirebaseService,
-    onNavigateToFriend: (FriendLocation) -> Unit
+    onNavigateToFriend: (FriendLocation) -> Unit,
+    onClickProfile: (String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
     var friends by remember { mutableStateOf<List<UserProfile>>(emptyList()) }
@@ -314,7 +331,8 @@ fun FriendsTab(
                         friend = friend,
                         location = location,
                         onNavigate = { location?.let { onNavigateToFriend(it) } },
-                        onShareTrip = { /* TODO */ }
+                        onShareTrip = { /* TODO */ },
+                        onClickProfile = { onClickProfile(friend.userId) }
                     )
                 }
             }
@@ -446,10 +464,13 @@ fun FriendCard(
     friend: UserProfile,
     location: FriendLocation?,
     onNavigate: () -> Unit,
-    onShareTrip: () -> Unit
+    onShareTrip: () -> Unit,
+    onClickProfile: () -> Unit = {}
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClickProfile() },
         colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)

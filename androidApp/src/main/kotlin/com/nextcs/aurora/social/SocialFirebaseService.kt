@@ -59,11 +59,27 @@ data class RideRequest(
     val timestamp: Long = 0
 )
 
+data class DrivingStats(
+    val safetyScore: Double = 0.0, // 0-100
+    val punctualityScore: Double = 0.0, // 0-100
+    val totalRides: Int = 0,
+    val completedRides: Int = 0,
+    val cancelledRides: Int = 0,
+    val averageRating: Double = 0.0, // 0-5
+    val totalRatings: Int = 0,
+    val onTimePercentage: Double = 0.0,
+    val responsiveness: Double = 0.0, // 0-100
+    val drivingScore: Double = 0.0 // Overall calculated score 0-100
+)
+
 data class UserProfile(
     val userId: String = "",
     val displayName: String = "",
     val email: String = "",
-    val photoUrl: String = ""
+    val photoUrl: String = "",
+    val phoneNumber: String = "",
+    val bio: String = "",
+    val stats: DrivingStats = DrivingStats()
 )
 
 data class FriendRequest(
@@ -718,6 +734,109 @@ class SocialFirebaseService(private val context: Context) {
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Error deleting ride request", e)
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Get user profile by ID
+     */
+    suspend fun getUserProfile(userId: String): Result<UserProfile> {
+        return try {
+            val doc = usersCollection.document(userId).get().await()
+            
+            if (!doc.exists()) {
+                return Result.failure(Exception("User not found"))
+            }
+            
+            val displayName = doc.getString("fullName") 
+                ?: doc.getString("displayName") 
+                ?: "User"
+            val email = doc.getString("email") ?: ""
+            val photoUrl = doc.getString("profileImageUrl") 
+                ?: doc.getString("photoUrl") 
+                ?: ""
+            val phoneNumber = doc.getString("phoneNumber") ?: ""
+            val bio = doc.getString("bio") ?: ""
+            
+            // Parse stats if available
+            val statsMap = doc.get("stats") as? Map<String, Any>
+            val stats = if (statsMap != null) {
+                DrivingStats(
+                    safetyScore = (statsMap["safetyScore"] as? Number)?.toDouble() ?: 0.0,
+                    punctualityScore = (statsMap["punctualityScore"] as? Number)?.toDouble() ?: 0.0,
+                    totalRides = (statsMap["totalRides"] as? Number)?.toInt() ?: 0,
+                    completedRides = (statsMap["completedRides"] as? Number)?.toInt() ?: 0,
+                    cancelledRides = (statsMap["cancelledRides"] as? Number)?.toInt() ?: 0,
+                    averageRating = (statsMap["averageRating"] as? Number)?.toDouble() ?: 0.0,
+                    totalRatings = (statsMap["totalRatings"] as? Number)?.toInt() ?: 0,
+                    onTimePercentage = (statsMap["onTimePercentage"] as? Number)?.toDouble() ?: 0.0,
+                    responsiveness = (statsMap["responsiveness"] as? Number)?.toDouble() ?: 0.0,
+                    drivingScore = (statsMap["drivingScore"] as? Number)?.toDouble() ?: 0.0
+                )
+            } else {
+                DrivingStats()
+            }
+            
+            val profile = UserProfile(
+                userId = userId,
+                displayName = displayName,
+                email = email,
+                photoUrl = photoUrl,
+                phoneNumber = phoneNumber,
+                bio = bio,
+                stats = stats
+            )
+            
+            Result.success(profile)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting user profile: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Get mutual friends between current user and another user
+     */
+    suspend fun getMutualFriends(friendUserId: String): Result<List<UserProfile>> {
+        return try {
+            val currentUserId = getCurrentUserId() ?: return Result.failure(Exception("User not logged in"))
+            
+            // Get current user's friends
+            val currentUserFriends = friendsCollection
+                .document(currentUserId)
+                .collection("userFriends")
+                .get()
+                .await()
+                .documents
+                .mapNotNull { it.id }
+                .toSet()
+            
+            // Get target user's friends
+            val targetUserFriends = friendsCollection
+                .document(friendUserId)
+                .collection("userFriends")
+                .get()
+                .await()
+                .documents
+                .mapNotNull { it.id }
+                .toSet()
+            
+            // Find mutual friends
+            val mutualFriendIds = currentUserFriends.intersect(targetUserFriends)
+            
+            // Get profiles for mutual friends
+            val mutualProfiles = mutualFriendIds.mapNotNull { userId ->
+                try {
+                    getUserProfile(userId).getOrNull()
+                } catch (e: Exception) {
+                    null
+                }
+            }
+            
+            Result.success(mutualProfiles)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting mutual friends: ${e.message}", e)
             Result.failure(e)
         }
     }
