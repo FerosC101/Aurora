@@ -711,10 +711,46 @@ class SocialFirebaseService(private val context: Context) {
      */
     suspend fun updateRideRequestStatus(requestId: String, status: String): Result<Unit> {
         return try {
+            // Get request details for notification
+            val requestDoc = rideRequestsCollection.document(requestId).get().await()
+            val request = requestDoc.toObject(RideRequest::class.java)
+            
             rideRequestsCollection
                 .document(requestId)
                 .update("status", status)
                 .await()
+            
+            // Send notification to requester
+            if (request != null) {
+                val notificationService = NotificationService(context)
+                val currentUser = auth.currentUser
+                
+                when (status) {
+                    "accepted" -> {
+                        notificationService.sendNotification(
+                            toUserId = request.requesterId,
+                            type = "carpool_accepted",
+                            title = "Ride Request Accepted",
+                            message = "${currentUser?.displayName ?: "Driver"} accepted your ride request for ${request.pickupAddress}",
+                            actionData = mapOf(
+                                "requestId" to requestId,
+                                "driverId" to (currentUser?.uid ?: "")
+                            )
+                        )
+                    }
+                    "declined" -> {
+                        notificationService.sendNotification(
+                            toUserId = request.requesterId,
+                            type = "carpool_declined",
+                            title = "Ride Request Declined",
+                            message = "${currentUser?.displayName ?: "Driver"} declined your ride request for ${request.pickupAddress}",
+                            actionData = mapOf(
+                                "requestId" to requestId
+                            )
+                        )
+                    }
+                }
+            }
             
             Log.d(TAG, "Ride request status updated: $requestId -> $status")
             Result.success(Unit)

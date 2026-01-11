@@ -23,6 +23,8 @@ import androidx.compose.ui.window.Dialog
 import com.nextcs.aurora.social.FriendLocation
 import com.nextcs.aurora.social.FriendLocationSharingService
 import com.nextcs.aurora.social.SocialFirebaseService
+import com.nextcs.aurora.social.NotificationService
+import com.nextcs.aurora.social.ChatService
 import com.nextcs.aurora.social.CarpoolListing
 import com.nextcs.aurora.social.RideRequest
 import com.nextcs.aurora.social.UserProfile
@@ -43,10 +45,20 @@ fun SocialScreen(
     val context = LocalContext.current
     val friendService = remember { FriendLocationSharingService(context) }
     val socialService = remember { SocialFirebaseService(context) }
+    val notificationService = remember { NotificationService(context) }
+    val chatService = remember { ChatService(context) }
     val scope = rememberCoroutineScope()
     
     var selectedTab by remember { mutableStateOf(0) }
     val tabs = listOf("Friends", "Requests", "Carpool", "Drivers")
+    
+    // Badge counts
+    val notificationCount by notificationService.observeUnreadCount().collectAsState(initial = 0)
+    val messageCount by chatService.observeChats().collectAsState(initial = emptyList())
+    val unreadMessageCount = remember(messageCount) {
+        val currentUserId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
+        messageCount.sumOf { it.unreadCount[currentUserId] ?: 0 }
+    }
     
     // State for navigation to friend profile
     var selectedFriendId by remember { mutableStateOf<String?>(null) }
@@ -152,22 +164,60 @@ fun SocialScreen(
                     }
                     
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        // Notifications Icon
-                        IconButton(onClick = onNavigateToNotifications) {
-                            Icon(
-                                Icons.Default.Notifications,
-                                contentDescription = "Notifications",
-                                tint = Color(0xFF007AFF)
-                            )
+                        // Notifications Icon with Badge
+                        Box {
+                            IconButton(onClick = onNavigateToNotifications) {
+                                Icon(
+                                    Icons.Default.Notifications,
+                                    contentDescription = "Notifications",
+                                    tint = Color(0xFF007AFF)
+                                )
+                            }
+                            if (notificationCount > 0) {
+                                androidx.compose.foundation.layout.Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .offset(x = 4.dp, y = 8.dp)
+                                        .size(18.dp)
+                                        .background(Color.Red, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = if (notificationCount > 9) "9+" else notificationCount.toString(),
+                                        color = Color.White,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
                         }
                         
-                        // Chat Icon
-                        IconButton(onClick = onNavigateToChat) {
-                            Icon(
-                                Icons.Default.Email,
-                                contentDescription = "Messages",
-                                tint = Color(0xFF007AFF)
-                            )
+                        // Chat Icon with Badge
+                        Box {
+                            IconButton(onClick = onNavigateToChat) {
+                                Icon(
+                                    Icons.Default.Email,
+                                    contentDescription = "Messages",
+                                    tint = Color(0xFF007AFF)
+                                )
+                            }
+                            if (unreadMessageCount > 0) {
+                                androidx.compose.foundation.layout.Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .offset(x = 4.dp, y = 8.dp)
+                                        .size(18.dp)
+                                        .background(Color.Red, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = if (unreadMessageCount > 9) "9+" else unreadMessageCount.toString(),
+                                        color = Color.White,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
                         }
                     }
                 }

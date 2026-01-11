@@ -137,4 +137,57 @@ class NotificationService(private val context: Context) {
             0
         }
     }
+    
+    /**
+     * Observe unread notification count in real-time
+     */
+    fun observeUnreadCount(): Flow<Int> = callbackFlow {
+        val userId = getCurrentUserId()
+        if (userId == null) {
+            close(Exception("Not logged in"))
+            return@callbackFlow
+        }
+        
+        val listener = notificationsCollection
+            .whereEqualTo("userId", userId)
+            .whereEqualTo("read", false)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+                
+                val count = snapshot?.documents?.size ?: 0
+                trySend(count)
+            }
+        
+        awaitClose { listener.remove() }
+    }
+    
+    /**
+     * Mark all notifications as read
+     */
+    suspend fun markAllAsRead(): Result<Unit> {
+        return try {
+            val userId = getCurrentUserId() ?: return Result.failure(Exception("Not logged in"))
+            
+            val notifications = notificationsCollection
+                .whereEqualTo("userId", userId)
+                .whereEqualTo("read", false)
+                .get()
+                .await()
+            
+            notifications.documents.forEach { doc ->
+                notificationsCollection.document(doc.id)
+                    .update("read", true)
+                    .await()
+            }
+            
+            Log.d(TAG, "Marked ${notifications.documents.size} notifications as read")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error marking all notifications as read", e)
+            Result.failure(e)
+        }
+    }
 }
