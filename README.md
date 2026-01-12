@@ -1,7 +1,11 @@
-# Aurora - AI-Powered Smart Navigation & Social Carpool Platform
-
-> **Kotlin Multiplatform Contest 2026 Submission**  
-> A full-featured navigation and social transportation app demonstrating the power of Kotlin Multiplatform
+<div align="center">
+  <img src="androidApp/src/main/res/mipmap/ic_launcher.png" alt="Aurora Logo" width="120" height="120">
+  
+  # Aurora - AI-Powered Smart Navigation & Social Carpool Platform
+  
+  > **Kotlin Multiplatform Contest 2026 Submission**  
+  > A full-featured navigation and social transportation app demonstrating the power of Kotlin Multiplatform
+</div>
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0.0-blue.svg)](https://kotlinlang.org)
 [![Compose Multiplatform](https://img.shields.io/badge/Compose-1.7.0-brightgreen.svg)](https://www.jetbrains.com/lp/compose-multiplatform/)
@@ -341,15 +345,15 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Author
 
-**Your Name**  
+**Vince Anjo R. Villar**  
 Built for Kotlin Multiplatform Contest 2026
 
 - GitHub: [@YourUsername](https://github.com/YourUsername)
-- Email: your.email@example.com
+- Email: vincevillar02@gmail.com
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **JetBrains**: For Kotlin and Compose Multiplatform
 - **Google**: For Firebase, Maps API, and Gemini AI
