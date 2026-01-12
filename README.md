@@ -12,6 +12,10 @@
 [![Platforms](https://img.shields.io/badge/Platforms-Android%20%7C%20Desktop-orange.svg)](#)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+## 🎥 Demo Video
+
+Watch Aurora in action: [**View Demo Video**](https://drive.google.com/file/d/1RyCbi5zTAzaddLAD8Wapy73VYnYT8_kP/view?usp=sharing)
+
 ---
 
 ## About Aurora
@@ -135,7 +139,7 @@ Aurora/
 
 ### Clone the Repository
 ```bash
-git clone https://github.com/YOUR_USERNAME/Aurora.git
+git clone https://github.com/FerosC101/Aurora.git
 cd Aurora
 ```
 
@@ -239,11 +243,7 @@ GEMINI_API_KEY=your_gemini_api_key_here
 |---------|---------|------|
 | ![Friends](docs/screenshots/android_friends.png) | ![Carpool](docs/screenshots/android_carpool.png) | ![Chat](docs/screenshots/android_chat.png) |
 
-### Desktop Screenshots
 
-| Desktop Home | Side Navigation | Route Planning |
-|--------------|-----------------|----------------|
-| ![Desktop Home](docs/screenshots/desktop_home.png) | ![Desktop Nav](docs/screenshots/desktop_nav.png) | ![Desktop Routes](docs/screenshots/desktop_routes.png) |
 
 ---
 
@@ -348,7 +348,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Vince Anjo R. Villar**  
 Built for Kotlin Multiplatform Contest 2026
 
-- GitHub: [@YourUsername](https://github.com/YourUsername)
+- GitHub: [@FerosC101](https://github.com/FerosC101)
 - Email: vincevillar02@gmail.com
 
 ---
@@ -393,6 +393,12 @@ Built for Kotlin Multiplatform Contest 2026
    - Demonstrates Kotlin Multiplatform capabilities
    - Original concept and implementation
    - Includes all required documentation
+
+---
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
